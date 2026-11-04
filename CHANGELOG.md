@@ -1,6 +1,6 @@
 # Changelog
 
-All notable changes to this repository. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Built against Herdr app 0.1.12 and its shipped mods.
+All notable changes to this repository. The format follows Keep a Changelog. Built against Herdr app 0.1.12 and its shipped mods.
 
 ## [Unreleased]
 
@@ -11,7 +11,7 @@ Round 1: make the layout shareable. Items land as the round's roles merge; this 
 - README, a documentation site under `docs/` for GitHub Pages (overview, install, usage, configuration, platforms, privacy, how it works, troubleshooting, for agents), `AGENTS.md`, `llms.txt`, `CONTRIBUTING.md` and this changelog.
 - `RECIPE.md`, `preview.png` (an illustration with made-up content), `LICENSE` (Apache-2.0) and `NOTICE`.
 - `snippets/vault-panel.json`: the Vault panel as an opt-in.
-- Tests (`node --test tests/`), validators in `scripts/`, and a CI workflow on Ubuntu, Windows and macOS.
+- Tests (`node --test`, no dependencies), validators in `scripts/`, and a CI workflow for Ubuntu, Windows and macOS (`.github/workflows/ci.yml`; it is kept on its own branch until the token used to push has the `workflow` scope).
 
 ### Changed
 

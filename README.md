@@ -2,7 +2,7 @@
 
 A [Herdr](https://herdr.dev) layout for tall, vertical monitors. Your spaces sit side by side as columns in a strip at the top, each a tree of its tabs and panes with the state of every agent. The work area gets the rest of the screen, and a side panel brings Files and Changes when you want them.
 
-![Illustration of the portrait layout with made-up content: a strip of space columns (api, web, docs, a folded infra) on top, a tab bar, a large terminal pane with an agent running tests, a shell pane, and a status line.](preview.png)
+![Illustration of the portrait layout with made-up content: three space columns (api, web, docs) with agent rows and state words and a folded fourth (infra) in a strip on top, a tab bar, a large terminal pane with an agent running tests, a shell pane, and a status line.](preview.png)
 
 *An illustration with made-up content, not a screenshot of anyone's setup.*
 
@@ -146,12 +146,12 @@ Nothing here uses the network. This is everything the mods read, run and write:
 
 | Mod | Reads | Runs | Writes or stores | Where to check |
 |---|---|---|---|---|
-| bar-strip | Agent list and status, layout tree, shared keys, whether an app update is ready. With the Vault gate: whether the file `mods/vault/main.js` exists in the Herdr home folder (existence only). | Nothing. Opens Herdr's own dialogs and runs Herdr commands (`agent.focus`, `layout.select`, `layout.show`, `layout.hide`, `mod.open`, `app.settings`). | Shared key `mods.vault` (a yes or no). | `waiting`, `attention`, `picker`, `render` |
-| portrait-tree | Spaces, tabs, panes, agents and their state, terminal labels (`editor.file`), shared keys `space.colors` and `vault.panes`. | Nothing. | Browser-style local storage of the mod: `folded`, `peeked` and `changed` (agent address and the time its state last changed; pruned of agents that are gone). Shared key `agents.since`. One small SVG per space name under `data/portrait-tree-spines/` in the Herdr home folder (the rotated name on a folded space; pruned of names that are gone). | `track`, `reveal`, `spine`, `spineFile` |
-| portrait-tabs | Spaces, tabs, panes, layout tree, window info. | Nothing. | Local storage `panels`: which side panel each space last had open. | `syncPanel` |
+| bar-strip | Agent list and status, the layout tree, the key bindings (to print the bell's key), whether an app update is ready, and whether the file `mods/vault/main.js` exists in the Herdr home folder (existence only, at start and every 60 seconds). | Nothing. Opens Herdr's own dialogs and runs Herdr commands (`agent.focus`, `layout.select`, `layout.show`, `layout.hide`, `mod.open`, `app.settings`). | Shared key `mods.vault` (a yes or no). | `probeVault`, `keyHint`, `attention`, `picker` |
+| portrait-tree | Spaces, tabs, panes, agents and their state, terminal labels (`editor.file`), shared keys `space.colors` and `vault.panes`. | Nothing. | The mod's local storage: `folded` and `peeked` (space ids, dropped when the space is gone) and `changed` (agent address and the time its state last changed; an agent that is gone loses its entry after 7 days). Shared key `agents.since`. One small SVG per space name under `data/portrait-tree-spines/` in the Herdr home folder (the rotated name on a folded space); files of names that no longer exist are deleted once when the tree starts. | `track`, `reveal`, `createSpineStore`, `pruneChanged` |
+| portrait-tabs | Spaces, tabs, panes, layout tree, window info. | Nothing. | Local storage `panels`: which side panel each space last had open (dropped when the space is gone). | `syncPanel`, `prunePanels` |
 | portrait-pane | The one pane it heads: program, folder, state, zoom. | Nothing. | Nothing. | `render` |
-| portrait-files | Folder listings of the focused pane's folder (500 entries per folder, 5,000 in all), the git state of that folder, and, on alt-click only, the text of one file (up to 400,000 characters shown). | `sh` to list a folder (macOS, Linux, remote machines), `powershell` on a Windows local machine, `git rev-parse` and `git status` (read-only flags, no lock), `hc run` to start nvim, and, through nvim-float, `nvim` in a terminal Herdr shows. | A socket file for each nvim it starts, in `/tmp` on macOS and Linux. Labels on that terminal: `editor.file` (the full file path), `editor.socket` and `editor.space`; `hc ls` shows them. | `directory`, `refresh`, `edit`, `show` |
-| nvim-float | Terminal list and labels, spaces, panes. | `sh` running `nvim --server ... --remote-send`, `--remote` and `--remote-expr` against the socket of an nvim this layout started. | Nothing. | `nvim`, `keptEditors` |
+| portrait-files | Folder listings of the focused pane's folder (500 entries per folder, 5,000 in all), the git state of that folder, and, on alt-click only, the text of one file (up to 400,000 characters shown). | `sh` to list a folder (macOS, Linux, remote machines), `powershell` on a Windows local machine, `git rev-parse --show-prefix` and `git status` (read-only flags, no lock), your login shell once per machine to read its PATH (`printenv PATH`), `command -v nvim`, `hc run` to start nvim, and `nvim` in a terminal Herdr shows. Nothing runs while the Files panel is closed. | A socket file for each nvim it starts, in `/tmp` on macOS and Linux. Labels on that terminal: `editor.file` (the full file path), `editor.socket` and `editor.space`; `hc ls` shows them. | `directory`, `refresh`, `edit`, `loginPath`, `nvimArgv`, `show` |
+| nvim-float | Terminal list and labels, spaces, panes. | `sh` running `nvim --server ... --remote-send`, `--remote` and `--remote-expr` against the socket of an nvim this layout started, only when you use its close button or Keep menu. | Nothing. | `nvim`, `keptEditors` |
 | attention-picker (bundled) | Agent list. While the list is open, the visible screen text of every agent that is blocked or done, read with `hc read`; only the last question or message line is kept and shown. | `hc read` every 2 seconds while the list is open. | Shared key `attention.sort` (the sort order you picked). | `readPreviews` |
 
 Fuller text: [Privacy](docs/privacy.html).
@@ -160,7 +160,7 @@ Fuller text: [Privacy](docs/privacy.html).
 
 - **Layout won't load.** Read `layout.error` in the Herdr home folder; `ctrl-alt-shift-escape` always returns to the default layout.
 - **Bell key does nothing.** The command reaches only a shown bar-strip: bound per layout, and not while the bar is hidden.
-- **"Couldn't open nvim".** nvim is not on your login shell's PATH, `hc run` failed, or the terminal did not appear within 10 seconds. On Windows a click opens the preview instead.
+- **A click shows a preview or "Couldn't open nvim".** nvim is not on your login shell's PATH (you get "nvim not found on PATH" and the preview), `hc run` failed, or the terminal did not appear within 10 seconds. On Windows a click opens the preview instead.
 - **No Vault button.** It needs the `vault` mod and the `vault` panel node, both.
 - **Columns cut off.** Each needs 290 px; use the arrow markers, swipe sideways, fold spaces, or widen the bar.
 
@@ -193,7 +193,7 @@ Needs from Herdr (shipped mods and overlays):
 | `machine-add` (shipped overlay) | bar-strip: the Add machine button. | The button does nothing. |
 | `menu` and `new-menu` (shipped overlays) | portrait-tree and portrait-tabs: right-click menus and the + button. | Menus and + do nothing. |
 | Theme colors (`chrome`, `canvas`, `raised`, `hover`, `selected`, `border`, `accent`, `working`, `blocked`, `done`, `idle`) | Everything. Any Herdr theme has them. | Not applicable: every theme defines them. |
-| `hc` (herdr-core) and `nvim` on the login shell's PATH | Click-to-edit in portrait-files, the waiting list's previews. | Files: "Couldn't open nvim". The waiting list shows no question text. |
+| `hc` (herdr-core) and `nvim` on the login shell's PATH | Click-to-edit in portrait-files, the waiting list's previews. | Files: a message and the read-only preview instead of nvim. The waiting list shows no question text. |
 
 ## Contributing, changelog, licence
 

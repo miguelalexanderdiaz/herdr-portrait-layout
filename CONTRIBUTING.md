@@ -34,7 +34,7 @@ Run from the repository root before you push:
 
 | What | Command |
 |---|---|
-| Tests (pure logic, repo invariants) | `node --test tests/` |
+| Tests (pure logic, repo invariants) | `node --test` |
 | Each mod loads and renders once | `for m in mods/*; do herdr-app check "$PWD/$m"; done` |
 | Layouts, keys, mod.json, assets | `node scripts/validate.mjs` |
 | No personal data in files | `node scripts/privacy-scan.mjs` |
@@ -42,7 +42,7 @@ Run from the repository root before you push:
 | Preview and SVGs are valid | `node scripts/check-assets.mjs` |
 | Docs: links, no external hosts, llms.txt copy | `node scripts/check-docs.mjs` |
 
-CI runs the same on Ubuntu, Windows and macOS. `herdr-app check` cannot see runtime behaviour, so the manual checklist below still matters.
+When `.github/workflows/ci.yml` is in the tree, CI runs the same on Ubuntu, Windows and macOS. `herdr-app check` cannot see runtime behaviour, so the manual checklist below still matters.
 
 ## Manual checklist (in a scratch Herdr that is yours)
 

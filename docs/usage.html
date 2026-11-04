@@ -25,7 +25,7 @@
 <li><strong>The bell</strong> counts the agents waiting on you: &ldquo;1 needs you &middot; 2 done&rdquo;. Agents asking for input count first, then agents that finished while you were away. It is lit while anyone is waiting and reads &ldquo;Needs you&rdquo; (dim) when nobody is.
 <ul>
 <li>Click: go to the agent that has waited longest, asking ones first. Click again from there for the next, wrapping around.</li>
-<li>Shift-click, or the key in <a href="configuration.html#keys">the keys table</a>: open the <em>Agents waiting</em> list with its search box. The tooltip shows the key that is really bound on your machine.</li>
+<li>Shift-click, or the key in <a href="configuration.html#keys">the keys table</a>: open the <em>Agents waiting</em> list with its search box. The tooltip shows the key that is really bound on your machine. Pressing the key again replaces an open list instead of stacking another.</li>
 </ul></li>
 <li><strong>Files</strong>, <strong>Changes</strong> and, when installed, <strong>Vault</strong> open and close the side panel on that tab. The button of the open tab is lit.</li>
 </ul>
@@ -49,7 +49,7 @@
 <p><code>agent.next</code> and <code>agent.prev</code> follow the tree's order, skipping folded spaces.</p>
 
 <h2 id="tabs">The tab bar</h2>
-<p>Under the strip, 42 px. Each tab shows its program's icon, its name (<code>Z</code> is added while zoomed), a spinner while working and a dot when blocked or done. Click selects, double-click renames, drag reorders, right-click opens the tab menu, the active tab has a close button, and <kbd>+</kbd> opens Herdr's new-tab menu. Scrolling over the bar moves to the previous or next tab. The bar also remembers, per space, whether the side panel was open and on which tab, and restores that when you switch spaces.</p>
+<p>Under the strip, 42 px. Each tab shows its program's icon, its name (<code>Z</code> is added while zoomed), a spinner while working and a dot when blocked or done. Click selects, double-click renames, drag reorders, right-click opens the tab menu, the active tab has a close button, and <kbd>+</kbd> opens Herdr's new-tab menu. Scrolling over the bar moves to the previous or next tab, one tab per 40 px of scroll and at most three per event. The bar also remembers, per space, whether the side panel was open and on which tab, and restores that when you switch spaces.</p>
 
 <h2 id="pane">Pane headers</h2>
 <p>Each pane has a 30 px header: program (or folder), where it is, and its state. Hover it for split right, split down, zoom or unzoom, and close.</p>
@@ -57,11 +57,11 @@
 <h2 id="files">The Files panel</h2>
 <p>Open it with the Files button. It lists the folder of the focused pane (or the space's folder when nothing has focus), on the machine that pane lives on. It does not look at anything while closed.</p>
 <ul>
-<li>Click a folder to expand or collapse it. Click a file to edit it in a floating nvim window (macOS and Linux; on Windows it opens the read-only preview and says so once).</li>
+<li>Click a folder to expand or collapse it. Click a file to edit it in a floating nvim window (macOS and Linux); one click starts one nvim, even on a double click. On Windows, or when nvim is not on your PATH, it shows the read-only preview and says why.</li>
 <li>Alt-click a file for a read-only preview inside the panel. The arrow in the header goes back. Binary files and unreadable files say so; long files are cut at 400,000 characters.</li>
-<li>Git marks: <code>A</code> added or untracked, <code>M</code> modified, <code>D</code> deleted, <code>U</code> unmerged. Marks appear when the folder is inside a git work tree and <code>git</code> is on the PATH.</li>
-<li>Limits: 500 entries per folder and 5,000 in all. The panel says when it cut a list. The <code>.git</code> folder itself is not listed.</li>
-<li>The list refreshes when the focus moves to another folder, when files change in the folder, and every 10 seconds while the panel is open.</li>
+<li>Git marks: <code>A</code> added or untracked, <code>M</code> modified, <code>D</code> deleted, <code>U</code> conflict. A closed folder with a changed file inside shows a dot. Marks appear when the folder is inside a git work tree and <code>git</code> is on the PATH.</li>
+<li>Folders are listed before files. Limits: 500 entries per folder and 5,000 in all; the panel says when it cut a list. The <code>.git</code> folder itself is not listed.</li>
+<li>The list loads when you open the panel, refreshes when the focus moves to another folder or files change in it (a folder watch, not set on your home folder or a drive root), and every 10 seconds while the panel is open. Nothing runs while it is closed.</li>
 </ul>
 <h3>The floating nvim</h3>
 <p>The editor opens in a window over the app, 90% wide and 85% high, with a title bar: the file, its folder, <strong>Keep</strong> and a close button. <em>Keep &rarr; New tab</em> turns the window's nvim into a tab. <em>Keep &rarr; Add to &hellip;</em> opens the file as a buffer in an nvim you kept earlier in this space, focuses that tab and closes the window. The close button quits nvim (<code>:confirm qa</code>, so it asks about unsaved changes), and the window closes when nvim ends.</p>

@@ -28,12 +28,11 @@
 <h2>The bell key does nothing</h2>
 <p><code>bar-strip.attention</code> reaches only a bar-strip that is shown. It is bound in the two layout sections of <code>keys.json</code>, so it does nothing in another layout, while the bar is hidden (the toggle key hides it) or if you renamed the layout without renaming the keys section. The bell's tooltip names the key that is really bound.</p>
 
-<h2>&ldquo;Couldn't open nvim&rdquo;</h2>
+<h2>A click shows a preview or &ldquo;Couldn't open nvim&rdquo;</h2>
 <ul>
-<li>nvim is not on the PATH of your login shell. Test with <code>$SHELL -lc 'command -v nvim'</code>.</li>
-<li><code>hc run</code> failed: the message shown has its error.</li>
-<li>The terminal did not show up within 10 seconds: the message names it.</li>
-<li>On Windows this is expected: a click opens the read-only preview instead.</li>
+<li>&ldquo;nvim not found on PATH&rdquo;: nvim is not on the PATH of your login shell, and the file opens in the read-only preview. Test with <code>$SHELL -lc 'command -v nvim'</code>.</li>
+<li>&ldquo;Showing a read-only preview&rdquo;: expected on Windows, where click-to-edit is not available.</li>
+<li>&ldquo;Couldn't open nvim&rdquo;: <code>hc run</code> failed (the message has its error), or the terminal did not show up within 10 seconds (the layout ends it and names it).</li>
 </ul>
 
 <h2>Files says &ldquo;No folder&rdquo; or &ldquo;No files&rdquo;</h2>

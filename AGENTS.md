@@ -19,7 +19,7 @@ mods/nvim-float/                 title bar and Keep menu of the floating nvim
 mods/attention-picker/           BUNDLED COPY of herdr-agents-waiting; do not edit here
 snippets/vault-panel.json        optional Vault panel node
 keys.json                        keys to merge
-tests/                           node --test tests/
+tests/                           node --test
 scripts/                         validators (see CONTRIBUTING.md)
 RECIPE.md, preview.png           Herdr's build brief and picture; not copied on install
 docs/                            GitHub Pages site (plain HTML and CSS)
@@ -32,7 +32,7 @@ Each mod has `main.js`, `mod.json`, its own icons, and often a `logic.mjs` of pu
 Say this in plain words before writing anything.
 
 - No mod uses the network.
-- The mods run: `sh` (`powershell` for a local Windows machine) to list folders; `git rev-parse` and `git status`; `hc run` to start nvim; `nvim` through the login shell; `hc read` for blocked or finished agents while the Agents waiting list is open.
+- The mods run: `sh` (`powershell` for a local Windows machine) to list folders; `git rev-parse` and `git status`; the login shell once, to read its PATH; `hc run` to start nvim; `nvim`; `hc read` for blocked or finished agents while the Agents waiting list is open.
 - They read: the folder of the focused pane, one file's text when the person alt-clicks it, agent and space data from Herdr.
 - They write: `data/portrait-tree-spines/*.svg` in the Herdr home folder (space names), a socket under `/tmp` per nvim they start (macOS and Linux), and labels on that nvim terminal with the full file path.
 - Full table: [docs/privacy.html](docs/privacy.html).
@@ -60,13 +60,13 @@ Say this in plain words before writing anything.
 - Theme: the layouts set none. To pin: add `"theme": { "light": "paper", "dark": "graphite" }` to the layout root, or add `themes/<name>.json`. Do not assume the author's settings.
 - Sizes: all in the layout files (bar 246 px, strip 26, tab bar 42, status 28, panel 368, pane header 30).
 - Keys for other systems: `cmd-` is macOS only; the `ctrl-shift-` keys work everywhere. Avoid plain `ctrl-<letter>` (programs use ctrl+c d l r w a e u k z and `[`) and `ctrl-alt-` (AltGr on Windows). Check a new key against `herdr-app commands` and the person's `keys.json`.
-- Without nvim or on Windows: nothing to do, a click opens the read-only preview.
+- Without nvim or on Windows: nothing to do, a click shows the read-only preview and says why.
 - Without the Obsidian mods: nothing to do. Do not add the Vault node.
 
 ## Test
 
 - `herdr-app check <absolute mod folder>` for every changed mod. It loads the mod once and renders it once; it does not lay out, run async states or exercise clicks. Say so; do not call a mod done on this alone.
-- `node --test tests/` (Node 18 or newer, no install). Pure logic lives in `mods/<mod>/logic.mjs` with no gpui imports so tests can load it.
+- `node --test` with no argument (Node 18 or newer, no install; on Node 22 and later `node --test tests/` fails because the argument is read as a file). Pure logic lives in `mods/<mod>/logic.mjs` with no gpui imports so tests can load it.
 - JSON files: parse them (`node -e "JSON.parse(require('fs').readFileSync(process.argv[1],'utf8'))" file`).
 - `node scripts/validate.mjs`, `privacy-scan.mjs`, `check-recipe.mjs`, `check-assets.mjs`, `check-docs.mjs` from the repository root.
 - Never run `herdr-app do`, `shot` or `status` against a running app that is not yours, and never write into a live Herdr home from a checkout. Use a scratch copy: `HERDR_APP_HOME=<scratch> herdr-app check <scratch>/mods/<name>`.
@@ -81,6 +81,8 @@ Say this in plain words before writing anything.
 - Do not reference another mod's files (`mods/workspace-chrome/...`, `mods/pane/...`): Herdr replaces its shipped mods on update. Icons are vendored in each mod's folder. The only allowlisted outside asset is `mods/vault/icons/book-open.svg` (optional mod).
 - The nvim socket is under `/tmp` on purpose: macOS temp folders plus a long home path exceed the 104-byte unix socket limit.
 - `herdr-app check` cannot see runtime behaviour (vault gating, polling, nvim). Pure functions carry that in tests.
+- Herdr's script engine has no `Intl`; a mod that touches it fails `herdr-app check`.
+- Blocks between `<shared:...>` markers in the `logic.mjs` files are identical copies of each other (`tests/shared.test.mjs` keeps them equal): change every copy.
 - Elements cannot rotate in GPUI; folded space names are rotated-text SVGs (`spineSvg` in `portrait-tree`).
 - No personal data in files or commits: no real names (except the LICENSE copyright line), no absolute home-folder paths of any system (write `~` or `<home>`), no e-mail addresses, no host names, nothing from a real vault or window.
 - Commit messages: a subject, a body, and the attribution trailer lines your tooling gives.
