@@ -12,7 +12,10 @@
 <a class="skip" href="#main">Skip to content</a>
 <header class="site"><div class="inner">
 <a class="brand" href="index.html">Portrait layout for Herdr</a>
-<nav class="site" aria-label="Documentation"><ul><li><a href="index.html">Overview</a></li><li><a href="install.html" aria-current="page">Install</a></li><li><a href="usage.html">Usage</a></li><li><a href="configuration.html">Configuration</a></li><li><a href="platforms.html">Platforms</a></li><li><a href="privacy.html">Privacy</a></li><li><a href="how-it-works.html">How it works</a></li><li><a href="troubleshooting.html">Troubleshooting</a></li><li><a href="for-agents.html">For agents</a></li></ul></nav>
+<nav class="site" aria-label="Documentation">
+<details class="menu"><summary>Menu: Install</summary><ul><li><a href="index.html">Overview</a></li><li><a href="install.html" aria-current="page">Install</a></li><li><a href="usage.html">Usage</a></li><li><a href="configuration.html">Configuration</a></li><li><a href="platforms.html">Platforms</a></li><li><a href="privacy.html">Privacy</a></li><li><a href="how-it-works.html">How it works</a></li><li><a href="troubleshooting.html">Troubleshooting</a></li><li><a href="for-agents.html">For agents</a></li></ul></details>
+<ul class="wide"><li><a href="index.html">Overview</a></li><li><a href="install.html" aria-current="page">Install</a></li><li><a href="usage.html">Usage</a></li><li><a href="configuration.html">Configuration</a></li><li><a href="platforms.html">Platforms</a></li><li><a href="privacy.html">Privacy</a></li><li><a href="how-it-works.html">How it works</a></li><li><a href="troubleshooting.html">Troubleshooting</a></li><li><a href="for-agents.html">For agents</a></li></ul>
+</nav>
 </div></header>
 <main id="main">
 <h1>Install</h1>
@@ -31,8 +34,9 @@
 <p>The step-by-step version for agents is <a href="for-agents.html">For agents</a> and <a href="https://github.com/miguelalexanderdiaz/herdr-portrait-layout/blob/main/AGENTS.md">AGENTS.md</a>.</p>
 
 <h2 id="by-hand">By hand</h2>
-<p>You need a clone of the repository and the path of your Herdr home folder. <code>herdr-app --help</code> prints it on its last line. By default that is <code>~/.config/herdr-app</code> on macOS, and <code>HERDR_APP_HOME</code> overrides it.</p>
+<p>You need a clone of the repository and the path of your Herdr home folder. <code>herdr-app --help</code> prints it on its last line. Herdr's reference gives <code>~/.config/herdr-app</code> as the default, the same on macOS and Linux; <code>HERDR_APP_HOME</code> overrides it. On Windows the default is not confirmed here, so use what <code>herdr-app --help</code> prints.</p>
 <h3>macOS and Linux</h3>
+<p>To try it without touching your own setup, run it in a scratch Herdr home first (<code>HERDR_APP_HOME=&lt;empty folder&gt;</code>).</p>
 <pre><code>git clone https://github.com/miguelalexanderdiaz/herdr-portrait-layout.git
 cd herdr-portrait-layout
 
@@ -41,6 +45,7 @@ H="${HERDR_APP_HOME:-$HOME/.config/herdr-app}"
 mkdir -p "$H/layouts" "$H/mods"
 
 # Never overwrite: anything that already exists is reported and skipped.
+# Includes the layouts' .svg thumbnails. Rename a layout together with its "preview" field.
 for f in layouts/*; do
   if [ -e "$H/$f" ]; then echo "exists, rename first: $f"; else cp "$f" "$H/layouts/"; fi
 done
@@ -49,17 +54,14 @@ for m in mods/*; do
   if [ -e "$H/mods/$n" ]; then echo "exists, skip or rename: $n"; else cp -R "$m" "$H/mods/$n"; fi
 done
 
-# Check every mod you now have.
-for m in mods/*; do herdr-app check "$H/mods/${m#mods/}"; done
-
-# Switch to the layout.
-herdr-app do layout.switch --name portrait</code></pre>
+for m in mods/*; do herdr-app check "$H/mods/${m#mods/}"; done   # check every mod you now have
+herdr-app do layout.switch --name portrait                          # switch to the layout</code></pre>
 <h3>Windows (PowerShell)</h3>
 <pre><code>git clone https://github.com/miguelalexanderdiaz/herdr-portrait-layout.git
 cd herdr-portrait-layout
 
-# The Herdr home folder: the "Home:" line of  herdr-app --help
-$H = "&lt;the path printed by herdr-app --help&gt;"
+# The Herdr home folder. If herdr-app --help prints another folder, set $H to it.
+$H = if ($env:HERDR_APP_HOME) { $env:HERDR_APP_HOME } else { Join-Path $HOME ".config\herdr-app" }
 New-Item -ItemType Directory -Force "$H\layouts", "$H\mods" | Out-Null
 
 foreach ($f in Get-ChildItem layouts) {
@@ -73,17 +75,17 @@ foreach ($m in Get-ChildItem mods -Directory) {
 
 foreach ($m in Get-ChildItem mods -Directory) { herdr-app check "$H\mods\$($m.Name)" }
 herdr-app do layout.switch --name portrait</code></pre>
-<p class="note">The PowerShell version follows the PowerShell documentation; it has not been run on a Windows machine. If the Herdr home folder differs on your system, use the path <code>herdr-app --help</code> prints.</p>
+<p class="note">What was run: the macOS and Linux script, in a scratch Herdr home on macOS (nothing overwritten, <code>herdr-app check</code> passed for all seven mods). The PowerShell version follows the PowerShell documentation and has not been run on a Windows machine; the default home folder in its first lines is a guess, so use the path <code>herdr-app --help</code> prints if it differs.</p>
 
 <h3>Keys</h3>
 <p>Open the repository's <code>keys.json</code> and add its sections and keys to the <code>keys.json</code> in your Herdr home folder. If you have no <code>keys.json</code> yet, copying the file is enough. If a key is already used by something of yours, keep yours and pick another for ours. If Herdr rejects the file it writes the reason to <code>keys.error</code> and keeps the last good version. The table is on <a href="configuration.html#keys">Configuration</a>.</p>
 
 <h3>If a name is taken</h3>
-<p>Rename the new thing, never the old one. For a layout, rename the file, and rename the section <code>layout:&lt;name&gt;</code> in your keys and the <code>layout.switch:&lt;name&gt;</code> values that point at it. For a mod, rename its folder and every <code>mods/&lt;name&gt;/</code> path inside it, then the <code>mod</code> name in the layouts. The constant <code>PICKER</code> at the top of <code>bar-strip/main.js</code> holds the name of the bundled <code>attention-picker</code>. Details: <a href="for-agents.html#rename">For agents</a>.</p>
+<p>Rename the new thing, never the old one. For a layout, rename the file and its <code>.svg</code> thumbnail, change the <code>preview</code> field in the layout's root to the new thumbnail name, and rename the section <code>layout:&lt;name&gt;</code> in your keys and the <code>layout.switch:&lt;name&gt;</code> values that point at it. For a mod, rename its folder and every <code>mods/&lt;name&gt;/</code> path inside it, then the <code>mod</code> name in the layouts. The constant <code>PICKER</code> at the top of <code>bar-strip/main.js</code> holds the name of the bundled <code>attention-picker</code>. Details: <a href="for-agents.html#rename">For agents</a>.</p>
 <p>If you already have <code>attention-picker</code> from the herdr-agents-waiting repository, keep yours and skip the bundled copy.</p>
 
 <h2 id="vault">Optional: the Vault panel</h2>
-<p>The layouts do not carry a Vault panel, so they work without the Obsidian mods. To add it, install the <code>vault</code> and <code>vault-reader</code> mods from herdr-obsidian-vault, then insert the contents of <code>snippets/vault-panel.json</code> into the <code>children</code> of the stack with id <code>panel-body</code> in each layout file you use. The Vault button in the strip and the note rows in the tree appear when both are there: the mod installed and the panel in the layout. Ids that must stay as they are: <code>panel</code>, <code>panel-body</code>, <code>vault</code> and <code>bar</code>.</p>
+<p>The layouts do not carry a Vault panel, so they work without the Obsidian mods. To add it, install the <code>vault</code> and <code>vault-reader</code> mods from herdr-obsidian-vault, then insert the contents of <code>snippets/vault-panel.json</code> into the <code>children</code> of the stack with id <code>panel-body</code> in each layout file you use. The Vault button in the strip and the note rows in the tree appear when both are there: the mod installed and the panel in the layout. Ids that mods look up and that must stay as they are: <code>panel</code>, <code>panel-body</code>, <code>files</code>, <code>changes</code> and <code>vault</code>; <code>bar</code> is named only by the toggle key.</p>
 
 <h2 id="verify">Check it worked</h2>
 <ul>

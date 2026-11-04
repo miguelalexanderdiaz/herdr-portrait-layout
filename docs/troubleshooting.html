@@ -12,7 +12,10 @@
 <a class="skip" href="#main">Skip to content</a>
 <header class="site"><div class="inner">
 <a class="brand" href="index.html">Portrait layout for Herdr</a>
-<nav class="site" aria-label="Documentation"><ul><li><a href="index.html">Overview</a></li><li><a href="install.html">Install</a></li><li><a href="usage.html">Usage</a></li><li><a href="configuration.html">Configuration</a></li><li><a href="platforms.html">Platforms</a></li><li><a href="privacy.html">Privacy</a></li><li><a href="how-it-works.html">How it works</a></li><li><a href="troubleshooting.html" aria-current="page">Troubleshooting</a></li><li><a href="for-agents.html">For agents</a></li></ul></nav>
+<nav class="site" aria-label="Documentation">
+<details class="menu"><summary>Menu: Troubleshooting</summary><ul><li><a href="index.html">Overview</a></li><li><a href="install.html">Install</a></li><li><a href="usage.html">Usage</a></li><li><a href="configuration.html">Configuration</a></li><li><a href="platforms.html">Platforms</a></li><li><a href="privacy.html">Privacy</a></li><li><a href="how-it-works.html">How it works</a></li><li><a href="troubleshooting.html" aria-current="page">Troubleshooting</a></li><li><a href="for-agents.html">For agents</a></li></ul></details>
+<ul class="wide"><li><a href="index.html">Overview</a></li><li><a href="install.html">Install</a></li><li><a href="usage.html">Usage</a></li><li><a href="configuration.html">Configuration</a></li><li><a href="platforms.html">Platforms</a></li><li><a href="privacy.html">Privacy</a></li><li><a href="how-it-works.html">How it works</a></li><li><a href="troubleshooting.html" aria-current="page">Troubleshooting</a></li><li><a href="for-agents.html">For agents</a></li></ul>
+</nav>
 </div></header>
 <main id="main">
 <h1>Troubleshooting</h1>
@@ -25,8 +28,8 @@
 <h2>The layout does not load or looks wrong</h2>
 <p>Open <code>layout.error</code> in the Herdr home folder. A missing mod name in the layout or a JSON slip shows there. If you renamed a mod, the <code>mod</code> names in the layout and the <code>mods/&lt;name&gt;/</code> paths inside the mod must be renamed with it.</p>
 
-<h2>The bell key does nothing</h2>
-<p><code>bar-strip.attention</code> reaches only a bar-strip that is shown. It is bound in the two layout sections of <code>keys.json</code>, so it does nothing in another layout, while the bar is hidden (the toggle key hides it) or if you renamed the layout without renaming the keys section. The bell's tooltip names the key that is really bound.</p>
+<h2>The waiting-list key does nothing</h2>
+<p>The key (<kbd>ctrl-shift-j</kbd> by default) runs <code>mod.open:attention-picker</code>. It is bound in the two layout sections of <code>keys.json</code>, so it does nothing in another layout, or if you renamed the layout without renaming the keys section. It also needs a mod named <code>attention-picker</code> in <code>mods/</code>; if you renamed it, change the key. Look for <code>keys.error</code> in the Herdr home folder. The bell's tooltip names the key that is really bound. If you bound <code>bar-strip.attention</code> or <code>bar-strip.jump</code> yourself instead, those reach only a bar-strip that is shown, so they do nothing while the bar is hidden.</p>
 
 <h2>A click shows a preview or &ldquo;Couldn't open nvim&rdquo;</h2>
 <ul>
@@ -51,13 +54,13 @@
 <p>Each column needs 290 px. With more spaces than fit, arrow markers appear at the ends; click them, swipe sideways, shift-scroll, or fold spaces. You can also widen the bar by dragging its divider.</p>
 
 <h2>The colours look wrong</h2>
-<p>The layout uses whatever theme Settings has chosen. Pick another theme, or pin one in the layout (see <a href="configuration.html#theme">Configuration</a>).</p>
+<p>The layout uses whatever theme Settings has chosen. Pick another theme, or pin one in the layout (see <a href="configuration.html#theme">Configuration</a>). The six space marks are fixed colours; on a light theme the active folded space's name is darkened toward the text colour, and the result has not been seen on a real light theme. <a href="configuration.html#theme">Configuration</a> says what was measured.</p>
 
 <h2>A mod did not update after I saved it</h2>
 <p>A broken save keeps the old version running. Run <code>herdr-app check &lt;folder&gt;</code> for the exact error, and <code>herdr-app status</code>.</p>
 
 <h2>Still stuck</h2>
-<p>Open an issue at <a href="https://github.com/miguelalexanderdiaz/herdr-portrait-layout/issues">github.com/miguelalexanderdiaz/herdr-portrait-layout/issues</a> with your Herdr version (<code>herdr-app --version</code>), your operating system and the text of <code>herdr-app status</code>. Do not paste screenshots of your windows or file paths that include your name.</p>
+<p>Open an issue at <a href="https://github.com/miguelalexanderdiaz/herdr-portrait-layout/issues">github.com/miguelalexanderdiaz/herdr-portrait-layout/issues</a> with your Herdr version (<code>herdr-app --version</code>), your operating system, which layout you use (<code>portrait</code> or <code>portrait-bottom</code>), the text of <code>herdr-app status</code> and what you expected. Do not paste screenshots of your windows or file paths that include your name.</p>
 </main>
 <footer class="site"><div class="inner">
 <p>Apache-2.0. Source and issues: <a href="https://github.com/miguelalexanderdiaz/herdr-portrait-layout">github.com/miguelalexanderdiaz/herdr-portrait-layout</a>. Written for humans and for agents: see <a href="for-agents.html">For agents</a> and <a href="llms.txt">llms.txt</a>.</p>

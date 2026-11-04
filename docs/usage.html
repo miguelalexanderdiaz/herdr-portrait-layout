@@ -12,7 +12,10 @@
 <a class="skip" href="#main">Skip to content</a>
 <header class="site"><div class="inner">
 <a class="brand" href="index.html">Portrait layout for Herdr</a>
-<nav class="site" aria-label="Documentation"><ul><li><a href="index.html">Overview</a></li><li><a href="install.html">Install</a></li><li><a href="usage.html" aria-current="page">Usage</a></li><li><a href="configuration.html">Configuration</a></li><li><a href="platforms.html">Platforms</a></li><li><a href="privacy.html">Privacy</a></li><li><a href="how-it-works.html">How it works</a></li><li><a href="troubleshooting.html">Troubleshooting</a></li><li><a href="for-agents.html">For agents</a></li></ul></nav>
+<nav class="site" aria-label="Documentation">
+<details class="menu"><summary>Menu: Usage</summary><ul><li><a href="index.html">Overview</a></li><li><a href="install.html">Install</a></li><li><a href="usage.html" aria-current="page">Usage</a></li><li><a href="configuration.html">Configuration</a></li><li><a href="platforms.html">Platforms</a></li><li><a href="privacy.html">Privacy</a></li><li><a href="how-it-works.html">How it works</a></li><li><a href="troubleshooting.html">Troubleshooting</a></li><li><a href="for-agents.html">For agents</a></li></ul></details>
+<ul class="wide"><li><a href="index.html">Overview</a></li><li><a href="install.html">Install</a></li><li><a href="usage.html" aria-current="page">Usage</a></li><li><a href="configuration.html">Configuration</a></li><li><a href="platforms.html">Platforms</a></li><li><a href="privacy.html">Privacy</a></li><li><a href="how-it-works.html">How it works</a></li><li><a href="troubleshooting.html">Troubleshooting</a></li><li><a href="for-agents.html">For agents</a></li></ul>
+</nav>
 </div></header>
 <main id="main">
 <h1>Usage</h1>
@@ -34,22 +37,24 @@
 <p>One column per space, at least 290 px wide. Under a space's header: its tabs; under each tab: its panes. An agent pane shows the agent's logo, its name (the session title, else the tab name, else the program), a state word (&ldquo;working&rdquo;, &ldquo;needs you&rdquo;, &ldquo;done&rdquo;, &ldquo;idle&rdquo;) when the column is wide enough, the time it has been in that state (<code>&lt;1m</code>, <code>5m</code>, <code>2h</code>, <code>1d</code>) and a glyph: a turning ring for working, a <code>!</code> chip for needs you, a filled dot for done, an empty ring for idle. A plain terminal shows its program and folder (the end of the path stays visible).</p>
 <dl>
 <dt>Header</dt>
-<dd>Click selects the space. Drag it onto another header of the same machine to reorder. The fold button turns the column into a strip. The plus makes a new terminal or agent there. Right-click opens Herdr's space menu. The coloured rule under the name is the space's colour.</dd>
+<dd>Click selects the space. Drag it onto another header of the same machine to reorder. The fold button turns the column into a strip. The plus makes a new terminal or agent there. Right-click opens Herdr's space menu. The coloured rule under the name and the badge are the space's colour.</dd>
 <dt>Tab row</dt>
 <dd>Click shows the tab, double-click renames it, drag onto another tab of the same space reorders, right-click opens the tab menu.</dd>
 <dt>Pane row</dt>
 <dd>Click focuses the pane, right-click opens the pane menu.</dd>
+<dt>Sub-agent row</dt>
+<dd>An agent that has no pane of its own (a sub-agent) gets a row under its parent's tab, after the panes: its program icon, name, state and time. Click focuses it. It has no right-click menu, because the pane menu needs a pane.</dd>
 <dt>Empty space in a column</dt>
 <dd>Right-click opens Herdr's general menu (new space and so on).</dd>
 <dt>Folded space</dt>
 <dd>A 34 px strip: the space's badge (an unfold arrow while hovered), up to six marks for its agents (then &ldquo;+N&rdquo;), and its name running down the strip. Click expands it. When you move focus to an agent in a folded space (the bell, the waiting list, a notification, <code>agent.next</code>), the space opens by itself and folds again when you go elsewhere. A space you opened or folded by hand stays as you left it.</dd>
 <dt>When they do not fit</dt>
-<dd>Only whole columns are shown. Arrow markers at both ends say how many spaces are off that side, with the most urgent state among them. Click a marker, swipe sideways, or shift-scroll to move one column. A thin track under the columns shows where you are. The tree follows the active space onto the screen.</dd>
+<dd>Only whole columns are shown. Arrow markers at both ends say how many spaces are off that side, with the most urgent state among them. Click a marker, swipe sideways, or shift-scroll to move columns: one column per notch of a mouse wheel, one per 40 px of trackpad scroll. A thin track under the columns shows where you are. The tree follows the active space onto the screen.</dd>
 </dl>
-<p><code>agent.next</code> and <code>agent.prev</code> follow the tree's order, skipping folded spaces.</p>
+<p><code>agent.next</code> and <code>agent.prev</code> follow the order of the tree: open spaces left to right, each space's agents top to bottom. Agents in folded spaces are not skipped; Herdr appends them after the others, in its own order, and focusing one opens its space.</p>
 
 <h2 id="tabs">The tab bar</h2>
-<p>Under the strip, 42 px. Each tab shows its program's icon, its name (<code>Z</code> is added while zoomed), a spinner while working and a dot when blocked or done. Click selects, double-click renames, drag reorders, right-click opens the tab menu, the active tab has a close button, and <kbd>+</kbd> opens Herdr's new-tab menu. Scrolling over the bar moves to the previous or next tab, one tab per 40 px of scroll and at most three per event. The bar also remembers, per space, whether the side panel was open and on which tab, and restores that when you switch spaces.</p>
+<p>Under the strip, 42 px. Each tab shows its program's icon, its name (<code>Z</code> is added while zoomed), a spinner while working and a dot when blocked or done. Click selects, double-click renames, drag reorders, right-click opens the tab menu, the active tab has a close button, and <kbd>+</kbd> opens Herdr's new-tab menu. Scrolling over the bar moves to the previous or next tab: one tab per notch of a mouse wheel, and one tab per 40 px of scroll on a trackpad, at most three per event. The bar also remembers, per space, whether the side panel was open and on which tab, and restores that when you switch spaces.</p>
 
 <h2 id="pane">Pane headers</h2>
 <p>Each pane has a 30 px header: program (or folder), where it is, and its state. Hover it for split right, split down, zoom or unzoom, and close.</p>
@@ -59,9 +64,9 @@
 <ul>
 <li>Click a folder to expand or collapse it. Click a file to edit it in a floating nvim window (macOS and Linux); one click starts one nvim, even on a double click. On Windows, or when nvim is not on your PATH, it shows the read-only preview and says why.</li>
 <li>Alt-click a file for a read-only preview inside the panel. The arrow in the header goes back. Binary files and unreadable files say so; long files are cut at 400,000 characters.</li>
-<li>Git marks: <code>A</code> added or untracked, <code>M</code> modified, <code>D</code> deleted, <code>U</code> conflict. A closed folder with a changed file inside shows a dot. Marks appear when the folder is inside a git work tree and <code>git</code> is on the PATH.</li>
-<li>Folders are listed before files. Limits: 500 entries per folder and 5,000 in all; the panel says when it cut a list. The <code>.git</code> folder itself is not listed.</li>
-<li>The list loads when you open the panel, refreshes when the focus moves to another folder or files change in it (a folder watch, not set on your home folder or a drive root), and every 10 seconds while the panel is open. Nothing runs while it is closed.</li>
+<li>Git marks: <code>A</code> added or untracked, <code>M</code> modified, <code>D</code> deleted, <code>U</code> conflict. A closed folder with a changed file inside shows a dot, in the conflict colour if a conflict is inside and otherwise in the modified colour. Marks appear when the folder is inside a git work tree and <code>git</code> is on the PATH.</li>
+<li>Folders are listed before files. Limits: 500 entries per folder and 5,000 in all; the panel says when it cut a list. The <code>.git</code> folder itself is not listed. On Windows, in a folder with more than 500 entries, the 500 shown are the first ones PowerShell returns, not necessarily the folders first.</li>
+<li>The list loads when you open the panel, refreshes when the focus moves to another folder or files change in it (a folder watch, not set on your home folder or a drive root), and every 10 seconds while the panel is open. A busy folder (a build writing files) is not re-read more often than every 1.5 seconds, and at most three folders are watched at once; a fourth relies on the 10-second timer. Nothing runs while the panel is closed.</li>
 </ul>
 <h3>The floating nvim</h3>
 <p>The editor opens in a window over the app, 90% wide and 85% high, with a title bar: the file, its folder, <strong>Keep</strong> and a close button. <em>Keep &rarr; New tab</em> turns the window's nvim into a tab. <em>Keep &rarr; Add to &hellip;</em> opens the file as a buffer in an nvim you kept earlier in this space, focuses that tab and closes the window. The close button quits nvim (<code>:confirm qa</code>, so it asks about unsaved changes), and the window closes when nvim ends.</p>

@@ -91,6 +91,17 @@ header.site {
   border-bottom: 1px solid var(--line);
   padding: 0.75rem 16px 0.5rem;
 }
+/* Narrow screens: the page list folds into one "Menu" line (a plain details element). */
+nav.site .menu { display: none; }
+nav.site .menu summary {
+  cursor: pointer;
+  padding: 0.35rem 0.6rem;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  color: var(--fg);
+  display: inline-block;
+}
+nav.site .menu[open] summary { margin-bottom: 0.4rem; }
 header.site .inner, main, footer.site .inner {
   max-width: var(--measure);
   margin-inline: auto;
@@ -157,6 +168,16 @@ img.preview { max-width: min(100%, 22rem); margin-inline: auto; }
 
 .scroll { overflow-x: auto; margin: 0 0 1rem; }
 .scroll table { margin: 0; }
+/* A soft edge on the side that has more to scroll to (plain CSS, no script). */
+.scroll {
+  background:
+    linear-gradient(to right, var(--bg) 30%, transparent) left center / 2rem 100% no-repeat local,
+    linear-gradient(to left, var(--bg) 30%, transparent) right center / 2rem 100% no-repeat local,
+    linear-gradient(to right, var(--line), transparent) left center / 0.7rem 100% no-repeat scroll,
+    linear-gradient(to left, var(--line), transparent) right center / 0.7rem 100% no-repeat scroll;
+}
+caption { text-align: left; font-weight: 650; padding: 0 0 0.4rem; caption-side: top; }
+.narrow-only { display: none; font-weight: 400; color: var(--muted); }
 table { border-collapse: collapse; width: 100%; font-size: 0.93rem; }
 th, td { text-align: left; vertical-align: top; padding: 0.45rem 0.7rem; border: 1px solid var(--line); }
 th { background: var(--bg-alt); font-weight: 650; }
@@ -180,6 +201,12 @@ footer.site { border-top: 1px solid var(--line); padding: 1rem 16px 2rem; color:
 dl dt { font-weight: 650; margin-top: 0.6rem; }
 dl dd { margin: 0 0 0 1rem; }
 
+@media (max-width: 40rem) {
+  nav.site .wide { display: none; }
+  nav.site .menu { display: block; }
+  .narrow-only { display: inline; }
+}
+
 @media (max-width: 30rem) {
   h1 { font-size: 1.6rem; }
   h2 { font-size: 1.25rem; }
@@ -188,5 +215,6 @@ dl dd { margin: 0 0 0 1rem; }
 
 @media print {
   header.site, .skip { display: none; }
+  .scroll { background: none; }
   a { color: inherit; }
 }
