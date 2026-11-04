@@ -23,7 +23,7 @@ merged in a scratch clone outside the repository), not against the audit.
 | DOC-2-12 | README from 200 to 148 lines: one privacy list (no table), no provenance or needs tables (on the site), chords moved to AGENTS.md and the Configuration page. Target was ~140; I kept the two install blocks and the 8-row keys table because `check-docs` needs the rows and an install that cannot be followed is worse than 8 spare lines. `290 px` and `34 px` stay (D8). |
 | DOC-2-13a | `ctrl-shift-j` = `mod.open:attention-picker` everywhere (README, configuration, usage, troubleshooting, AGENTS.md chord block); `agent.next` appends folded spaces, does not skip them (usage); window buttons not shown with the system title bar (platforms, AGENTS.md, README); sub-agent rows (usage, README); Files refresh at most every 1.5 s and three watched folders (usage, platforms); wheel notch = one step, trackpad 40 px, at most three tabs per event (usage); folder dot colour wording (usage); AGENTS.md read list (plain click on Windows or without nvim reads the file; `mods/vault/main.js` existence). |
 
-Also: `machines` read documented in the tree and tabs privacy rows; the picker facts in `docs/for-agents.html`.
+Also: the troubleshooting "Still stuck" fields follow `.github/ISSUE_TEMPLATE/bug.md` (herdr-completeness); `cmd-b` on Linux and Windows is worded "expected to do nothing (not tried)", as RECIPE says; `machines` read documented in the tree and tabs privacy rows; the picker facts in `docs/for-agents.html`.
 
 ## Deferred, and why
 
@@ -33,10 +33,10 @@ Also: `machines` read documented in the tree and tabs privacy rows; the picker f
 
 ## Checks run (scratch merge of the three role branches; macOS, Node 26)
 
-- `node --test`: 105 pass, 0 fail.
+- `node --test`: 160 pass, 0 fail (final merge of herdr-completeness e1392fa, code-review 4945b2d and this branch).
 - `herdr-app check` on the merged tree: not run by me (no mod file of mine changed; the other roles ran it).
-- `node scripts/validate.mjs`, `check-recipe.mjs`, `check-assets.mjs`, `privacy-scan.mjs`: ok.
-- `node scripts/check-docs.mjs`: see "State at the end" below.
+- `node scripts/validate.mjs`, `check-recipe.mjs`, `check-assets.mjs`, `privacy-scan.mjs`: ok. `rg` for home paths outside plans, tests and scripts: empty.
+- `node scripts/check-docs.mjs`: ok with herdr-completeness' extended version (Pages host rule, keys table equals `keys.json` in README and `docs/configuration.html`, "Where to check" names exist, every mod named in README and privacy page). Before it landed it reported only the Pages host as a problem.
 - 360 px and 1280 px probe of all pages (headless Chrome, iframe wrapper): no overflow, `.menu` shown at 360 and `.wide` at 1280.
 - `rg -n "only (use )?theme|2 seconds|every 2 s" README.md docs AGENTS.md CONTRIBUTING.md llms.txt`: empty.
 - Numbers with units present as listed under DOC-2-5.
