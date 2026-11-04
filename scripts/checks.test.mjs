@@ -178,3 +178,6 @@ test("check-docs accepts the repository's own Pages address in README", (t) => {
   appendFileSync(s.file("README.md"), `\nSource ${["https:/", "github.com", "acme", "thing"].join("/")}, site ${["https:/", "acme.github.io", "thing/"].join("/")}\n`);
   assert.doesNotMatch(s.run("check-docs").out, /acme\.github\.io/);
 });
+
+// ---- preview
+fails("a preview source that changed while preview.png did not", "check-assets", (s) => s.write("scripts/preview-source.svg", `${s.read("scripts/preview-source.svg").trimEnd()}\n<!-- edited -->\n`), /preview-source\.svg changed since preview\.png was rendered/);
