@@ -144,7 +144,7 @@ are also available under the MIT License:
 ---------------------------------------------------
 
 Everything else (mods/portrait-tree, mods/bar-strip, mods/nvim-float, mods/portrait-viewer/main.js, the code changes listed above, RECIPE.md,
-keys.json, snippets/, scripts/, the preview and the layout thumbnails, which show invented content) is original work
+keys.json, snippets/, scripts/, the preview, the layout thumbnails and the feature pictures in docs/assets/pictures/, which show invented content) is original work
 under the Apache License 2.0. That includes the two folding pictures `fold.svg` and `unfold.svg` in mods/portrait-tree,
 which were drawn for this project (they are not copies of any Herdr or Lucide file).
 
@@ -172,7 +172,51 @@ line, travels next to the files: docs/assets/fonts/OFL-Fraunces.txt, OFL-SourceS
 (copied from each font's own repository). The fonts are not covered by this repository's Apache License.
 
 
-7. Not included
+7. Icons inside the drawings (Simple Icons CC0 1.0, Lucide ISC, LobeHub MIT)
+---------------------------------------------------------------------------
+
+The overview (preview.png and its source), the layout thumbnails and the pictures in docs/assets/pictures/ are drawn
+by scripts/make-preview.mjs. They inline the mods' own icons (sections 2 and 3) and a few icons of Herdr 0.1.12's
+program table, copied unchanged into scripts/picture-icons/ so the drawings can be redrawn anywhere. Herdr's own
+statement of their origin (its icons/LICENSES.md): brand icons are Simple Icons, CC0 1.0; glyphs are Lucide, ISC with
+MIT-licensed Feather-derived icons; agent icons are LobeHub icons (MIT) and the agents' own marks. The marks are
+trademarks of their owners; no trademark right is granted by these licenses, and the pictures only show which program
+runs in a pane, as Herdr does.
+
+  claude, codex                    agent icons (LobeHub, MIT; the Claude Code and Codex marks of their owners)
+  gemini, nvim                     brand icons (Simple Icons, CC0 1.0)
+  shell                            Lucide's terminal glyph (ISC)
+  book-open                        Lucide's book-open glyph (ISC), as the optional Vault mod draws it
+
+The Lucide license is reproduced in section 3. The LobeHub license, also copied as LICENSE-LobeHub.txt (with
+LICENSE-Lucide.txt) next to the icons in scripts/picture-icons/ and next to the pictures in docs/assets/pictures/:
+
+  MIT License
+
+  Copyright (c) 2023 LobeHub
+
+  Permission is hereby granted, free of charge, to any person obtaining a copy
+  of this software and associated documentation files (the "Software"), to deal
+  in the Software without restriction, including without limitation the rights
+  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+  copies of the Software, and to permit persons to whom the Software is
+  furnished to do so, subject to the following conditions:
+
+  The above copyright notice and this permission notice shall be included in all
+  copies or substantial portions of the Software.
+
+  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+  SOFTWARE.
+
+Simple Icons are dedicated to the public domain (CC0 1.0); no notice is required, and this one is given for clarity.
+
+
+8. Not included
 ---------------
 
 No theme is shipped. The layouts take the colors of whatever theme the person has chosen. The layouts use the fonts

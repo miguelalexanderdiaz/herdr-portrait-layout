@@ -306,6 +306,10 @@ figure { margin-inline: 0; }
 figure img { display: block; max-width: 100%; height: auto; border: 1px solid var(--rule); border-radius: 0; }
 figcaption { color: var(--fg-dim); font-size: var(--fs-small); margin-top: 0.6rem; text-align: center; }
 img.preview { max-width: min(100%, 22rem); margin-inline: auto; }
+/* The feature pictures: drawings of the real parts at their natural size (never wider than the column). */
+img.pic { display: block; max-width: 100%; height: auto; border: 1px solid var(--rule); border-radius: 0; }
+figure.pic { margin: 0 0 1.4rem; }
+figure.pic figcaption { text-align: left; }
 
 /* ---- tables */
 .scroll { overflow-x: auto; margin: 0 0 1.1rem; scrollbar-color: var(--rule-strong) transparent; }
@@ -354,7 +358,9 @@ td:first-child { min-width: 7rem; }
 .warn { border-left-color: var(--d-yellow); }
 .note > :last-child, .warn > :last-child { margin-bottom: 0; }
 
-.cards { display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(min(100%, 16rem), 1fr)); margin: 0 0 1.1rem; padding: 0; list-style: none; }
+/* One card per row: each shows its picture above its text. */
+.cards { display: grid; gap: 1rem; grid-template-columns: 1fr; margin: 0 0 1.1rem; padding: 0; list-style: none; }
+.cards img.pic { margin: 0.15rem 0 0.9rem; }
 .cards li {
   padding: 0.95rem 1.1rem 1rem;
   margin: 0;
