@@ -17,7 +17,7 @@ export const json = (p) => JSON.parse(read(p));
 // file that is about to be committed. Falls back to walking the folder when git is missing (a zip download).
 export function repoFiles() {
   try {
-    const out = execFileSync("git", ["ls-files", "-z", "--cached", "--others", "--exclude-standard"], { cwd: ROOT, encoding: "utf8", maxBuffer: 1 << 26 });
+    const out = execFileSync("git", ["ls-files", "-z", "--cached", "--others", "--exclude-standard"], { cwd: ROOT, encoding: "utf8", maxBuffer: 1 << 26, stdio: ["ignore", "pipe", "ignore"] });
     const list = out.split("\0").filter(Boolean).filter((f) => existsSync(abs(f)));
     if (list.length) return [...new Set(list)].sort();
   } catch { /* not a git checkout */ }

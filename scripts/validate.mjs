@@ -250,4 +250,26 @@ if (exists("RECIPE.md")) {
   }
 }
 
+// ---- 8. license and notice
+if (r.check(exists("LICENSE"), "LICENSE is missing")) {
+  const lic = read("LICENSE");
+  r.check(/^\s*Apache License\s*\n\s*Version 2\.0, January 2004/.test(lic), "LICENSE must be the Apache License 2.0 text");
+  r.check(/^\s*Copyright 20\d\d \S.*$/m.test(lic) && !/\[yyyy\]|\[name of copyright owner\]/.test(lic), "LICENSE needs its copyright line filled in");
+}
+if (r.check(exists("NOTICE"), "NOTICE is missing")) {
+  const notice = read("NOTICE");
+  const cloned = new Set();
+  for (const m of mods) { const c = json(`mods/${m}/mod.json`).cloned_from; if (c) { cloned.add(c.name); r.check(notice.includes(`mods/${m}/`), `NOTICE does not name the clone mods/${m}/`); } }
+  for (const n of names) { const c = layouts[n].cloned_from; if (c) { cloned.add(c.name); r.check(notice.includes(`layouts/${n}.json`), `NOTICE does not name layouts/${n}.json`); } }
+  for (const c of cloned) r.check(notice.includes(`\`${c}\``), `NOTICE does not name the Herdr original \`${c}\``);
+  r.check(/Apache License, Version 2\.0/.test(notice) && /ISC License/.test(notice), "NOTICE must carry the Apache and the Lucide (ISC) statements");
+  // every vendored picture is accounted for, and nothing is listed that is not there (the bundled copy is covered as a whole)
+  const assets = files.filter((f) => /^mods\/[^/]+\/[^/]+\.(svg|png|jpe?g|webp)$/.test(f) && !f.startsWith("mods/attention-picker/"));
+  const bases = new Set(assets.map((f) => f.split("/").pop()));
+  for (const b of bases) r.check(notice.includes(b), `NOTICE does not account for the icon ${b} (origin and license)`);
+  const listed = [...notice.matchAll(/\b([a-z0-9-]+\.svg)\b/g)].map((m) => m[1]);
+  for (const b of new Set(listed)) r.check(bases.has(b), `NOTICE lists ${b}, which is not in any mod folder (stale)`);
+  r.check(!files.some((f) => /obsidian\.(png|svg)$/i.test(f)), "the Obsidian logo may not be redistributed");
+}
+
 r.done();
