@@ -1,0 +1,26 @@
+{
+  "_about": "Mods that are not in this repo but are referenced by name. 'shipped' mods come with Herdr 0.1.12 and are replaced whole on every Herdr start (read-only for users). 'optional' mods belong to another repo and only the opt-in snippet uses them. validate.mjs fails when a layout, snippet or mod source refers to a mod that is in none of mods/, 'shipped' or 'optional'.",
+  "min_herdr_version": "0.1.12",
+  "shipped": [
+    "workspace-status",
+    "changes",
+    "picker",
+    "machine-add",
+    "menu",
+    "new-menu"
+  ],
+  "optional": [
+    "vault",
+    "vault-reader"
+  ],
+  "tolerated_assets": {
+    "_about": "Shipped Herdr assets the frozen, bundled copy of attention-picker still loads by path (its canonical repo vendors them in its round 2). Nothing else may load another mod's files, except the optional Vault icon.",
+    "attention-picker": [
+      "mods/workspace-chrome/spinner.svg",
+      "mods/workspace-chrome/search.svg"
+    ],
+    "optional_assets": [
+      "mods/vault/icons/book-open.svg"
+    ]
+  }
+}

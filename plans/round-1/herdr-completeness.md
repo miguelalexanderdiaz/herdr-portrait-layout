@@ -92,7 +92,7 @@ copies of Herdr (Apache-2.0, herdrdev) with a statement of changes; `mods/attent
 not redistributed (or, if HC-1-7 vendors them, listed with their upstream icon-set license after verifying provenance). Add
 `SPDX-License-Identifier: Apache-2.0` comment? Not in JSON; only in the .js header lines (code-review adds) - optional.
 Verify: CI step asserts LICENSE starts with `Apache License` and contains the copyright line, NOTICE exists and names every
-mod listed in `cloned_from`. Manual: `gh api repos/miguelalexanderdiaz/herdr-portrait-layout/license` reports Apache-2.0 after push.
+mod listed in `cloned_from`. Manual: `gh api repos/<owner>/<repo>/license` reports Apache-2.0 after push.
 
 ### HC-1-5  No CI, no validation or privacy scripts (high) - owner: herdr-completeness (code-review supplies tests)
 Evidence: no `.github/`, no `scripts/`, no tests dir.
