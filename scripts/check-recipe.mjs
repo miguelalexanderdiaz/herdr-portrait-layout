@@ -41,7 +41,6 @@ const section = (name) => {
 const built = section("Built from");
 for (const n of layoutNames()) r.check(md.includes(`layouts/${n}.json`), `RECIPE.md never names layouts/${n}.json`);
 for (const m of modFolders()) r.check(built.includes(`\`${m}\``), `Built from does not name the mod \`${m}\``);
-r.check(built.includes("snippets/vault-panel.json"), "Built from must explain snippets/vault-panel.json");
 r.check(md.includes("NOTICE"), "RECIPE.md should point to NOTICE for the art's provenance");
 
 // ---- keys: every chord and action

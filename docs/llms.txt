@@ -13,7 +13,7 @@ Install by telling a Herdr agent: install https://github.com/miguelalexanderdiaz
 ## Reference
 
 - [Privacy summary in the README](https://github.com/miguelalexanderdiaz/herdr-portrait-layout/blob/main/README.md#privacy) and [keys](https://github.com/miguelalexanderdiaz/herdr-portrait-layout/blob/main/README.md#keys): what each mod reads, runs and writes; the keys to merge.
-- [Contributing](https://github.com/miguelalexanderdiaz/herdr-portrait-layout/blob/main/CONTRIBUTING.md): checks, scratch Herdr home, what to do when Herdr updates or the bundled picker is re-synced.
+- [Contributing](https://github.com/miguelalexanderdiaz/herdr-portrait-layout/blob/main/CONTRIBUTING.md): checks, scratch Herdr home, what to do when Herdr updates or the bundled picker is replaced.
 - [NOTICE](https://github.com/miguelalexanderdiaz/herdr-portrait-layout/blob/main/NOTICE) and [CHANGELOG](https://github.com/miguelalexanderdiaz/herdr-portrait-layout/blob/main/CHANGELOG.md): provenance of cloned, bundled and copied parts; changes per release.
 - The same material as a rendered site (live after the repository is public and GitHub Pages is on): [overview](https://miguelalexanderdiaz.github.io/herdr-portrait-layout/), [install](https://miguelalexanderdiaz.github.io/herdr-portrait-layout/install.html), [platforms](https://miguelalexanderdiaz.github.io/herdr-portrait-layout/platforms.html), [privacy](https://miguelalexanderdiaz.github.io/herdr-portrait-layout/privacy.html), [how it works](https://miguelalexanderdiaz.github.io/herdr-portrait-layout/how-it-works.html), [troubleshooting](https://miguelalexanderdiaz.github.io/herdr-portrait-layout/troubleshooting.html).
 
@@ -22,7 +22,6 @@ Install by telling a Herdr agent: install https://github.com/miguelalexanderdiaz
 - [layouts/portrait.json](https://github.com/miguelalexanderdiaz/herdr-portrait-layout/blob/main/layouts/portrait.json) and [layouts/portrait-bottom.json](https://github.com/miguelalexanderdiaz/herdr-portrait-layout/blob/main/layouts/portrait-bottom.json): the two layouts.
 - [keys.json](https://github.com/miguelalexanderdiaz/herdr-portrait-layout/blob/main/keys.json): keys to merge into the person's own.
 - [mods/](https://github.com/miguelalexanderdiaz/herdr-portrait-layout/tree/main/mods): bar-strip, portrait-tree, portrait-tabs, portrait-pane, portrait-files, nvim-float, portrait-viewer, attention-picker (bundled copy, read-only here).
-- [snippets/vault-panel.json](https://github.com/miguelalexanderdiaz/herdr-portrait-layout/blob/main/snippets/vault-panel.json): optional Vault panel node.
 
 ## Optional
 

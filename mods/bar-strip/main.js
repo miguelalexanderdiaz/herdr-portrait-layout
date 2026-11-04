@@ -1,21 +1,17 @@
 // The portrait bar's top strip: what the default sidebar's header and footer
 // offered (search, add a machine, settings) on the left; on the right, a
-// "needs you" jump and the Files / Changes / Vault panel toggles (moved here
-// from the tab bar).
+// "needs you" jump and the Files / Changes panel toggles (moved here from the
+// tab bar).
 
 import { View, div, svg } from "gpui-kit";
 import { h_flex } from "gpui-base";
-import { run, theme, updates, layout, shared, setShared, agents, nextCommand, openOverlay, closeOverlay, keys, appHome } from "herdr";
-import * as fs from "fs/promises";
-import { PICKER, find, vaultWanted, enabledPanels, joinPath, alpha, keyHint, waitingAgents, nextWaiting } from "./logic.mjs";
+import { run, theme, updates, layout, shared, agents, nextCommand, openOverlay, closeOverlay, keys } from "herdr";
+import { PICKER, find, enabledPanels, alpha, keyHint, waitingAgents, nextWaiting } from "./logic.mjs";
 
 export default class BarStrip extends View {
   init(_props, cx) {
     this.last = null; // { address, index } of the last agent the bell went to
     this.pickerId = null; // the open "Agents waiting" overlay, so a second key press doesn't stack another
-    // Is the optional vault mod installed? Other mods read shared "mods.vault".
-    cx.spawn((cx) => this.probeVault(cx));
-    cx.timer.every(60000, (cx) => cx.spawn((cx) => this.probeVault(cx)));
     // `bar-strip.attention` (bound in keys.json): the list of waiting agents, with a search box.
     // `bar-strip.jump`: what a plain click on the bell does.
     cx.spawn(async (cx) => {
@@ -26,13 +22,6 @@ export default class BarStrip extends View {
         cx.notify();
       }
     });
-  }
-
-  // Is <app home>/mods/vault there? Published as shared "mods.vault", only when it changes.
-  async probeVault(cx) {
-    let found = false;
-    try { found = await fs.exists(joinPath(appHome(), "mods", "vault", "main.js")); } catch {}
-    if (shared("mods.vault") !== found) { setShared("mods.vault", found); cx.notify(); }
   }
 
   // Agents waiting on you, most urgent first (see waitingAgents).
@@ -101,8 +90,7 @@ export default class BarStrip extends View {
   render() {
     const t = theme();
     const root = layout(), panel = find(root, "panel"), body = find(root, "panel-body");
-    const vault = vaultWanted({ installed: shared("mods.vault"), hasNode: find(body, "vault") });
-    const enabled = enabledPanels(shared("workspace.panels"), { vault });
+    const enabled = enabledPanels(shared("workspace.panels"));
     return h_flex().size_full().px(8).gap(4).items_center().bg(t.chrome).border_b(1).border_color(t.border).text_size(11.5)
       .child(this.button(t, "search", "mods/bar-strip/search.svg", "Search", () => run("mod.open", { name: "picker" })))
       .child(this.button(t, "machine", "mods/bar-strip/server.svg", "Add machine", () => run("mod.open", { name: "machine-add" })))
@@ -111,9 +99,6 @@ export default class BarStrip extends View {
       .child(div().flex_1())
       .child(this.bell(t))
       .when(enabled.includes("files"), (el) => el.child(this.panelButton(t, panel, body, "files", "Files", "mods/bar-strip/file.svg")))
-      .when(enabled.includes("changes"), (el) => el.child(this.panelButton(t, panel, body, "changes", "Changes", "mods/bar-strip/changes.svg")))
-      // The Obsidian vault (mods/vault): only when that mod is installed AND the layout has its panel
-      // (snippets/vault-panel.json); either one alone would be a button that does nothing.
-      .when(vault, (el) => el.child(this.panelButton(t, panel, body, "vault", "Vault", "mods/vault/icons/book-open.svg")));
+      .when(enabled.includes("changes"), (el) => el.child(this.panelButton(t, panel, body, "changes", "Changes", "mods/bar-strip/changes.svg")));
   }
 }

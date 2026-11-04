@@ -10,12 +10,10 @@ const mods = join(dirname(fileURLToPath(import.meta.url)), "..", "mods");
 
 const EXPECTED = {
   paths: ["nvim-float", "portrait-files", "portrait-pane", "portrait-tree"],
-  note: ["portrait-pane", "portrait-tree"],
   storage: ["portrait-tabs", "portrait-tree"],
   wheel: ["portrait-tabs", "portrait-tree"],
   find: ["bar-strip", "portrait-files", "portrait-tabs"],
-  vault: ["bar-strip", "portrait-tabs"],
-  join: ["bar-strip", "portrait-tree"],
+  panels: ["bar-strip", "portrait-tabs"],
   nvim: ["nvim-float", "portrait-files"],
   alpha: ["bar-strip", "portrait-pane", "portrait-tree"],
   title: ["nvim-float", "portrait-tree"],

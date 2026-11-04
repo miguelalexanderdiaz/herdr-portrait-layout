@@ -1,6 +1,5 @@
 {
-  "_about": "Hashes (SHA-256 of the text with LF line endings) of the bundled copy mods/attention-picker, synced from the repository named in `source` at `ref`. The copy is read-only here: change it there, sync it, then run `node scripts/bundled.mjs <ref>`. validate.mjs fails when a file differs, is missing or is new.",
-  "source": "herdr-agents-waiting",
+  "_about": "Hashes (SHA-256 of the text with LF line endings) of the bundled copy mods/attention-picker, taken at commit `ref` of its source. The copy is read-only here: take a new version of the whole folder, then run `node scripts/bundled.mjs <ref>`. validate.mjs fails when a file differs, is missing or is new.",
   "ref": "b7fcb3fa576c44e33d5a03ada94cfd0ec598ecec",
   "files": {
     "mods/attention-picker/ask.js": "2615149cb17528db14b97c7f27440998875005d667884247ab1c2a8c5d5b1643",

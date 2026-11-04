@@ -56,11 +56,11 @@ Nothing here is part of the Pages site.
    with the same `HERDR_APP_HOME`), then `portrait-bottom`, and tick every item under "Done when" in `RECIPE.md`. Paste
    the filled table into the release notes:
 
-   | OS | Herdr | Date | 1 mods check | 2 bar and rows | 3 columns, fold | 4 agent states | 5 keys | 6 Files and nvim | 7 no writes | 8 Vault opt-in | Notes |
-   | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-   | macOS | | | | | | | | | | | |
-   | Linux | | | | | | | | | | | |
-   | Windows | | | | | | | | | | | |
+   | OS | Herdr | Date | 1 mods check | 2 bar and rows | 3 columns, fold | 4 agent states | 5 keys | 6 Files and nvim | 7 no writes | Notes |
+   | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+   | macOS | | | | | | | | | | |
+   | Linux | | | | | | | | | | |
+   | Windows | | | | | | | | | | |
 
    Also try, once: a fish login shell for the nvim click, a folder with more than 500 entries on Windows, and
    `ctrl-shift-j` with the bar hidden (`ctrl-shift-g`) and pressed twice.
@@ -79,9 +79,9 @@ Nothing here is part of the Pages site.
    The `commit history` job stays red until step 0 is settled. Dependabot (`.github/dependabot.yml`) keeps the action
    pins current once the repository is on GitHub.
 7. [ ] `bar-strip` and `ctrl-shift-j` open the mod `attention-picker` by name: confirm `mods/attention-picker` is the
-   latest copy from the herdr-agents-waiting repository. To re-sync: remove the folder, then
+   latest copy from the picker's source checkout. To take a new one: remove the folder, then
    ```sh
-   git -C <path to herdr-agents-waiting> archive <branch or commit> mods/attention-picker | tar -x -C .
+   git -C <path to the picker's source checkout> archive <branch or commit> mods/attention-picker | tar -x -C .
    herdr-app check "$PWD/mods/attention-picker"
    node scripts/bundled.mjs <the 40-character commit that was archived>   # rewrites scripts/bundled.json
    npm test && npm run check
@@ -116,7 +116,7 @@ Nothing here is part of the Pages site.
 
 - Watch https://herdr.dev/layouts for the entry (up to an hour). If it does not appear, check the topic spelling and that
   the repository is public.
-- Keep the copy in `mods/attention-picker` in sync after every release of herdr-agents-waiting (step 7).
+- Keep the copy in `mods/attention-picker` current after every new version of the picker (step 7).
 
 ## When Herdr releases a new version
 

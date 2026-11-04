@@ -14,7 +14,6 @@ bundled  attention-picker
 layouts  portrait portrait-bottom
 switch   portrait
 keys     keys.json
-panel    vault snippets/vault-panel.json panel-body
 say      Network: none. No mod calls the network.
 say      Runs programs: git (read-only, for the Files marks); sh or powershell (lists folders); your login
 say        shell once, to read its PATH; the editor you pick and the system's opener (never a program);

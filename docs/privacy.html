@@ -24,14 +24,14 @@
 <h2>Mod by mod</h2>
 <h3>bar-strip</h3>
 <dl>
-<dt>Reads</dt><dd>Agent list and status, the layout tree, the key bindings (to print the bell's key), whether an app update is ready, and whether the file <code>mods/vault/main.js</code> exists in the Herdr home folder (existence only, at start and every 60 seconds).</dd>
+<dt>Reads</dt><dd>Agent list and status, the layout tree, the key bindings (to print the bell's key), whether an app update is ready, and which side panels Herdr offers (shared key <code>workspace.panels</code>).</dd>
 <dt>Runs</dt><dd>Nothing. Opens Herdr's own dialogs and runs Herdr commands (<code>agent.focus</code>, <code>layout.select</code>, <code>layout.show</code>, <code>layout.hide</code>, <code>mod.open</code>, <code>app.settings</code>).</dd>
-<dt>Writes or stores</dt><dd>Shared key <code>mods.vault</code> (a yes or no).</dd>
-<dt>Where to check</dt><dd><code>probeVault</code>, <code>keyHint</code>, <code>attention</code>, <code>picker</code></dd>
+<dt>Writes or stores</dt><dd>Nothing.</dd>
+<dt>Where to check</dt><dd><code>keyHint</code>, <code>enabledPanels</code>, <code>attention</code>, <code>picker</code></dd>
 </dl>
 <h3>portrait-tree</h3>
 <dl>
-<dt>Reads</dt><dd>Spaces, the list of machines (to keep a remote machine's saved state while it is loading or offline), tabs, panes, agents and their state, whether the theme is light, terminal labels (<code>editor.file</code>), shared keys <code>space.colors</code> and <code>vault.panes</code>.</dd>
+<dt>Reads</dt><dd>Spaces, the list of machines (to keep a remote machine's saved state while it is loading or offline), tabs, panes, agents and their state, whether the theme is light, terminal labels (<code>editor.file</code>), shared key <code>space.colors</code>.</dd>
 <dt>Runs</dt><dd>Nothing.</dd>
 <dt>Writes or stores</dt><dd>The mod's local storage: <code>folded</code> and <code>peeked</code> (space ids, dropped when the space is gone and its machine is ready) and <code>changed</code> (agent address and the time its state last changed; an agent that is gone loses its entry after 7 days). Shared key <code>agents.since</code>. One small SVG per space name under <code>data/portrait-tree-spines/</code> in the Herdr home folder (the rotated name on a folded space); files of names that no longer exist are deleted once when the tree starts.</dd>
 <dt>Where to check</dt><dd><code>track</code>, <code>reveal</code>, <code>createSpineStore</code>, <code>pruneChanged</code></dd>

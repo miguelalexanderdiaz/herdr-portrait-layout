@@ -21,7 +21,6 @@ no screenshots of real windows. Invented examples are fine ("api", "web", "docs"
 - Operating system and version:
 - Layout in use (`portrait` or `portrait-bottom`):
 - Installed as: copied folders / by an agent / other
-- Optional Vault mods installed (`vault`, `vault-reader`): yes / no
 - Shell you log in with (for the nvim click):
 
 **Output of `herdr-app check`** for the mod involved (path of the mod folder in your app home):

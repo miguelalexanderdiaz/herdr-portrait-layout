@@ -4,7 +4,6 @@
 //   - mod.json: only known fields, a main.js next to it, no editor files committed
 //   - layouts: node rules, unique ids, every `content.mod` resolvable, load-bearing ids present,
 //     no theme or font pinned, preview files exist, portrait-bottom = portrait with the left column reordered
-//   - snippets: still fit into the layouts
 //   - keys.json: known commands, valid sections, no duplicate chord, nothing Herdr already binds,
 //     nothing a terminal program needs, no ctrl-alt (AltGr)
 //   - mod sources: asset paths resolve inside the repo, `mod` names resolve, load-bearing names of RECIPE.md exist
@@ -47,7 +46,6 @@ const FORBIDDEN_ROOT = ["theme", "colors", "font", "font_size", "ui_font"];
 const REQUIRED_IDS = ["root", "left", "bar", "bar-strip", "tree", "work", "tabs", "main", "status", "panel", "panel-body", "files", "changes"];
 const mine = new Set(mods);
 const shipped = new Set(external.shipped);
-const optional = new Set(external.optional);
 const names = layoutNames();
 const layouts = {};
 for (const n of names) {
@@ -74,7 +72,6 @@ for (const n of names) {
   }
   for (const k of FORBIDDEN_ROOT) r.check(root[k] === undefined, `${f}: root "${k}" pins the look; the layout must follow the person's settings (decision D5)`);
   for (const id of REQUIRED_IDS) r.check(ids.has(id), `${f}: required id "${id}" is missing`);
-  r.check(!ids.has("vault"), `${f}: the vault child belongs in snippets/vault-panel.json, not in the layout (decision D6)`);
   if (root.preview) {
     r.check(exists(root.preview), `${f}: preview "${root.preview}" does not exist`);
     // Herdr's convention: the thumbnail is layouts/<layout name>.svg. A rename that forgets it would leave the old one.
@@ -102,19 +99,7 @@ if (layouts.portrait && layouts["portrait-bottom"]) {
   r.check(Object.keys(layouts.portrait).join(",") === Object.keys(layouts["portrait-bottom"]).join(","), "layouts: the root keys of portrait-bottom.json are in another order than portrait.json");
 }
 
-// ---- 4. snippets
-if (exists("snippets/vault-panel.json")) {
-  const s = json("snippets/vault-panel.json");
-  r.check(s.id === "vault" && s.type === "block" && s.content?.mod === "vault", "snippets/vault-panel.json: must be the block {id: vault, content: {mod: vault}}");
-  r.check(optional.has(s.content?.mod), "snippets/vault-panel.json: its mod must be listed under 'optional' in scripts/shipped-mods.json");
-  for (const [n, l] of Object.entries(layouts)) {
-    const ids = new Set([...nodes(l)].map((x) => x.node.id));
-    r.check(!ids.has(s.id), `snippets/vault-panel.json: id "${s.id}" already exists in layouts/${n}.json`);
-    r.check(ids.has("panel-body"), `snippets/vault-panel.json: layouts/${n}.json has no stack "panel-body" to receive it`);
-  }
-} else r.error("snippets/vault-panel.json is missing");
-
-// ---- 5. keys.json
+// ---- 4. keys.json
 const commands = json("scripts/commands.json").commands;
 const defaults = json("scripts/default-keys.json");
 const keysRaw = read("keys.json");
@@ -186,22 +171,19 @@ for (const [section, map] of Object.entries(keys)) {
     r.error(`${where}: action "${action}" is not a Herdr command (scripts/commands.json) nor <mod>.<command> of a mod in mods/`);
   }
 }
-// bar-strip.attention only reaches a shown bar-strip: bind it in the layout sections, never global, and not on the
-// chord the standalone attention-picker repo uses for mod.open:attention-picker.
+// bar-strip.attention only reaches a shown bar-strip: bind it in the layout sections, never global.
 for (const [section, map] of Object.entries(keys)) {
   for (const [chord, action] of Object.entries(map)) {
     if (String(action).startsWith("bar-strip.")) r.check(section.startsWith("layout:"), `keys.json ${section} "${chord}": ${action} is only delivered to a shown copy; bind it in a layout: section`);
-    if (normChord(chord) === "ctrl-shift-a") r.error(`keys.json ${section}: ctrl-shift-a is taken by the standalone attention-picker repo`);
   }
 }
 for (const n of names) r.check(Boolean(keys[`layout:${n}`]), `keys.json: no "layout:${n}" section (the toggle and switch chords)`);
 
-// ---- 6. mod sources
-const OPTIONAL_ICON = new Set(external.tolerated_assets.optional_assets);
+// ---- 5. mod sources
 const jsFiles = files.filter((f) => /^mods\/[^/]+\/.+\.(js|mjs)$/.test(f));
 const idRefs = new Map(); // layout ids that code looks up
-// Ids the code probes for but a layout may lack: the opt-in vault panel, and the sidebar of the cloned tabs mod.
-const OPTIONAL_IDS = new Set(["vault", "sidebar"]);
+// Ids the code probes for but a layout may lack: the sidebar of the cloned tabs mod.
+const OPTIONAL_IDS = new Set(["sidebar"]);
 for (const f of jsFiles) {
   const mod = f.split("/")[1];
   const src = read(f);
@@ -214,17 +196,15 @@ for (const f of jsFiles) {
       continue;
     }
     if (!p.startsWith("mods/")) continue;
-    if (exists(p)) continue;
-    const tolerated = (external.tolerated_assets[mod] ?? []).includes(p) || OPTIONAL_ICON.has(p);
-    r.check(tolerated, `${f}: loads "${p}", which is not in this repo (vendor it into mods/${mod}/, see NOTICE)`);
+    r.check(exists(p), `${f}: loads "${p}", which is not in this repo (vendor it into mods/${mod}/, see NOTICE)`);
   }
   for (const m of src.matchAll(/\bmod:\s*"([a-z0-9-]+)"/g)) {
     const name = m[1];
-    r.check(mine.has(name) || shipped.has(name) || optional.has(name), `${f}: refers to mod "${name}", which is not in mods/ or scripts/shipped-mods.json`);
+    r.check(mine.has(name) || shipped.has(name), `${f}: refers to mod "${name}", which is not in mods/ or scripts/shipped-mods.json`);
   }
   for (const m of src.matchAll(/"mod\.open",\s*\{\s*name:\s*"([a-z0-9-]+)"/g)) {
     const name = m[1];
-    r.check(mine.has(name) || shipped.has(name) || optional.has(name), `${f}: opens mod "${name}", which is not in mods/ or scripts/shipped-mods.json`);
+    r.check(mine.has(name) || shipped.has(name), `${f}: opens mod "${name}", which is not in mods/ or scripts/shipped-mods.json`);
   }
   if (mod !== "attention-picker") {
     for (const m of src.matchAll(/run\(\s*"layout\.(?:hide|show|toggle|resize)",\s*\{\s*id:\s*"([^"]+)"/g)) idRefs.set(m[1], f);
@@ -236,7 +216,7 @@ for (const [id, f] of idRefs) for (const [n, l] of Object.entries(layouts)) {
   r.check([...nodes(l)].some((x) => x.node.id === id), `${f}: looks up layout id "${id}", which layouts/${n}.json does not have`);
 }
 
-// ---- 7. load-bearing names listed in RECIPE.md
+// ---- 6. load-bearing names listed in RECIPE.md
 if (exists("RECIPE.md")) {
   const recipe = read("RECIPE.md");
   const sec = /###\s+Load-bearing names\s*\n([\s\S]*?)(?=\n#{1,3}\s|$)/.exec(recipe);
@@ -254,7 +234,7 @@ if (exists("RECIPE.md")) {
       for (const t of tokens) {
         counted++;
         if (kind.startsWith("layout id")) r.check(allIds.has(t), `RECIPE.md load-bearing layout id "${t}" is not in any layout`);
-        else if (kind.startsWith("mod")) r.check(mine.has(t) || shipped.has(t) || optional.has(t), `RECIPE.md load-bearing mod "${t}" is not in mods/ or the external list`);
+        else if (kind.startsWith("mod")) r.check(mine.has(t) || shipped.has(t), `RECIPE.md load-bearing mod "${t}" is not in mods/ or the external list`);
         else if (kind.startsWith("key section")) r.check(Object.hasOwn(keys, t), `RECIPE.md load-bearing key section "${t}" is not in keys.json`);
         else if (kind.startsWith("shared")) r.check(allJs.includes(`"${t}"`), `RECIPE.md load-bearing shared key "${t}" is not used by any mod`);
         else if (kind.startsWith("command")) r.check(allKeys.includes(t) || allJs.includes(`"${t}"`), `RECIPE.md load-bearing command "${t}" is used by no key or mod`);
@@ -265,7 +245,7 @@ if (exists("RECIPE.md")) {
   }
 }
 
-// ---- 8. license and notice
+// ---- 7. license and notice
 if (r.check(exists("LICENSE"), "LICENSE is missing")) {
   const lic = read("LICENSE");
   r.check(/^\s*Apache License\s*\n\s*Version 2\.0, January 2004/.test(lic), "LICENSE must be the Apache License 2.0 text");
@@ -293,24 +273,23 @@ if (r.check(exists("NOTICE"), "NOTICE is missing")) {
   }
   const listed = [...notice.matchAll(/\b([a-z0-9-]+\.svg)\b/g)].map((m) => m[1]);
   for (const b of new Set(listed)) r.check(bases.has(b), `NOTICE lists ${b}, which is not in any mod folder (stale)`);
-  r.check(!files.some((f) => /obsidian\.(png|svg)$/i.test(f)), "the Obsidian logo may not be redistributed");
 }
 
-// ---- 9. the bundled copy of another repository's mod is read-only: it must equal the manifest
+// ---- 8. the bundled copy is read-only: it must equal the manifest
 if (r.check(exists("scripts/bundled.json"), "scripts/bundled.json is missing (hashes of the bundled mods/attention-picker)")) {
   const b = json("scripts/bundled.json");
-  r.check(/^[0-9a-f]{40}$/.test(b.ref ?? ""), "scripts/bundled.json: `ref` must be the 40-character commit of the repository it was synced from");
+  r.check(/^[0-9a-f]{40}$/.test(b.ref ?? ""), "scripts/bundled.json: `ref` must be the 40-character commit the copy was taken from");
   const want = b.files ?? {};
   // The two files Herdr itself writes into mod folders are not part of the copy (section 2 refuses them when tracked).
   const have = readdirSync(abs("mods/attention-picker")).filter((n) => n !== "gpui-kit.d.ts" && n !== "jsconfig.json").map((n) => `mods/attention-picker/${n}`);
   for (const f of have) {
-    if (!want[f]) r.error(`${f}: not in scripts/bundled.json (a new file of the sync, or a stray file): sync from ${b.source}, then run node scripts/bundled.mjs <commit>`);
-    else r.check(sha256(f) === want[f], `${f}: differs from scripts/bundled.json. The copy is read-only here: change it in ${b.source}, sync it, then run node scripts/bundled.mjs <commit>`);
+    if (!want[f]) r.error(`${f}: not in scripts/bundled.json (a new file of the sync, or a stray file): take the whole folder again, then run node scripts/bundled.mjs <commit>`);
+    else r.check(sha256(f) === want[f], `${f}: differs from scripts/bundled.json. The copy is read-only here: take a new version of the whole folder, then run node scripts/bundled.mjs <commit>`);
   }
   for (const f of Object.keys(want)) r.check(have.includes(f), `${f}: listed in scripts/bundled.json but missing from the folder`);
 }
 
-// ---- 10. CI: the workflow definition lives in scripts/ (a token without the `workflow` scope cannot push .github/workflows/)
+// ---- 9. CI: the workflow definition lives in scripts/ (a token without the `workflow` scope cannot push .github/workflows/)
 if (r.check(exists("scripts/ci.workflow.yml"), "scripts/ci.workflow.yml is missing (the CI definition; see scripts/PUBLISH.md)")) {
   if (exists(".github/workflows/ci.yml")) r.check(read(".github/workflows/ci.yml") === read("scripts/ci.workflow.yml"), ".github/workflows/ci.yml differs from scripts/ci.workflow.yml: edit the template and copy it over (scripts/PUBLISH.md)");
 }

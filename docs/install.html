@@ -28,8 +28,8 @@
 <pre tabindex="0"><code>irm https://raw.githubusercontent.com/miguelalexanderdiaz/herdr-portrait-layout/main/install/install.ps1 | iex</code></pre>
 <p>It first lists what the mods reach (no network; the programs they run; what they read, as on <a href="privacy.html">Privacy</a>) and asks before writing anything. Then it:</p>
 <ol>
-<li>copies the two layouts and the mods into your Herdr home, and adds the Vault panel when the <code>vault</code> mod is installed;</li>
-<li>keeps your <code>attention-picker</code> if you already have one (from herdr-agents-waiting);</li>
+<li>copies the two layouts and the mods into your Herdr home;</li>
+<li>keeps your <code>attention-picker</code> if you already have one;</li>
 <li>merges <code>keys.json</code> into yours, asking before it replaces a key you already use;</li>
 <li>runs <code>herdr-app check</code> on every mod and, the first time, switches to the <code>portrait</code> layout.</li>
 </ol>
@@ -97,11 +97,8 @@ herdr-app do layout.switch --name portrait</code></pre>
 <p>Open the repository's <code>keys.json</code> and add its sections and keys to the <code>keys.json</code> in your Herdr home folder. If you have no <code>keys.json</code> yet, copying the file is enough. If a key is already used by something of yours, keep yours and pick another for ours. If Herdr rejects the file it writes the reason to <code>keys.error</code> and keeps the last good version. The table is on <a href="configuration.html#keys">Configuration</a>.</p>
 
 <h3>If a name is taken</h3>
-<p>Rename the new thing, never the old one. For a layout, rename the file and its <code>.svg</code> thumbnail, change the <code>preview</code> field in the layout's root to the new thumbnail name, and rename the section <code>layout:&lt;name&gt;</code> in your keys and the <code>layout.switch:&lt;name&gt;</code> values that point at it. For a mod, rename its folder and every <code>mods/&lt;name&gt;/</code> path inside it, then the <code>mod</code> name in the layouts. The constant <code>PICKER</code> at the top of <code>bar-strip/main.js</code> holds the name of the bundled <code>attention-picker</code>. Details: <a href="for-agents.html#rename">For agents</a>.</p>
-<p>If you already have <code>attention-picker</code> from the herdr-agents-waiting repository, keep yours and skip the bundled copy.</p>
-
-<h2 id="vault">Optional: the Vault panel</h2>
-<p>The layouts do not carry a Vault panel, so they work without the Obsidian mods. To add it, install the <code>vault</code> and <code>vault-reader</code> mods from herdr-obsidian-vault, then insert the contents of <code>snippets/vault-panel.json</code> into the <code>children</code> of the stack with id <code>panel-body</code> in each layout file you use. The Vault button in the strip and the note rows in the tree appear when both are there: the mod installed and the panel in the layout. Ids that mods look up and that must stay as they are: <code>panel</code>, <code>panel-body</code>, <code>files</code>, <code>changes</code> and <code>vault</code>; <code>bar</code> is named only by the toggle key.</p>
+<p>Rename the new thing, never the old one. For a layout, rename the file and its <code>.svg</code> thumbnail, change the <code>preview</code> field in the layout's root to the new thumbnail name, and rename the section <code>layout:&lt;name&gt;</code> in your keys and the <code>layout.switch:&lt;name&gt;</code> values that point at it. For a mod, rename its folder and every <code>mods/&lt;name&gt;/</code> path inside it, then the <code>mod</code> name in the layouts. The constant <code>PICKER</code> at the top of <code>bar-strip/main.js</code> holds the name of the bundled <code>attention-picker</code>. Layout ids that mods look up must stay as they are: <code>panel</code>, <code>panel-body</code>, <code>files</code> and <code>changes</code>; <code>bar</code> is named only by the toggle key. Details: <a href="for-agents.html#rename">For agents</a>.</p>
+<p>If you already have an <code>attention-picker</code>, keep yours and skip the bundled copy.</p>
 
 <h2 id="verify">Check it worked</h2>
 <ul>

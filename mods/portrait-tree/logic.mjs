@@ -102,22 +102,6 @@ export const basename = (p) => (typeof p === "string" ? p.split(/[\\/]/).pop() :
 export const dirname = (p) => (typeof p === "string" ? p.slice(0, Math.max(0, Math.max(p.lastIndexOf("/"), p.lastIndexOf("\\")))) : "");
 // </shared:paths>
 
-// <shared:note>
-// A note kept by the vault reader (shared "vault.panes": pane id -> { vault, file, id }).
-// A record from another version of that mod may lack fields: never throw on one.
-export function noteParts(note) {
-  const file = typeof note?.file === "string" ? note.file : "";
-  const vault = typeof note?.vault === "string" ? basename(note.vault) : "";
-  const dir = dirname(file);
-  return {
-    name: basename(file).replace(/\.(excalidraw\.md|md|canvas)$/i, "") || "Note",
-    dir,
-    vault,
-    path: [vault, dir].filter(Boolean).join("/"),
-  };
-}
-// </shared:note>
-
 // ---- persisted state --------------------------------------------------------------------
 
 // <shared:storage>
@@ -184,13 +168,11 @@ export const spineSvg = (name) => `<svg xmlns="http://www.w3.org/2000/svg" width
   <text x="0" y="-4" transform="rotate(90)" font-family="Geist, Segoe UI, Helvetica Neue, Helvetica, Arial, sans-serif" font-size="13" font-weight="500" fill="currentColor">${xml(name)}</text>
 </svg>
 `;
-// <shared:join>
 // base + parts joined with the separator `base` already uses (a Windows app home has backslashes).
 export function joinPath(base, ...parts) {
   const sep = base.includes("\\") && !base.includes("/") ? "\\" : "/";
   return [base.replace(/[\\/]+$/, ""), ...parts.map((p) => p.replace(/[\\/]+/g, sep))].join(sep);
 }
-// </shared:join>
 
 // Writes each folded space's spine once. `fs` is "fs/promises" (or a fake); `root()` is the
 // app home. A write that fails is not tried again for `cooldown` ms and the caller has nothing

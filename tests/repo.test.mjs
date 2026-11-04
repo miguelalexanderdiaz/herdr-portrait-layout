@@ -17,10 +17,6 @@ function files(dir) {
 const text = (f) => readFileSync(f, "utf8");
 const rel = (f) => relative(root, f).split(sep).join("/");
 
-// Mods of other repos (installed separately), and the only files of them we draw.
-const OPTIONAL = new Set(["vault", "vault-reader"]);
-const ALLOWED_EXTERNAL = new Set(["mods/vault/icons/book-open.svg"]);
-
 test("there are mods, each with a parsable mod.json and a main.js", () => {
   assert.ok(modNames.length >= 7);
   for (const m of modNames) {
@@ -68,15 +64,14 @@ function exists(ref) {
   return readdirSync(dir).some((f) => re.test(f));
 }
 
-test("every icon a mod draws is a file of this repo (or the one allowed optional-mod icon)", () => {
+test("every icon a mod draws is a file of this repo (no exception)", () => {
   let seen = 0;
   for (const m of own) {
     for (const f of files(join(modsDir, m)).filter((f) => f.endsWith(".js") || f.endsWith(".mjs"))) {
       for (const ref of assetRefs(f)) {
         seen++;
         const target = ref.split("/")[1];
-        if (ALLOWED_EXTERNAL.has(ref)) continue;
-        assert.ok(modNames.includes(target) && !OPTIONAL.has(target), `${rel(f)} draws ${ref}: not a mod of this repo`);
+        assert.ok(modNames.includes(target), `${rel(f)} draws ${ref}: not a mod of this repo`);
         assert.ok(exists(ref), `${rel(f)} draws ${ref}, which does not exist`);
       }
     }
@@ -84,11 +79,10 @@ test("every icon a mod draws is a file of this repo (or the one allowed optional
   assert.ok(seen > 20, `only ${seen} asset references found: did the scan break?`);
 });
 
-test("no mod reaches into Herdr's shipped mods or into the Obsidian logo", () => {
+test("no mod reaches into Herdr's shipped mods", () => {
   for (const m of own) {
     for (const f of files(join(modsDir, m)).filter((f) => /\.(m?js|json)$/.test(f))) {
       assert.doesNotMatch(text(f), /mods\/(workspace-chrome|pane|files|changes|tabs|spaces|win98)\//, rel(f));
-      assert.doesNotMatch(text(f), /obsidian\.png/, rel(f));
     }
   }
 });
@@ -96,9 +90,9 @@ test("no mod reaches into Herdr's shipped mods or into the Obsidian logo", () =>
 test("the icons that were copied from Herdr are in the mod that draws them", () => {
   const vendored = {
     "bar-strip": ["search.svg", "server.svg", "settings.svg", "changes.svg", "file.svg", "bell.svg"],
-    "portrait-tree": ["plus.svg", "server.svg", "spinner.svg", "chevron-left.svg", "chevron-right.svg", "note.svg", "fold.svg", "unfold.svg"],
+    "portrait-tree": ["plus.svg", "server.svg", "spinner.svg", "chevron-left.svg", "chevron-right.svg", "fold.svg", "unfold.svg"],
     "portrait-tabs": ["spinner.svg", "close.svg", "win-close.svg", "win-max.svg", "win-min.svg", "win-restore.svg"],
-    "portrait-pane": ["spinner.svg", "note.svg", "close.svg", "split-right.svg", "split-down.svg", "zoom.svg", "unzoom.svg"],
+    "portrait-pane": ["spinner.svg", "close.svg", "split-right.svg", "split-down.svg", "zoom.svg", "unzoom.svg"],
     "portrait-files": ["chevron-down.svg", "chevron-right.svg", "file.svg", "folder.svg"],
     "nvim-float": ["chevron-down.svg", "close.svg"],
   };
