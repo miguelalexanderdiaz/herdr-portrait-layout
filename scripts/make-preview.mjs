@@ -51,33 +51,41 @@ function barStrip(x0, y0, w) {
   return o;
 }
 
-// One space column of the tree. `rows`: [indent, label, status|null, kind]
+// One space column of the tree, as portrait-tree draws it: a 40px header (fold button, letter badge, name with a
+// rule in the space's color, state counts, +), then per tab a 24px row and per pane a 26px row with tree lines,
+// the program, the state word (columns 320px or wider), how long ago it changed and the state glyph.
+const WORD = { blocked: "needs you", done: "done", working: "working", idle: "idle" };
 function column(x, y, w, h, space, active) {
-  let o = rect(x, y, w, h, "none") + rect(x + w - 1, y, 1, h, C.border);
+  let o = active ? rect(x, y, w, h, "#ffffff08") : "";
+  o += rect(x + w - 1, y, 1, h, C.border) + rect(x, y + 39, w, 1, C.border);
   const color = space.color;
-  o += rect(x + 10, y + 10, 18, 18, color, { r: 5 }) + text(x + 19, y + 23, space.name[0].toUpperCase(), { size: 10.5, fill: "#10141a", weight: 700, anchor: "middle" });
-  o += text(x + 38, y + 24, space.name, { size: 15, weight: 600, fill: active ? C.fg : C.muted });
-  const nameW = space.name.length * 8.4;
-  o += rect(x + 38, y + 29, nameW, 2, active ? color : color + "73", { r: 1 });
-  // counts + plus
-  o += text(x + w - 44, y + 24, space.counts, { size: 11, fill: C.muted, anchor: "end" });
+  o += `<path d="M${x + 12} ${y + 14}h3v12h-3zM${x + 19} ${y + 20}h6m-3-3 3 3-3 3" fill="none" stroke="${C.dim}" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>`;
+  o += rect(x + 34, y + 11, 18, 18, color, { r: 5 }) + text(x + 43, y + 24, space.name[0].toUpperCase(), { size: 10.5, fill: "#10141a", weight: 700, anchor: "middle" });
+  o += text(x + 60, y + 25, space.name, { size: 15, weight: 600, fill: active ? C.fg : C.muted });
+  o += rect(x + 60, y + 30, space.name.length * 8.2, 2, active ? color : color + "73", { r: 1 });
+  space.glyphs.forEach((g, i) => { o += glyph(x + w - 78 + i * 22 - (space.glyphs.length - 1) * 11 + 10, y + 13, g); });
   o += `<path d="M${x + w - 24} ${y + 19.5}h9M${x + w - 19.5} ${y + 15}v9" stroke="${C.dim}" stroke-width="1.6" stroke-linecap="round"/>`;
-  let ry = y + 50;
-  for (const row of space.rows) {
-    if (row.tab) {
-      o += text(x + 14, ry + 4, "▾", { size: 9, fill: C.dim });
-      o += text(x + 28, ry + 4, row.tab, { size: 12, weight: 500, fill: row.shown ? C.fg : C.muted });
-      ry += 22;
-      for (const p of row.panes) {
-        o += text(x + 34, ry + 4, "└", { size: 12, fill: C.dim, font: MONO });
-        if (p.status) o += glyph(x + 48, ry - 7, p.status);
-        else o += `<path d="M${x + 49} ${ry - 4}l3 3-3 3M${x + 54} ${ry + 2}h4" fill="none" stroke="${C.dim}" stroke-width="1.3" stroke-linecap="round"/>`;
-        o += text(x + 68, ry + 4, p.label, { size: 12, fill: p.status ? C.fg : C.muted });
-        if (p.age) o += text(x + w - 14, ry + 4, p.age, { size: 10.5, fill: p.status === "blocked" ? C.blocked : C.dim, anchor: "end" });
-        ry += 22;
+  let ry = y + 48;
+  space.rows.forEach((row, ti) => {
+    const lastTab = ti === space.rows.length - 1;
+    if (row.shown && active) o += rect(x + 4, ry, w - 8, 24, C.hover, { r: 6 });
+    o += text(x + 16, ry + 16, lastTab ? "└─" : "├─", { size: 12, fill: C.dim, font: MONO });
+    o += text(x + 40, ry + 16, row.tab, { size: 12, weight: 500, fill: row.shown ? C.fg : C.muted });
+    ry += 24;
+    row.panes.forEach((p, pi) => {
+      const prefix = (lastTab ? "   " : "│  ") + (pi === row.panes.length - 1 ? "└─" : "├─");
+      if (p.focused) o += rect(x + 4, ry, w - 8, 26, "#ffffff10", { r: 6 });
+      o += text(x + 16, ry + 17, prefix, { size: 12, fill: C.dim, font: MONO });
+      o += rect(x + 66, ry + 6, 15, 15, "none", { r: 4, stroke: p.status ? C.muted : C.dim, sw: 1.2 });
+      o += text(x + 90, ry + 17, p.label, { size: 12.5, fill: p.status && p.status !== "idle" ? C.fg : C.muted });
+      if (p.status) {
+        o += text(x + w - 80, ry + 17, p.age, { size: 11, fill: C.dim, anchor: "end" });
+        o += text(x + w - 128, ry + 17, WORD[p.status], { size: 11, fill: p.status === "blocked" ? C.blocked : p.status === "working" ? C.working : p.status === "done" ? C.done : C.dim, anchor: "end" });
+        o += glyph(x + w - 24, ry + 6, p.status);
       }
-    }
-  }
+      ry += 26;
+    });
+  });
   return o;
 }
 
@@ -88,15 +96,15 @@ function spine(x, y, w, h, name, color) {
 }
 
 const SPACES = [
-  { name: "api", color: C.s1, counts: "! 1  ⟳ 1", rows: [
-    { tab: "Tab 1", shown: true, panes: [{ label: "claude", status: "working", age: "2m" }, { label: "~/code/api", status: null }] },
+  { name: "api", color: C.s1, glyphs: ["blocked", "working"], rows: [
+    { tab: "Tab 1", shown: true, panes: [{ label: "claude", status: "working", age: "2m", focused: true }, { label: "zsh  ~/code/api" }] },
     { tab: "tests", panes: [{ label: "codex", status: "blocked", age: "6m" }] },
   ] },
-  { name: "web", color: C.s2, counts: "⟳ 1", rows: [
-    { tab: "Tab 1", panes: [{ label: "gemini", status: "working", age: "40s" }, { label: "~/code/web", status: null }] },
-    { tab: "storybook", panes: [{ label: "~/code/web", status: null }] },
+  { name: "web", color: C.s2, glyphs: ["working"], rows: [
+    { tab: "Tab 1", panes: [{ label: "gemini", status: "working", age: "40s" }, { label: "zsh  ~/code/web" }] },
+    { tab: "storybook", panes: [{ label: "node  ~/code/web" }] },
   ] },
-  { name: "docs", color: C.s3, counts: "", rows: [
+  { name: "docs", color: C.s3, glyphs: ["done"], rows: [
     { tab: "Tab 1", panes: [{ label: "claude", status: "done", age: "14m" }] },
   ] },
 ];
@@ -123,11 +131,11 @@ function mock(variant) {
   o += barStrip(0, barY, W);
   const ty = barY + STRIP;
   const th = BAR - STRIP - 1;
-  const cw = 262;
+  const cw = 337;
   SPACES.forEach((s, i) => { o += column(i * cw, ty, cw, th, s, i === 0); });
   o += spine(3 * cw, ty, 34, th, "infra", C.s4);
   o += `<path d="M${3 * cw + 17} ${ty + th - 20}v-8M${3 * cw + 13} ${ty + th - 24}l-4 4 4 4" fill="none" stroke="${C.dim}" stroke-width="1.4"/>`;
-  o += rect(3 * cw + 34 + 12, ty + 10, 90, 22, "none", { r: 6, stroke: C.border }) + text(3 * cw + 34 + 22, ty + 25, "+ New space", { size: 11.5, fill: C.muted });
+  o += rect(W - 34, ty, 1, th, C.border) + `<path d="M${W - 17 - 4.5} ${ty + 18}h9M${W - 17} ${ty + 13.5}v9" stroke="${C.dim}" stroke-width="1.6" stroke-linecap="round"/>`;
   // tabs
   o += rect(0, workY, W, TABS, C.canvas) + rect(0, workY + TABS - 1, W, 1, C.border);
   o += rect(10, workY + 7, 96, 28, C.hover, { r: 8 }) + text(26, workY + 26, "Tab 1", { size: 13, weight: 500 }) + `<path d="M88 ${workY + 17}l7 7m0-7l-7 7" stroke="${C.dim}" stroke-width="1.3" stroke-linecap="round"/>`;
@@ -186,7 +194,7 @@ function thumb(variant) {
   const bar = BAR * s, tabs = TABS * s, st = STATUS * s;
   const bY = top ? 0 : h - st - bar, wY = top ? bar : 0;
   let o = rect(0, 0, w, h, C.canvas) + rect(0, bY, w, bar, C.chrome);
-  const cw = 262 * s;
+  const cw = 337 * s;
   [C.s1, C.s2, C.s3].forEach((c, i) => { o += rect(i * cw + 4, bY + 6, 8, 8, c, { r: 2 }) + rect(i * cw + 16, bY + 8, 26, 4, C.muted, { r: 2 }) + rect(i * cw + 8, bY + 20, 36, 3, C.dim, { r: 1.5 }) + rect(i * cw + 12, bY + 28, 30, 3, C.dim, { r: 1.5 }) + rect(i * cw + 12, bY + 36, 24, 3, C.dim, { r: 1.5 }); });
   o += rect(3 * cw + 4, bY + 6, 7, bar - 12, C.s4 + "80", { r: 2 });
   o += rect(0, wY, w, tabs, C.canvas) + rect(4, wY + 2, 20, 5, C.hover, { r: 2 });
