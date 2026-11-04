@@ -8,7 +8,7 @@ import { v_flex, h_flex } from "gpui-base";
 import { spaces, machines, agents, panes, run, theme, shared, setShared, openOverlay, setAgentOrder, settings, home, terminals, appHome } from "herdr";
 import * as fs from "fs/promises";
 import {
-  inkOn, mix, markText, cleanTitle, alpha, duration, tabRows, nameOf, dedupeNames, tilde, basename, dirname, noteParts,
+  inkOn, mix, markText, cleanTitle, alpha, duration, tabRows, nameOf, dedupeNames, tilde, basename, dirname,
   safeStorage, readJson, writeJson, isStringArray, isChangedMap, pruneSpaceIds, pruneChanged,
   SPINE_H, createSpineStore, MIN_COL, FOLDED_COL, MARKER, WHEEL_STEP, planColumns, wheelStream,
 } from "./logic.mjs";
@@ -263,7 +263,6 @@ export default class PortraitTree extends View {
 
   // A plain terminal (a shell, nvim, a server) or a mod pane: its program and folder.
   paneRow(t, p, prefix, files) {
-    if (p.mod === "vault-reader") return this.noteRow(t, p, prefix);
     const pic = icon(p.program, 15, t.muted);
     // An editor opened from the Files panel carries its first file as a label and
     // titles itself with the file it shows now: show that name (the first file's
@@ -279,26 +278,10 @@ export default class PortraitTree extends View {
       .on_click(() => run("pane.focus", { pane: p.pane }))
       .on_mouse_down("right", (_e, cx) => { cx.stop_propagation(); this.menu({ tab: "pane", target: { pane: p.pane, terminal: p.terminal } }); })
       .child(this.lines(t, prefix))
-      .child(pic ?? div().w(15).flex_none().text_size(11).text_color(t.dim).child(">_"))
+      // No program icon: a terminal gets a ">_" glyph, a mod's pane an empty slot of the same width.
+      .child(pic ?? div().w(15).flex_none().text_size(11).text_color(t.dim).child(p.terminal ? ">_" : ""))
       .child(div().flex_none().text_size(12.5).text_color(t.muted).child(name))
       // Paths keep their end (the folder you're in) and lose the start when short of room.
-      .child(div().flex_1().min_w(0).overflow_hidden().whitespace_nowrap().text_ellipsis_start().text_size(11.5).text_color(t.dim).child(where));
-  }
-
-  // A note kept from the vault reader (an "obsidian" tab's pane): a note icon,
-  // the note's name and its folder in the vault (mods/vault-reader records
-  // which note each of its panes shows in shared "vault.panes").
-  noteRow(t, p, prefix) {
-    const { name, dir, vault } = noteParts(shared("vault.panes")?.[p.pane]);
-    const where = dir || vault;
-    return h_flex().id(`pn-${p.pane}`).h(26).flex_none().pl(12).pr(10).gap(6).items_center().rounded(6)
-      .when(p.focused, (el) => el.bg(t.selected))
-      .hover((el) => el.bg(t.hover)).cursor_pointer()
-      .on_click(() => run("pane.focus", { pane: p.pane }))
-      .on_mouse_down("right", (_e, cx) => { cx.stop_propagation(); this.menu({ tab: "pane", target: { pane: p.pane, terminal: null } }); })
-      .child(this.lines(t, prefix))
-      .child(svg("mods/portrait-tree/note.svg").size(15).flex_none().text_color(t.muted))
-      .child(div().flex_none().max_w(200).truncate().text_size(12.5).text_color(t.muted).child(name))
       .child(div().flex_1().min_w(0).overflow_hidden().whitespace_nowrap().text_ellipsis_start().text_size(11.5).text_color(t.dim).child(where));
   }
 

@@ -22,25 +22,13 @@ export function find(node, id) {
 }
 // </shared:find>
 
-// <shared:vault>
-// The Vault button and panel need the vault mod installed AND a `vault` child in the
-// layout's panel stack (snippets/vault-panel.json); one without the other is a dead button.
-export const vaultWanted = ({ installed, hasNode }) => installed === true && Boolean(hasNode);
+// <shared:panels>
 // The panels a space may remember or show a button for: the shell's list (shared
-// "workspace.panels", anything else is ignored) plus the vault when it is wanted.
-export function enabledPanels(shared, { vault }) {
-  const base = Array.isArray(shared) && shared.every((x) => typeof x === "string") ? shared : ["files", "changes"];
-  return vault ? [...base.filter((x) => x !== "vault"), "vault"] : base.filter((x) => x !== "vault");
+// "workspace.panels"); anything that is not a list of names falls back to Files and Changes.
+export function enabledPanels(shared) {
+  return Array.isArray(shared) && shared.every((x) => typeof x === "string") ? shared : ["files", "changes"];
 }
-// </shared:vault>
-
-// <shared:join>
-// base + parts joined with the separator `base` already uses (a Windows app home has backslashes).
-export function joinPath(base, ...parts) {
-  const sep = base.includes("\\") && !base.includes("/") ? "\\" : "/";
-  return [base.replace(/[\\/]+$/, ""), ...parts.map((p) => p.replace(/[\\/]+/g, sep))].join(sep);
-}
-// </shared:join>
+// </shared:panels>
 
 // <shared:alpha>
 // `color` ("#rrggbb" or "#rrggbbaa") at opacity `a` (0 to 1); anything else comes back as it was.

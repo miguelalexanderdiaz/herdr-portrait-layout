@@ -3,7 +3,7 @@ import { h, LIN } from "./fake-home.mjs";
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
-  rgb, hex, inkOn, mix, markText, cleanTitle, alpha, tabRows, duration, nameOf, dedupeNames, tilde, basename, dirname, noteParts,
+  rgb, hex, inkOn, mix, markText, cleanTitle, alpha, tabRows, duration, nameOf, dedupeNames, tilde, basename, dirname,
   safeStorage, readJson, writeJson, isStringArray, isChangedMap, pruneSpaceIds, pruneChanged,
   spineFile, spineSvg, xml, joinPath, createSpineStore, SPINE_DIR,
   planColumns, wheelSteps, wheelStream, MIN_COL, FOLDED_COL, MARKER, WHEEL_STEP,
@@ -95,22 +95,6 @@ test("basename/dirname accept both separators and never throw", () => {
   assert.equal(dirname("c.txt"), "");
   assert.equal(dirname("/c.txt"), "");
   assert.equal(dirname(null), "");
-});
-
-test("noteParts survives malformed vault records", () => {
-  assert.deepEqual(noteParts({ vault: "/x/My Vault", file: "Daily/2026-01-02.md", id: "1" }),
-    { name: "2026-01-02", dir: "Daily", vault: "My Vault", path: "My Vault/Daily" });
-  assert.deepEqual(noteParts({ vault: "C:\\Notes\\Work", file: "Plan.excalidraw.md" }),
-    { name: "Plan", dir: "", vault: "Work", path: "Work" });
-  for (const bad of [undefined, null, {}, { vault: 1 }, { file: 5 }, { vault: {}, file: [] }, "str", 7]) {
-    const p = noteParts(bad);
-    assert.equal(p.name, "Note");
-    assert.equal(p.dir, "");
-    assert.equal(p.path, p.vault);
-  }
-  assert.equal(noteParts({ vault: "/v", file: "x" }).name, "x");
-  assert.equal(noteParts({ vault: "/v" }).path, "v"); // missing file
-  assert.equal(noteParts({ file: "a/b.canvas" }).name, "b");
 });
 
 function fakeStorage(initial = {}, { failRead = false, failWrite = false } = {}) {

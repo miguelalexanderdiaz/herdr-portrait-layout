@@ -105,7 +105,6 @@ the times move.
 - *Files* and *Changes* open the right panel on that tab (`layout.select` on `panel-body`, then `layout.show` on
   `panel`); clicking the lit one hides the panel (`layout.hide`). The panel choice is remembered **per space**: switch
   spaces and the panel comes back as that space had it, or closed if it never had one.
-- *Vault* (only when the optional Vault panel is installed, see Built from) is a third panel button.
 
 **The space columns**
 - Click a header: select the space. Drag a header onto another: reorder (`space.move`, within one machine). Right-click
@@ -123,8 +122,8 @@ the times move.
   its own order, so agents of folded spaces come last rather than being skipped; focusing one opens its space.
 - The wheel: a horizontal swipe, or Shift plus the wheel, moves the run of columns by one column per notch of a mouse wheel, or per 40px of a trackpad or any device that reports pixels; plain vertical
   scrolling stays with the column. The markers do the same on click. The run follows the active space.
-- A pane that belongs to the optional Vault reader (see Built from) shows the note's name and its folder in the
-  vault instead of a program and a folder, in the tree and in the pane header.
+- A pane that a mod draws (not a terminal) shows the mod's name in its tree row, with an empty icon slot instead of
+  the `>_` of a terminal without an icon; its pane header shows its title, or the mod's name when it has none.
 
 **The tab strip**
 - Click a tab: select. Double-click: rename. Drag onto another: reorder. Right-click: the shipped `menu`. The active
@@ -184,7 +183,6 @@ layout shows):
 
 None of these is a Herdr default (`cmd-b` is a macOS default that this layout re-points on purpose), a plain `ctrl` letter
 (programs in terminals use those), or `ctrl-alt` (AltGr on Windows). Rename the sections if you rename the layout files.
-`ctrl-shift-a` is not used: the herdr-agents-waiting repository binds it to the same list.
 
 ## Built from
 
@@ -216,12 +214,6 @@ root (row)
 Portrait bottom lists `left`'s children as `work`, `bar`, `status`; every other node is the same, and `validate.mjs`
 fails if the two files drift apart.
 
-**Optional: Vault.** If the optional mods `vault` and `vault-reader` (the herdr-obsidian-vault repo) are installed, add
-`snippets/vault-panel.json` (`{ "id": "vault", "type": "block", "content": { "mod": "vault" } }`) as the last child of
-`panel-body` in the layout file. The strip then shows a *Vault* button (icon `book-open` from the vault mod). The
-Vault button, its remembered panel and the note rows appear only when the mod is installed **and** the layout has
-the `vault` node; without both, nothing about the Vault is drawn and nothing is loaded.
-
 **The mods** (every folder in `mods/`; all have `place: "none"`: the layout or another mod puts them where they show):
 
 | Mod | Role | `props` / commands it reads |
@@ -233,7 +225,7 @@ the `vault` node; without both, nothing about the Vault is drawn and nothing is 
 | `portrait-files` | the Files panel: opens each file in the picked editor, the viewer or the system's app, and the read-only preview (clone of the shipped `files` 0.1.12) | none in the panel; as its own popups `props()` = `{ menu: "editor", choices, current }` or `{ menu: "open", choices, path, root, on }` |
 | `nvim-float` | the title bar of a floating terminal editor and its Keep menu; opened only through `openOverlay` | `props()` = `{ terminal, socket, file, space, on, editor, overlay }` or `{ menu: true, window, ... }` |
 | `portrait-viewer` | the window that shows a picture or a PDF clicked in Files; opened only through `openOverlay` | `props()` = `{ file }` |
-| `attention-picker` | the Agents waiting dialog (640px wide, `overlay` in its own `mod.json`); a bundled copy of the herdr-agents-waiting repo's mod, hash-checked in `scripts/bundled.json`, do not edit | `props()` = `{ search }` (the search box is on unless it is `false`; `mod.open` passes no props); reads shared `agents.since` (when `portrait-tree` publishes it, otherwise it times states itself), `attention.sort` (also written), `space.colors` |
+| `attention-picker` | the Agents waiting dialog (640px wide, `overlay` in its own `mod.json`); a frozen copy, hash-checked in `scripts/bundled.json`, do not edit | `props()` = `{ search }` (the search box is on unless it is `false`; `mod.open` passes no props); reads shared `agents.since` (when `portrait-tree` publishes it, otherwise it times states itself), `attention.sort` (also written), `space.colors` |
 
 **Shipped mods it needs** (Herdr 0.1.12 or newer; they are replaced whole on every Herdr start, never edited here):
 `workspace-status` (the status block), `changes` (the panel child), and opened by name as overlays `picker`,
@@ -242,11 +234,9 @@ the `vault` node; without both, nothing about the Vault is drawn and nothing is 
 
 **Shared state:** writes `files.editor` (the editor text files open with, an id such as `nvim` or `code`),
 `files.request` (the last *Open with* choice: `{ at, root, on, path, editor }`, read by the panel and ignored after 10
-seconds), `agents.since` (agent address to the time of its last state change) and `mods.vault` (a boolean:
-`bar-strip` looks for `<app home>/mods/vault/main.js` at start and every 60 seconds); reads `workspace.panels` (which
-panel tabs the person has enabled, default `["files", "changes"]`), `space.colors` (space id to a color name or
-`#rrggbb`), `layout` (the shown layout's name) and `vault.panes` (pane id to `{ vault, file, id }`, only for Vault note
-rows). Each mod also keeps its own `localStorage`: `folded`, `peeked`, `changed` (`portrait-tree`), `panels`
+seconds), and `agents.since` (agent address to the time of its last state change); reads `workspace.panels` (which panel tabs
+the person has enabled, default `["files", "changes"]`), `space.colors` (space id to a color name or `#rrggbb`) and
+`layout` (the shown layout's name). Each mod also keeps its own `localStorage`: `folded`, `peeked`, `changed` (`portrait-tree`), `panels`
 (`portrait-tabs`) and `attention.seen` (`attention-picker`: for each agent address its state group and the time it was
 first seen in it; no screen text); corrupt or foreign values fall back to empty, and ids of spaces and agents that are gone are dropped.
 
@@ -254,7 +244,7 @@ first seen in it; no screen text); corrupt or foreign values fall back to empty,
 setAgentOrder, theme, settings, layout, updates, window, home, appHome, keys, machines, props, nextCommand,
 openOverlay, closeOverlay, notify, exec, hc, readTextFile, watchFolder`; from Node-style modules, only `fs/promises`
 (`portrait-tree`: `readFile`, `readdir`, `mkdir`, `writeFile` and `unlink` on its spine SVGs under
-`<app home>/data/portrait-tree-spines/`; `bar-strip`: `exists` on `<app home>/mods/vault/main.js`; `portrait-viewer`:
+`<app home>/data/portrait-tree-spines/`; `portrait-viewer`:
 `readFile` on the clicked picture, and `readFile`, `writeFile`, `mkdir`, `readdir`, `unlink` and `rmdir` under
 `<app home>/data/portrait-viewer/cache/`); commands `agent.focus`, `layout.show`, `layout.hide`, `layout.select`,
 `layout.toggle`, `layout.switch`, `mod.open`, `app.settings`, `space.select`, `space.move`, `space.new`, `tab.select`,
@@ -278,7 +268,7 @@ openOverlay, closeOverlay, notify, exec, hc, readTextFile, watchFolder`; from No
   `git`, `sh`, `nvim` and `hc run` run on the machine of the folder that is shown (`on`), which may be a remote one;
   `hc read` reads agents on any machine Herdr lists.
 - **Reads outside its folder:** the folders shown in the Files panel and the file you click (through `exec` and
-  `readTextFile`, on the folder's own machine); whether `<app home>/mods/vault/main.js` exists (existence only); terminal
+  `readTextFile`, on the folder's own machine); terminal
   text through `hc read` (`attention-picker` only; kept in memory while the list is open, not stored); the person's key
   bindings (`bar-strip`, for the bell's tooltip); the shared values above; the app's own list of spaces, tabs, panes,
   terminals and agents (names, folders, titles); the picture or PDF you click (the viewer, only inside the home
@@ -303,8 +293,6 @@ are drawn by `scripts/make-preview.mjs`.
   fits three open columns and one strip, and anything more brings the `‹ ›` markers.
 - **No theme, no fonts.** The preview uses colors close to Herdr's `graphite`; on `paper` or a theme from `themes/` the
   same layout takes that theme's colors. Do not pin a theme in the layout: Settings decides.
-- **The Vault is opt-in** (see Built from). A build that always draws the Vault button without the mod installed shows
-  a button that opens a panel for a missing mod.
 - **Not exercised on a live Linux or Windows build in this repository's history.** The PowerShell folder listing, the
   read-only preview that a Windows click opens, the login-shell `PATH` lookup under fish, and the window-button rules
   below are written from the code and from Herdr's documentation; checks and tests run on all three systems in CI, but
@@ -328,9 +316,7 @@ are drawn by `scripts/make-preview.mjs`.
 - **Layout and section names are load-bearing.** If an installer renames a layout because the name is taken, rename the
   `layout:<name>` sections in `keys.json`, the `layout.switch:<name>` actions and the root `preview` field of the layout
   (it must read `layouts/<new name>.svg`) with it, and copy the `.svg` thumbnails along with the `.json` files. If you already have a
-  mod named `attention-picker` (the herdr-agents-waiting repo), keep yours: `bar-strip` and `ctrl-shift-j` open it by that
-  name. With both repositories installed there are two keys for the same list (this one's `ctrl-shift-j` and that one's
-  own), which is harmless.
+  mod named `attention-picker`, keep yours: `bar-strip` and `ctrl-shift-j` open it by that name.
 - **The per-space right panel is the mods' own memory, not Herdr's.** It lives in `portrait-tabs`' `localStorage` and is
   applied when the active space changes, so the tab strip (`tabs`) must be present for it to work; the panel buttons
   themselves are in `bar-strip`.
@@ -346,16 +332,15 @@ Other pieces look these up by name. A build or a rename that drops one breaks so
 - **Layout ids:** `root`, `left`, `bar`, `bar-strip`, `tree`, `work`, `tabs`, `work-body`, `main`, `status`, `panel`, `panel-body`, `files`, `changes`
 - **Mods:** `portrait-tree`, `bar-strip`, `portrait-tabs`, `portrait-pane`, `portrait-files`, `nvim-float`, `portrait-viewer`, `attention-picker`, `workspace-status`, `changes`, `picker`, `machine-add`, `menu`, `new-menu`
 - **Key sections:** `layout:portrait`, `layout:portrait-bottom`
-- **Shared keys:** `agents.since`, `workspace.panels`, `space.colors`, `mods.vault`
+- **Shared keys:** `agents.since`, `workspace.panels`, `space.colors`
 - **Commands:** `bar-strip.attention`, `mod.open`, `layout.toggle`, `layout.switch`, `layout.select`, `layout.show`, `layout.hide`, `agent.focus`
 
 ## Done when
 
 - [ ] `herdr-app check <app home>/mods/<mod>` passes for each of the seven mod folders, and `herdr-app commands` lists every
   command named in `keys.json` (`layout.toggle`, `layout.switch`, `mod.open`).
-- [ ] With the layout `portrait` shown and no Vault mods installed: the window is, top to bottom, a 246px bar (26px strip with
-  Search, Add machine, Settings, the bell, Files, Changes; then the space columns), a 42px tab strip, the pane cards, and a 28px
-  status line; there is no Vault button and no Vault panel.
+- [ ] With the layout `portrait` shown: the window is, top to bottom, a 246px bar (26px strip with Search, Add machine,
+  Settings, the bell, Files, Changes; then the space columns), a 42px tab strip, the pane cards, and a 28px status line.
 - [ ] With three spaces, each is a column of at least 290px with its badge, name and rule; a fourth makes `‹`/`›` markers and a
   track appear (in a 1080px window); a folded space is a 34px strip with its name written down it.
 - [ ] A working agent shows a spinning 12px ring in its tree row, its tab and its pane header; a blocked one shows the `!` chip in the
@@ -370,4 +355,3 @@ Other pieces look these up by name. A build or a rename that drops one breaks so
   preview and says why.
 - [ ] No mod writes anything but `<app home>/data/portrait-tree-spines/*.svg`, the nvim sockets and its own
   `localStorage`; no mod reaches the network; `git status` of the person's projects is unchanged after browsing them.
-- [ ] After adding `snippets/vault-panel.json` with the vault mods installed, the strip shows a *Vault* button that opens that panel.

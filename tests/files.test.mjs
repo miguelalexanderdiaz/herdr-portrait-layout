@@ -22,7 +22,7 @@ test("filesVisible: only when the panel is shown with the files child active", (
   assert.equal(filesVisible(layoutWith({ hidden: undefined, active: "files" })), true);
   assert.equal(filesVisible(layoutWith({ hidden: true, active: "files" })), false);
   assert.equal(filesVisible(layoutWith({ hidden: false, active: "changes" })), false);
-  assert.equal(filesVisible(layoutWith({ hidden: false, active: "vault" })), false);
+  assert.equal(filesVisible(layoutWith({ hidden: false, active: "other" })), false);
   assert.equal(filesVisible(layoutWith({ hidden: false, active: undefined })), false);
 });
 

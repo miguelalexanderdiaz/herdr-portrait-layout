@@ -22,22 +22,6 @@ export const basename = (p) => (typeof p === "string" ? p.split(/[\\/]/).pop() :
 export const dirname = (p) => (typeof p === "string" ? p.slice(0, Math.max(0, Math.max(p.lastIndexOf("/"), p.lastIndexOf("\\")))) : "");
 // </shared:paths>
 
-// <shared:note>
-// A note kept by the vault reader (shared "vault.panes": pane id -> { vault, file, id }).
-// A record from another version of that mod may lack fields: never throw on one.
-export function noteParts(note) {
-  const file = typeof note?.file === "string" ? note.file : "";
-  const vault = typeof note?.vault === "string" ? basename(note.vault) : "";
-  const dir = dirname(file);
-  return {
-    name: basename(file).replace(/\.(excalidraw\.md|md|canvas)$/i, "") || "Note",
-    dir,
-    vault,
-    path: [vault, dir].filter(Boolean).join("/"),
-  };
-}
-// </shared:note>
-
 // <shared:alpha>
 // `color` ("#rrggbb" or "#rrggbbaa") at opacity `a` (0 to 1); anything else comes back as it was.
 export function alpha(color, a) {

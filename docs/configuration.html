@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="dark">
 <title>Configuration - Portrait layout for Herdr</title>
-<meta name="description" content="Theme, sizes, keys, the optional Vault panel and optional tmux-style keys for the portrait layout.">
+<meta name="description" content="Theme, sizes, keys and optional tmux-style keys for the portrait layout.">
 <link rel="stylesheet" href="assets/site.css">
 </head>
 <body>
@@ -63,13 +63,9 @@
   }
 }</code></pre>
 
-<h2 id="vault">Vault panel</h2>
-<p>Add-on, off by default. Both are needed: the <code>vault</code> mod installed in <code>mods/</code> (the strip looks for <code>mods/vault/main.js</code> and publishes the result as the shared key <code>mods.vault</code>), and a <code>vault</code> node in the layout's <code>panel-body</code> stack. With both, you get the Vault button, a Vault tab in the side panel, remembered per space, and note rows for the vault reader's panes in the tree and pane headers. With either missing, none of those appear and nothing errors.</p>
-<p>To add it, paste <code>snippets/vault-panel.json</code> into the <code>children</code> of <code>panel-body</code> in each layout you use (it is the same object in both).</p>
-
 <h2 id="renaming">Renaming</h2>
 <p>If you rename a layout or mod, see <a href="for-agents.html#rename">the rename checklist</a>.</p>
-<p>Layout ids the mods look up by name, which must not change: <code>panel</code>, <code>panel-body</code>, <code>files</code> and <code>changes</code> (children of <code>panel-body</code>) and <code>vault</code> when you add the Vault panel. <code>bar</code> is named only by the toggle key <code>layout.toggle:bar</code>, so a rename needs the key changed with it. If you rename <code>files</code> or <code>changes</code> you also change the defaults in <code>portrait-tabs</code> (<code>enabledPanels</code>). <a href="https://github.com/miguelalexanderdiaz/herdr-portrait-layout/blob/main/RECIPE.md">RECIPE.md</a> has the full list of load-bearing names.</p>
+<p>Layout ids the mods look up by name, which must not change: <code>panel</code>, <code>panel-body</code>, <code>files</code> and <code>changes</code> (children of <code>panel-body</code>). <code>bar</code> is named only by the toggle key <code>layout.toggle:bar</code>, so a rename needs the key changed with it. If you rename <code>files</code> or <code>changes</code> you also change the defaults in <code>portrait-tabs</code> (<code>enabledPanels</code>). <a href="https://github.com/miguelalexanderdiaz/herdr-portrait-layout/blob/main/RECIPE.md">RECIPE.md</a> has the full list of load-bearing names.</p>
 </main>
 <footer class="site"><div class="inner">
 <p>Apache-2.0. Source and issues: <a href="https://github.com/miguelalexanderdiaz/herdr-portrait-layout">github.com/miguelalexanderdiaz/herdr-portrait-layout</a>. Written for humans and for agents: see <a href="for-agents.html">For agents</a> and <a href="llms.txt">llms.txt</a>.</p>

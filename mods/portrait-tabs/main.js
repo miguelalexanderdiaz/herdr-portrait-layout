@@ -1,7 +1,7 @@
 import { View, div, svg, image } from "gpui-kit";
 import { h_flex } from "gpui-base";
 import { spaces, machines, panes, run, openOverlay, theme, window, shared, layout, settings } from "herdr";
-import { safeStorage, readJson, writeJson, isPanels, prunePanels, find, vaultWanted, enabledPanels, wheelStream, WHEEL_STEP } from "./logic.mjs";
+import { safeStorage, readJson, writeJson, isPanels, prunePanels, find, enabledPanels, wheelStream, WHEEL_STEP } from "./logic.mjs";
 
 export default class Tabs extends View {
   init() {
@@ -79,10 +79,7 @@ export default class Tabs extends View {
       ? Math.max(10, (root.traffic_lights[0] + 64) / (Number(settings().zoom) || 1) - (sidebar?.hidden ? 0 : sidebar?.size?.px ?? 0))
       : 10;
     const panel = find(root, "panel"), body = find(root, "panel-body");
-    // The Vault panel (mods/vault) is remembered per space too, when the mod is installed
-    // (bar-strip publishes shared "mods.vault") and the layout has the panel for it.
-    const vault = vaultWanted({ installed: shared("mods.vault"), hasNode: find(body, "vault") });
-    const enabled = enabledPanels(shared("workspace.panels"), { vault });
+    const enabled = enabledPanels(shared("workspace.panels"));
     this.syncPanel(space, panel, body, enabled);
     return h_flex().size_full().min_w(0).px(10).pl(lightsPadding).gap(3).items_center().bg(t.chrome).border_b(1).border_color(t.border)
       .on_mouse_up("left", () => { this.pressed = null; })

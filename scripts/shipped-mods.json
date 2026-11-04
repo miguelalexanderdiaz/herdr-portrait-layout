@@ -1,5 +1,5 @@
 {
-  "_about": "Mods that are not in this repo but are referenced by name. 'shipped' mods come with Herdr 0.1.12 and are replaced whole on every Herdr start (read-only for users). 'optional' mods belong to another repo and only the opt-in snippet uses them. validate.mjs fails when a layout, snippet or mod source refers to a mod that is in none of mods/, 'shipped' or 'optional'.",
+  "_about": "Mods that are not in this repo but are referenced by name: they come with Herdr 0.1.12 and are replaced whole on every Herdr start (read-only for users). validate.mjs fails when a layout or mod source refers to a mod that is neither in mods/ nor 'shipped', and when a mod loads a file of another mod by path (no exception: icons are vendored into the mod that draws them).",
   "min_herdr_version": "0.1.12",
   "shipped": [
     "workspace-status",
@@ -8,15 +8,5 @@
     "machine-add",
     "menu",
     "new-menu"
-  ],
-  "optional": [
-    "vault",
-    "vault-reader"
-  ],
-  "tolerated_assets": {
-    "_about": "Nothing may load another mod's files by path, except the optional Vault icon below. The bundled attention-picker used to need two Herdr icons; its round-1 version carries its own, so the allowance is gone and a regression would fail validate.",
-    "optional_assets": [
-      "mods/vault/icons/book-open.svg"
-    ]
-  }
+  ]
 }

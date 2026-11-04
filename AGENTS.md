@@ -16,9 +16,8 @@ mods/portrait-tabs/              tab bar (clone of shipped tabs 0.1.12) + panel 
 mods/portrait-pane/              pane header (clone of shipped pane 0.1.12)
 mods/portrait-files/             Files panel (clone of shipped files 0.1.12); click opens the picked editor, the viewer or the system's app
 mods/nvim-float/                 title bar and Keep menu of a floating terminal editor (nvim gets Add to and close)
-mods/portrait-viewer/            window that shows a picture or a PDF from Files (PDF code copied from herdr-obsidian-vault)
-mods/attention-picker/           BUNDLED COPY of herdr-agents-waiting; do not edit here
-snippets/vault-panel.json        optional Vault panel node
+mods/portrait-viewer/            window that shows a picture or a PDF from Files
+mods/attention-picker/           the Agents waiting dialog: a FROZEN, hash-checked copy; do not edit here
 keys.json                        keys to merge
 tests/                           node --test
 scripts/                         validators, snapshots of Herdr 0.1.12, ci.workflow.yml, PUBLISH.md
@@ -36,26 +35,25 @@ Say this in plain words before writing anything.
 
 - No mod uses the network.
 - The mods run: `sh` (`powershell` for a local Windows machine) to list folders; `git rev-parse` and `git status`; the login shell once per machine, to read its PATH; `hc run` to start nvim; `nvim`; and, only while the Agents waiting list is open, `hc read` (the last 60 lines of each blocked or finished agent's screen, every 3 seconds).
-- They read: the folder of the focused pane; one file's text for the read-only preview (alt-click, and also a plain click on Windows or when nvim is not found); whether `<home>/mods/vault/main.js` exists (existence only, every 60 seconds); agent, space, tab, pane and key-binding data from Herdr.
-- They write: `data/portrait-tree-spines/*.svg` in the Herdr home folder (space names); a socket under `/tmp` per nvim they start (macOS and Linux) and labels on that nvim terminal with the full file path; records in the mods' local storage (fold state, state-change times, the open side panel per space, and `attention.seen`: agent address, state group, time; no screen text); the shared keys `agents.since`, `attention.sort`, `mods.vault`.
+- They read: the folder of the focused pane; one file's text for the read-only preview (alt-click, and also a plain click on Windows or when nvim is not found); agent, space, tab, pane and key-binding data from Herdr.
+- They write: `data/portrait-tree-spines/*.svg` in the Herdr home folder (space names); a socket under `/tmp` per nvim they start (macOS and Linux) and labels on that nvim terminal with the full file path; records in the mods' local storage (fold state, state-change times, the open side panel per space, and `attention.seen`: agent address, state group, time; no screen text); the shared keys `agents.since`, `attention.sort`.
 - Full table, mod by mod, with the function that does each thing: the Privacy page of the site (`docs/privacy.html`; after publication at `https://miguelalexanderdiaz.github.io/herdr-portrait-layout/privacy.html`) and the disclosure in [RECIPE.md](RECIPE.md).
 
 ## Install (Herdr's protocol for layouts other people made)
 
 1. Read `RECIPE.md` and every file you will copy before writing anything.
 2. Copy `layouts/*` into `<home>/layouts/` and each folder of `mods/` into `<home>/mods/`. Leave `RECIPE.md`, `preview.png`, `docs/`, `tests/`, `scripts/`, `package.json` out. **Never overwrite.** If a name is taken (the person's or Herdr's), rename the new one, using the checklist below.
-3. If the person already has an `attention-picker` (from herdr-agents-waiting), keep theirs, do not copy the bundled one, and check that its props still work: `bar-strip` opens it with `{ search: <boolean> }`, and the key `ctrl-shift-j` runs `mod.open:attention-picker`. The bundled copy ships no key of its own; the herdr-agents-waiting repository binds `ctrl-shift-a` to it, which does not clash.
+3. If the person already has an `attention-picker`, keep theirs, do not copy the bundled one, and check that its props still work: `bar-strip` opens it with `{ search: <boolean> }`, and the key `ctrl-shift-j` runs `mod.open:attention-picker`. The bundled copy ships no key of its own.
 4. Merge `keys.json` into `<home>/keys.json` (create it if missing). Add the sections and keys. If a key is already used for something else, ask the person before replacing it, or leave it out and tell them which. Never delete their keys. `cmd-b` is macOS only (expected dead on Linux and Windows). No `ctrl-b` chords are shipped; add the optional tmux-style set (below) only if the person asks.
 5. For each mod folder: `herdr-app check <absolute path of the folder in <home>/mods>`. Fix or report any failure.
 6. Switch: `herdr-app do layout.switch --name portrait` (only if the person asked to switch; otherwise tell them how: Settings, or `ctrl-shift-l`). Their own layout stays as it was.
-7. Optional Vault panel: only if the person has (or wants) the `vault` and `vault-reader` mods from herdr-obsidian-vault. Insert `snippets/vault-panel.json` into the `children` of the stack `panel-body` in the layout files they use.
-8. Tell the person what you copied, what you renamed, what you skipped, and which keys you added.
+7. Tell the person what you copied, what you renamed, what you skipped, and which keys you added.
 
 ## Rename checklist (name clash)
 
 - Layout file renamed: rename its `.svg` thumbnail too and set the layout's root field `preview` to the new thumbnail name (`layouts/<name>.svg`; `validate` requires it to match); change the keys sections `layout:portrait` and `layout:portrait-bottom` to the new names, and the values `layout.switch:portrait` and `layout.switch:portrait-bottom`.
 - Mod folder renamed: change every `mods/<old>/` path in its `svg()` and `image()` calls, the `mod` name wherever a layout or another mod refers to it (`"mod": "<old>"` in layouts; `PICKER` at the top of `mods/bar-strip/main.js` for `attention-picker`; `nvim-float` is opened by name from `portrait-files`), and `mod.open`/`openOverlay({ mod })` calls.
-- Never rename the layout ids the mods look up: `panel`, `panel-body`, `files`, `changes` (children of `panel-body`) and `vault` (when the Vault panel is added). `bar` is named only by the key `layout.toggle:bar`: rename it only together with that key. Renaming `files` or `changes` also needs the `enabledPanels` defaults in `mods/portrait-tabs/logic.mjs`. The full load-bearing list is in `RECIPE.md`.
+- Never rename the layout ids the mods look up: `panel`, `panel-body`, `files`, `changes` (children of `panel-body`). `bar` is named only by the key `layout.toggle:bar`: rename it only together with that key. Renaming `files` or `changes` also needs the `enabledPanels` defaults in `mods/portrait-tabs/logic.mjs`. The full load-bearing list is in `RECIPE.md`.
 - Mod names in keys (`mod.open:attention-picker`, and `bar-strip.attention` if someone bound it) follow the mod's folder name.
 
 ## Adapt to the person's setup
@@ -82,7 +80,6 @@ Optional tmux-style chords (not shipped: a bound `ctrl-b` prefix takes `ctrl-b` 
   }
 }
 ```
-- Without the Obsidian mods: nothing to do. Do not add the Vault node.
 
 ## Test
 
@@ -98,22 +95,22 @@ Optional tmux-style chords (not shipped: a bound `ctrl-b` prefix takes `ctrl-b` 
 - Saving any file in a mod folder reloads every copy of that mod on the person's screen at once, and Herdr keeps the old version if the new one is broken. Never write runtime output inside a mod folder; `portrait-tree` writes spines to `<home>/data/portrait-tree-spines/` for this reason.
 - A mod copy keeps running while hidden: keep timers conditional (Files refreshes only while its panel is open).
 - `<mod>.<command>` key actions reach shown copies only, so a key for `bar-strip.attention` would be dead while the bar is hidden. The shipped `ctrl-shift-j` uses `mod.open:attention-picker` instead (a Herdr command; pressing it again closes the dialog); the keys sit in the `layout:*` sections, not `global`.
-- `mods/attention-picker` is a bundled copy, frozen and hash-checked (`scripts/bundled.json`; `validate` fails on any difference). Do not edit it here; change it in herdr-agents-waiting and re-sync (below).
+- `mods/attention-picker` is a bundled copy, frozen and hash-checked (`scripts/bundled.json`; `validate` fails on any difference). Do not edit it here; the maintainer takes a new version of the whole folder (below).
 - `portrait-tabs`, `portrait-pane`, `portrait-files` are clones of the shipped 0.1.12 mods (`cloned_from` in `mod.json`). Herdr never updates a clone; after a Herdr update re-run the checks.
 - The layouts keep the system title bar. `portrait-tabs` draws window buttons only when `window().buttons` is true, which is never with a system title bar, so there are none on Linux and Windows.
 - Mods import only from `herdr`, `gpui-kit`, `gpui-base` and `fs/promises`; RECIPE.md lists each imported Herdr function and `check-recipe` fails on a new import, `run(...)` command or `exec(...)` program that RECIPE does not name.
-- Do not reference another mod's files (`mods/workspace-chrome/...`, `mods/pane/...`): Herdr replaces its shipped mods on update. Icons are vendored in each mod's folder. The only allowlisted outside asset is `mods/vault/icons/book-open.svg` (optional mod).
+- Do not reference another mod's files (`mods/workspace-chrome/...`, `mods/pane/...`): Herdr replaces its shipped mods on update. Icons are vendored in each mod's folder; there is no allowlisted outside asset.
 - The nvim socket is under `/tmp` on purpose: macOS temp folders plus a long home path exceed the 104-byte unix socket limit.
-- `herdr-app check` cannot see runtime behaviour (vault gating, polling, nvim). Pure functions carry that in tests.
+- `herdr-app check` cannot see runtime behaviour (panel memory, polling, nvim). Pure functions carry that in tests.
 - Herdr's script engine has no `Intl`; a mod that touches it fails `herdr-app check`.
 - Blocks between `<shared:...>` markers in the `logic.mjs` files are identical copies of each other (`tests/shared.test.mjs` keeps them equal): change every copy.
 - Elements cannot rotate in GPUI; folded space names are rotated-text SVGs (`spineSvg` in `portrait-tree`).
-- No personal data in files or commits: no real names (except the LICENSE copyright line), no absolute home-folder paths of any system (write `~` or `<home>`), no e-mail addresses, no host names, nothing from a real vault or window.
+- No personal data in files or commits: no real names (except the LICENSE copyright line), no absolute home-folder paths of any system (write `~` or `<home>`), no e-mail addresses, no host names, nothing from a real project or window.
 - Commit messages: a subject, a body, and the attribution trailer lines your tooling gives.
 
 ## When Herdr updates, and when the bundled picker is re-synced
 
-Both procedures, with the commands, are in [CONTRIBUTING.md](CONTRIBUTING.md) (section Maintenance): run `node --test` with the new `.d.ts` files present, `herdr-app check` for each mod, compare the three clones with Herdr's shipped mods (read-only), refresh the three snapshots in `scripts/` (`default-keys.json`, `commands.json`, `shipped-mods.json`); for the picker `git archive` from the herdr-agents-waiting repository, `node scripts/bundled.mjs <commit>`, `herdr-app check`, then re-read the privacy text against the picker's constants.
+Both procedures, with the commands, are in [CONTRIBUTING.md](CONTRIBUTING.md) (section Maintenance): run `node --test` with the new `.d.ts` files present, `herdr-app check` for each mod, compare the three clones with Herdr's shipped mods (read-only), refresh the three snapshots in `scripts/` (`default-keys.json`, `commands.json`, `shipped-mods.json`); for the picker a new copy of the whole folder, `node scripts/bundled.mjs <commit>`, `herdr-app check`, then re-read the privacy text against the picker's constants.
 
 ## Escape hatch
 

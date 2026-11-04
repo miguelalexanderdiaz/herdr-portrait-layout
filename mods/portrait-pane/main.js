@@ -3,13 +3,12 @@
 // Shows the program's icon (the app's program table), the agent's name or
 // the terminal's title, the folder, and the agent's status; buttons split, zoom and close
 // this pane. Props from the app: { pane, terminal }. Click: focus the pane.
-// Portrait copy: a note kept from the vault reader (mods/vault-reader, an
-// "obsidian" tab) shows a note icon, the note's name and its folder.
+// Portrait copy: a mod's pane without a title is named after its mod.
 
 import { View, div, svg, image } from "gpui-kit";
 import { h_flex } from "gpui-base";
-import { panes, props, run, theme, home, shared } from "herdr";
-import { tilde, noteParts, alpha } from "./logic.mjs";
+import { panes, props, run, theme, home } from "herdr";
+import { tilde, alpha } from "./logic.mjs";
 
 function icon(p, size, color) {
   if (!p?.icon) return null;
@@ -41,10 +40,9 @@ export default class Pane extends View {
     const t = theme();
     const p = this.me();
     if (!p) return div();
-    const note = p.mod === "vault-reader" ? noteParts(shared("vault.panes")?.[p.pane]) : null;
-    const name = note ? note.name : ((p.program?.agent || p.program?.shell) && p.program.name) || p.title || p.program?.name || "shell";
-    const pic = note ? svg("mods/portrait-pane/note.svg").size(14).flex_none().text_color(t.dim) : icon(p.program, 14, t.dim);
-    const where = note ? note.path : tilde(p.cwd, home());
+    const name = ((p.program?.agent || p.program?.shell) && p.program.name) || p.title || p.program?.name || p.mod || "shell";
+    const pic = icon(p.program, 14, t.dim);
+    const where = tilde(p.cwd, home());
     const st = p.status;
     const pane = p.pane;
     return h_flex()

@@ -122,7 +122,7 @@ function world() {
     { pane: "p1", tab: "tab1", terminal: "t1", program: { name: "Claude" }, status: "blocked" },
     { pane: "p1b", tab: "tab1", terminal: "t5", program: { name: "Claude" }, status: "working" },
     { pane: "p2", tab: "tab1", terminal: "t2", cwd: h("@LIN/proj"), title: "zsh", program: { name: "zsh", shell: true }, focused: false },
-    { pane: "p3", tab: "tab2", terminal: null, mod: "vault-reader", title: "note" },
+    { pane: "p3", tab: "tab2", terminal: null, mod: "some-addon", title: "note" },
     { pane: "p4", tab: "tab2", terminal: "t9", cwd: h("@LIN"), program: { name: "nvim" } },
   ];
   state.terminals = [{ address: "t9", name: "nvim", state: "live", labels: { "editor.file": h("@LIN/proj/a.js") } }];
@@ -131,9 +131,8 @@ function world() {
 
 // ---- tests ----------------------------------------------------------------------------------
 
-test("portrait-tree renders: open and folded columns, windowed row, pane-less agents, malformed notes", async () => {
+test("portrait-tree renders: open and folded columns, windowed row, pane-less agents, a mod's pane", async () => {
   world();
-  state.shared["vault.panes"] = { p3: { vault: 1 } }; // malformed record
   const { m, c } = await mount("portrait-tree");
   for (const width of [0, 1500, 900, 300]) {
     m.width = width;
@@ -141,7 +140,7 @@ test("portrait-tree renders: open and folded columns, windowed row, pane-less ag
   }
   assert.ok(log.ids.includes("space-new"));
   assert.ok(log.ids.includes("tab-tab1"));
-  assert.ok(log.ids.includes("pn-p3"), "the vault-reader pane has a row");
+  assert.ok(log.ids.includes("pn-p3"), "the mod's pane has a row");
   assert.ok(log.ids.includes("ag-p1") && log.ids.includes("ag-p1b"));
   // Agents without a pane (sub-agents) get a row of their own under their tab.
   assert.ok(log.ids.includes("ag-t6") && log.ids.includes("ag-t7"), "pane-less agents have rows");
@@ -154,6 +153,20 @@ test("portrait-tree renders: open and folded columns, windowed row, pane-less ag
   state.spaces = []; state.zoom = 3; m.width = 90;
   assert.doesNotThrow(() => m.render(c));
   state.zoom = 1;
+});
+
+test("portrait-tree: a mod's pane is named after its mod, without the terminal glyph", async () => {
+  world();
+  state.panes = [{ pane: "p3", tab: "tab1", terminal: null, mod: "some-addon", title: "note" }];
+  const { m, c } = await mount("portrait-tree");
+  m.width = 1500; reset(); m.render(c);
+  assert.ok(log.ids.includes("pn-p3"));
+  assert.ok(log.texts.includes("some-addon"), "the row names the mod");
+  assert.ok(!log.texts.includes(">_"), "no terminal glyph for a mod's pane");
+  // A terminal without a program icon keeps its glyph.
+  state.panes.push({ pane: "p2", tab: "tab1", terminal: "t2", cwd: h("@LIN"), program: { name: "zsh" } });
+  reset(); m.render(c);
+  assert.ok(log.texts.includes(">_"));
 });
 
 test("portrait-tree: terminals() is only read when a plain terminal row needs it", async () => {
@@ -191,49 +204,46 @@ test("portrait-tree survives corrupt persisted state", async () => {
   localStorage._d = {};
 });
 
-test("bar-strip: the Vault button needs the mod AND the layout node", async () => {
+test("bar-strip: Files and Changes buttons, and no other panel button", async () => {
   world();
-  const vaultLayout = { id: "root", children: [{ id: "panel", hidden: false, children: [{ id: "panel-body", active: "files", children: [{ id: "files" }, { id: "vault" }] }] }] };
-  const cases = [
-    [false, state.layout, false], [true, state.layout, false], [false, vaultLayout, false], [true, vaultLayout, true], [undefined, vaultLayout, false],
-  ];
   const { m } = await mount("bar-strip");
-  for (const [installed, layout, shown] of cases) {
-    state.shared["mods.vault"] = installed; state.layout = layout;
-    reset(); m.render();
-    assert.equal(log.ids.includes("panel-vault"), shown, JSON.stringify([installed, Boolean(layout.children[0].children[0].children.find((c) => c.id === "vault"))]));
-    assert.ok(log.ids.includes("panel-files") && log.ids.includes("panel-changes"));
-  }
+  reset(); m.render();
+  assert.deepEqual(log.ids.filter((id) => id.startsWith("panel-")), ["panel-files", "panel-changes"]);
+  // The shell's panel list decides: one that offers only Files gets only the Files button.
+  state.shared["workspace.panels"] = ["files"];
+  reset(); m.render();
+  assert.deepEqual(log.ids.filter((id) => id.startsWith("panel-")), ["panel-files"]);
 });
 
-test("bar-strip: the tooltip names the real key; one picker at a time; the probe publishes mods.vault", async () => {
+test("bar-strip: the tooltip names the real key; one picker at a time; nothing is published", async () => {
   world();
   state.keys = [{ section: "layout:portrait", keys: "ctrl-shift-j", action: "bar-strip.attention" }];
-  const { m, c } = await mount("bar-strip");
+  const { m } = await mount("bar-strip");
   reset(); m.render();
+  assert.ok(!log.calls.some((x) => x[0] === "setShared"));
   m.picker(true); m.picker(true);
   const opens = log.calls.filter((x) => x[0] === "openOverlay"), closes = log.calls.filter((x) => x[0] === "closeOverlay");
   assert.equal(opens.length, 2);
   assert.equal(closes.length, 1, "the second picker closes the first");
   assert.equal(opens[0][1].mod, "attention-picker");
-  delete state.shared["mods.vault"];
-  await m.probeVault(c);
-  assert.equal(state.shared["mods.vault"], false); // no mods/vault in the fake app home
   m.attention();
   assert.ok(log.calls.some((x) => x[0] === "run" && x[1] === "agent.focus"));
 });
 
-test("portrait-tabs: renders, remembers panels, and never offers the vault without it", async () => {
+test("portrait-tabs: renders, remembers panels, and never restores a panel the shell does not offer", async () => {
   world();
   const { m } = await mount("portrait-tabs");
-  state.shared["mods.vault"] = false;
   assert.doesNotThrow(() => m.render());
   assert.deepEqual(Object.keys(m.panels), ["s1"]);
-  // A stored "vault" choice for a space is not restored when the vault is unavailable.
-  m.panels = { s1: "vault" }; m.space = undefined; reset();
+  // A stored choice that is not one of the enabled panels (say, one a removed add-on had) is not restored.
+  m.panels = { s1: "gone" }; m.space = undefined; reset();
   state.layout.children[0].hidden = true;
   m.render();
-  assert.ok(!log.calls.some((x) => x[0] === "run" && x[1] === "layout.select" && x[2].child === "vault"));
+  assert.ok(!log.calls.some((x) => x[0] === "run" && x[1] === "layout.select" && x[2].child === "gone"));
+  // A stored Files choice is.
+  m.panels = { s1: "files" }; m.space = undefined; reset();
+  m.render();
+  assert.ok(log.calls.some((x) => x[0] === "run" && x[1] === "layout.select" && x[2].child === "files"));
   // Corrupt storage on init.
   localStorage._d = { panels: "[1,2" };
   const again = await mount("portrait-tabs");
@@ -241,13 +251,18 @@ test("portrait-tabs: renders, remembers panels, and never offers the vault witho
   localStorage._d = {};
 });
 
-test("portrait-pane renders agents, plain terminals and malformed notes", async () => {
+test("portrait-pane renders agents, plain terminals and a mod's pane", async () => {
   world();
-  for (const [pane, shared] of [["p1", {}], ["p2", {}], ["p3", { "vault.panes": { p3: {} } }], ["p3", { "vault.panes": { p3: { vault: "/v/My Vault", file: "a/b.md" } } }], ["nope", {}]]) {
-    state.shared = { ...shared };
+  for (const pane of ["p1", "p2", "p3", "nope"]) {
     const { m, c } = await mount("portrait-pane", { pane });
     assert.doesNotThrow(() => m.render(c), pane);
   }
+  // A mod's pane without a title is named after its mod, not "shell".
+  state.panes = [{ pane: "p3", tab: "tab2", terminal: null, mod: "some-addon" }];
+  const { m, c } = await mount("portrait-pane", { pane: "p3" });
+  reset(); m.render(c);
+  assert.ok(log.texts.includes("some-addon"));
+  assert.ok(!log.texts.includes("shell"));
 });
 
 test("nvim-float renders its bar and its menu", async () => {

@@ -4,7 +4,7 @@ Thanks for helping. This repository is a Herdr layout and its mods; there is not
 
 ## Principles
 
-- **No personal data.** No real names (except the LICENSE copyright line), no usernames, no absolute home-folder paths of any system (write `~` or `<home>`), no e-mail addresses, no host names, nothing from a real vault, window or terminal. Examples are invented ("api", "web", "docs").
+- **No personal data.** No real names (except the LICENSE copyright line), no usernames, no absolute home-folder paths of any system (write `~` or `<home>`), no e-mail addresses, no host names, nothing from a real project, window or terminal. Examples are invented ("api", "web", "docs").
 - **Say what runs.** Any new `exec`, `hc` call, file read outside the mod's folder, or file written must be added to the privacy text ([docs/privacy.html](docs/privacy.html), README, and the disclosure in [RECIPE.md](RECIPE.md)) in the same change. No mod may use the network without a very good reason and a loud note.
 - **Work on every system.** Keys, paths and shell commands must have a plan for macOS, Linux and Windows. If something is one system only, say so in [docs/platforms.html](docs/platforms.html).
 - **Do not claim what was not tested.**
@@ -61,11 +61,12 @@ Two suites guard the docs against the code: `scripts/check-docs.mjs` (every key 
 
 ### When attention-picker is re-synced
 
-`mods/attention-picker` is read-only here. Its source is the herdr-agents-waiting repository. To take a new version:
+`mods/attention-picker` is read-only here: it is replaced as a whole, never edited. To take a new version from the
+picker's source checkout:
 
 ```sh
 git rm -r mods/attention-picker
-git -C <path to herdr-agents-waiting> archive <commit or branch> mods/attention-picker | tar -x -C .
+git -C <path to the picker's source checkout> archive <commit or branch> mods/attention-picker | tar -x -C .
 herdr-app check "$PWD/mods/attention-picker"
 node scripts/bundled.mjs <the 40-character commit that was archived>   # rewrites scripts/bundled.json
 npm test && npm run check
@@ -77,13 +78,13 @@ Never copy `gpui-kit.d.ts` or `jsconfig.json` (Herdr writes them). `bundled.json
 
 ## Manual checklist (in a scratch Herdr that is yours)
 
-Fold and unfold a space; focus an agent in a folded space; the bell (click, shift-click, the key); the waiting list; Files: open a folder, click a text file, a picture and a PDF (the viewer, with and without Poppler), a document, alt-click a file, pick another editor with the header's ▾ and right-click Open with, git marks; Keep menu in the floating nvim and in a floating Helix or micro; flip the layout; toggle the bar; open and close the side panel on two spaces and switch between them; a layout without the Vault mods.
+Fold and unfold a space; focus an agent in a folded space; the bell (click, shift-click, the key); the waiting list; Files: open a folder, click a text file, a picture and a PDF (the viewer, with and without Poppler), a document, alt-click a file, pick another editor with the header's ▾ and right-click Open with, git marks; Keep menu in the floating nvim and in a floating Helix or micro; flip the layout; toggle the bar; open and close the side panel on two spaces and switch between them.
 
 ## Don't touch
 
-- `mods/attention-picker/` is a bundled copy of herdr-agents-waiting. Change it there; the maintainer syncs it here.
+- `mods/attention-picker/` is a frozen, hash-checked copy. The maintainer replaces it as a whole (above).
 - `portrait-tabs`, `portrait-pane`, `portrait-files` keep `cloned_from`; they are copies of Herdr 0.1.12 mods.
-- Layout ids `panel`, `panel-body`, `files`, `changes` and `vault` are looked up by the mods, and `bar` by the toggle key.
+- Layout ids `panel`, `panel-body`, `files` and `changes` are looked up by the mods, and `bar` by the toggle key.
 
 ## Adding a mod to the layout
 
