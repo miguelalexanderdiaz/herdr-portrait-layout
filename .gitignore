@@ -28,3 +28,6 @@ herdr-shot*.png
 
 # Agent worktrees.
 .wt/
+
+# Round plans, audits and logs of the improvement agents: kept locally, not published.
+/plans/

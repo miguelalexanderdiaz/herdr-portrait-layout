@@ -89,9 +89,8 @@ Nothing here is part of the Pages site.
    Never copy `gpui-kit.d.ts` or `jsconfig.json`: Herdr writes those into mod folders and `validate` refuses them. Review
    the diff of the folder, RECIPE's picker row and disclosure (poll interval, `hc read` lines, `localStorage` keys) and
    NOTICE section 4 before committing.
-7a. [ ] **author** Decide about `plans/`: it holds the review notes of each round and is public with the repository. The
-   scan checks it like every other file (a path or address on a plain line fails). Keep it, or remove it before the
-   release (`git rm -r plans`; the notes stay in the history).
+7a. [x] **author** Decide about `plans/`: done 2026-11-04. The round notes are no longer tracked (`/plans/` is in
+   `.gitignore`, the folder stays on the author's machine); earlier commits still hold them.
 
 ## Publishing
 
@@ -107,8 +106,8 @@ Nothing here is part of the Pages site.
     `README.md`, `AGENTS.md` and `llms.txt` once: they are dead until Pages is on.
 12. [ ] **author** Confirm the license: `gh api repos/<owner>/<repo>/license --jq .license.spdx_id` should print
     `Apache-2.0`.
-13. [ ] **author** Tag the release: `git tag v0.1.0 && git push origin v0.1.0`, then create the GitHub release from the
-    changelog's section.
+13. [ ] **author** Merge the release pull request that release-please keeps open (`.github/workflows/release.yml`): it
+    tags `vX.Y.Z` and publishes the GitHub release with the changelog's section.
 14. [ ] Ask a fresh agent, with an empty app home, to add the layout from `https://herdr.dev/layouts/<owner>/<repo>` and
     run the steps of `AGENTS.md`; fix whatever it tripped on in `RECIPE.md`. Look at the card on herdr.dev: the preview
     is tall (1080 by 1920) and the gallery may crop it; if it does, make a 1600 by 900 variant.
