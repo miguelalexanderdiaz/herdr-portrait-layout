@@ -8,6 +8,8 @@ Every merged round adds its lines here; tagging a release moves them under the n
 
 ### Added
 
+- One-line install: `install/install.sh` (macOS, Linux; `curl ... | sh`) and `install/install.ps1` (Windows; `irm ... | iex`). They say what the mods reach, copy the layouts and mods in (backing up what they replace), add the Vault panel when the vault mod is there, merge `keys.json` asking before replacing a key, run `herdr-app check`, and uninstall again with `--uninstall`. Tested on all three systems in CI (`tests/install.test.mjs`).
+
 - Files opens each file where it makes sense. Text opens in the editor picked with the new `▾` in the panel header (nvim, Helix, Vim, micro, nano, VS Code, Zed, Sublime Text, the default app or the read-only preview; only what is installed is listed; nvim stays the default when installed). Right-click a file for *Open with*.
 - `portrait-viewer`: pictures and PDFs open in a viewer window (PDF pages drawn with Poppler, the first page through Quick Look on macOS without it), with *Open in Preview*. Its code is copied from the herdr-obsidian-vault reader.
 - Documents, media and archives open in the system's app; programs are never started.

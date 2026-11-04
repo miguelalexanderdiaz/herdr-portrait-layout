@@ -1,0 +1,25 @@
+# What install/install.sh and install/install.ps1 install from this repository, one instruction per
+# line: the word, then its values (a mod or layout name has no spaces).
+#   mods     mod folders copied from mods/ (an older copy is backed up, then replaced)
+#   bundled  mod folders copied only when the Herdr home has none of that name (yours is kept)
+#   layouts  layouts/<name>.json and layouts/<name>.svg
+#   switch   the layout shown after the first install, when Herdr is running
+#   keys     the keys.json merged into yours (asks before replacing a key you use)
+#   panel    <mod> <snippet> <node id>: when that mod is installed, the snippet is added to the
+#            node's children in each layout above
+#   say      what the person reads before anything is written
+name     Portrait layout
+mods     portrait-tree bar-strip portrait-tabs portrait-pane portrait-files nvim-float portrait-viewer
+bundled  attention-picker
+layouts  portrait portrait-bottom
+switch   portrait
+keys     keys.json
+panel    vault snippets/vault-panel.json panel-body
+say      Network: none. No mod calls the network.
+say      Runs programs: git (read-only, for the Files marks); sh or powershell (lists folders); your login
+say        shell once, to read its PATH; the editor you pick and the system's opener (never a program);
+say        Poppler (pdfinfo, pdftoppm) for PDFs; hc (starts editor terminals; the waiting list reads the
+say        last 60 lines of blocked agents' screens while it is open).
+say      Reads outside its folders: the folders shown in Files and the files you open, your key bindings,
+say        Herdr's list of spaces, tabs, panes and agents.
+say      Writes: data/ in the Herdr home (thumbnail SVGs, the viewer's picture cache), nvim sockets in /tmp.

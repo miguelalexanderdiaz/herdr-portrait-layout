@@ -36,6 +36,31 @@ Developed and used on macOS only. Linux and Windows are described from the code,
 
 ## Install
 
+One command, on macOS and Linux:
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/miguelalexanderdiaz/herdr-portrait-layout/main/install/install.sh | sh
+```
+
+On Windows (PowerShell):
+
+```powershell
+irm https://raw.githubusercontent.com/miguelalexanderdiaz/herdr-portrait-layout/main/install/install.ps1 | iex
+```
+
+It lists what the mods reach (no network; the programs they run; what they read) and asks before
+writing anything. Then it copies the two layouts and the mods into your Herdr home, adds the Vault
+panel when you have the `vault` mod, keeps your `attention-picker` if you already have one, merges
+`keys.json` (asking before it replaces a key you use), runs `herdr-app check` on every mod and, the
+first time, switches to the `portrait` layout. Anything it replaces is backed up first under
+`community/herdr-portrait-layout/` in the Herdr home; running it again updates in place.
+
+- From a clone: `install/install.sh` (or `.\install\install.ps1` on Windows).
+- No questions: add `-s -- --yes` after `sh` (Windows: set `$env:HERDR_YES = 1` first).
+- Another Herdr home: `--home <folder>` (or `HERDR_APP_HOME`).
+- Merging `keys.json` uses Node, or on macOS the system's own JavaScript; without either it prints
+  the keys to add by hand.
+
 ### With an agent
 
 Tell the agent in your Herdr:
@@ -44,58 +69,10 @@ Tell the agent in your Herdr:
 install https://github.com/miguelalexanderdiaz/herdr-portrait-layout
 ```
 
-It follows Herdr's protocol for shared layouts: tells you what runs, never overwrites, renames on a clash, asks before changing your `keys.json`, checks each mod, then switches the layout. Steps for agents: [AGENTS.md](AGENTS.md).
-
-### By hand, macOS and Linux
-
-Tried in a scratch Herdr home on macOS (`HERDR_APP_HOME=<empty folder>`): everything copied, `herdr-app check` passed for all seven mods.
-
-```sh
-git clone https://github.com/miguelalexanderdiaz/herdr-portrait-layout.git
-cd herdr-portrait-layout
-
-# The Herdr home folder (herdr-app --help prints it on the last line).
-H="${HERDR_APP_HOME:-$HOME/.config/herdr-app}"
-mkdir -p "$H/layouts" "$H/mods"
-
-# Never overwrite: anything that already exists is reported and skipped.
-# Includes the layouts' .svg thumbnails. Rename a layout together with its "preview" field.
-for f in layouts/*; do
-  if [ -e "$H/$f" ]; then echo "exists, rename first: $f"; else cp "$f" "$H/layouts/"; fi
-done
-for m in mods/*; do
-  n="${m#mods/}"
-  if [ -e "$H/mods/$n" ]; then echo "exists, skip or rename: $n"; else cp -R "$m" "$H/mods/$n"; fi
-done
-
-for m in mods/*; do herdr-app check "$H/mods/${m#mods/}"; done   # check every mod you now have
-herdr-app do layout.switch --name portrait                          # switch to the layout
-```
-
-### By hand, Windows (PowerShell)
-
-```powershell
-git clone https://github.com/miguelalexanderdiaz/herdr-portrait-layout.git
-cd herdr-portrait-layout
-
-# The Herdr home folder. If herdr-app --help prints another folder, set $H to it.
-$H = if ($env:HERDR_APP_HOME) { $env:HERDR_APP_HOME } else { Join-Path $HOME ".config\herdr-app" }
-New-Item -ItemType Directory -Force "$H\layouts", "$H\mods" | Out-Null
-
-foreach ($f in Get-ChildItem layouts) {
-  if (Test-Path "$H\layouts\$($f.Name)") { "exists, rename first: $($f.Name)" }
-  else { Copy-Item $f.FullName "$H\layouts\" }
-}
-foreach ($m in Get-ChildItem mods -Directory) {
-  if (Test-Path "$H\mods\$($m.Name)") { "exists, skip or rename: $($m.Name)" }
-  else { Copy-Item $m.FullName "$H\mods\$($m.Name)" -Recurse }
-}
-
-foreach ($m in Get-ChildItem mods -Directory) { herdr-app check "$H\mods\$($m.Name)" }
-herdr-app do layout.switch --name portrait
-```
-
-The PowerShell block follows its documentation and has not been run on Windows; the default home folder there is unconfirmed, so trust what `herdr-app --help` prints. Then merge the repository's `keys.json` into yours (next section). If you already have `attention-picker` from herdr-agents-waiting, keep yours and skip the bundled one.
+It follows Herdr's protocol for shared layouts: tells you what runs, never overwrites, renames on a
+clash, asks before changing your `keys.json`, checks each mod, then switches the layout. Steps for
+agents: [AGENTS.md](AGENTS.md). Copying the files by hand, step by step:
+[Install](https://miguelalexanderdiaz.github.io/herdr-portrait-layout/install.html).
 
 ## Keys
 
@@ -143,7 +120,16 @@ More: [Troubleshooting](https://miguelalexanderdiaz.github.io/herdr-portrait-lay
 
 ## Uninstall
 
-Switch to another layout (`ctrl-shift-l` cycles), delete `layouts/portrait*.json` and `.svg` and the mod folders you copied from the Herdr home folder, remove the keys you merged, and delete `data/portrait-tree-spines/` and `data/portrait-viewer/` there. Leftover `/tmp/herdr-nvim-*.sock` files vanish on reboot.
+```sh
+curl -fsSL https://raw.githubusercontent.com/miguelalexanderdiaz/herdr-portrait-layout/main/install/install.sh | sh -s -- --uninstall
+```
+
+(Windows: `$env:HERDR_UNINSTALL = 1` before the `irm ... | iex` line.) It switches away from the
+portrait layouts if one is shown, removes the mods and layouts it installed and the keys it added
+(not ones you changed since), and backs them up first. It leaves `data/portrait-tree-spines/` and
+`data/portrait-viewer/` in the Herdr home; delete them if you like.
+
+By hand: switch to another layout (`ctrl-shift-l` cycles), delete `layouts/portrait*.json` and `.svg` and the mod folders you copied from the Herdr home folder, remove the keys you merged, and delete `data/portrait-tree-spines/` and `data/portrait-viewer/` there. Leftover `/tmp/herdr-nvim-*.sock` files vanish on reboot.
 
 ## What is original, cloned, bundled
 
