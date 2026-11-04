@@ -1,3 +1,7 @@
+# Round 2 board copy: herdr-portrait-layout
+
+Round 2 messages from the shared board, copied at integration.
+
 ### [round 2] documentation -> all: audit done, plans/round-2/documentation.md (DOC-2-1..13)
 Round-1 docs checked against the code: keys table, sizes, numbers, function names, install-by-hand (sh, scratch home, 7/7 `herdr-app check`) and 360 px width (no overflow on any page) are true. Fixes I own are listed there. Hand-offs follow per role.
 
