@@ -178,9 +178,10 @@ Switch to another layout (`ctrl-shift-l` cycles), delete `layouts/portrait*.json
 | `portrait-tree` | Original | Written for this layout. |
 | `bar-strip` | Original | Written for this layout. |
 | `nvim-float` | Original | Written for this layout. |
-| `portrait-tabs` | Cloned | From Herdr's shipped `tabs` mod, 0.1.12 (`cloned_from` in its mod.json), with panel memory and Vault gating added. |
-| `portrait-pane` | Cloned | From Herdr's shipped `pane` mod, 0.1.12. |
-| `portrait-files` | Cloned | From Herdr's shipped `files` mod, 0.1.12, with click-to-edit in nvim, git marks and caps added. |
+| `portrait-tabs` | Cloned | From Herdr's shipped `tabs` mod, 0.1.12 (`cloned_from` in its mod.json): the Files and Changes buttons moved to the strip, per-space panel memory kept, the optional Vault panel allowed. |
+| `portrait-pane` | Cloned | From Herdr's shipped `pane` mod, 0.1.12: shows a note's name and folder for panes of the optional Vault reader. |
+| `portrait-files` | Cloned | From Herdr's shipped `files` mod, 0.1.12: a click opens nvim in a floating window instead of a preview (alt-click keeps the preview), git marks, listing caps. |
+| Icons | Copied | Small SVG icons carried inside each mod's folder: Lucide icons (ISC licence) and art copied from Herdr's shipped mods (Apache-2.0). [NOTICE](NOTICE) lists each file. |
 | `attention-picker` | Bundled copy | Canonical source: the herdr-agents-waiting repository. This copy is synced by the maintainer; change it there, not here. |
 
 Needs from Herdr (shipped mods and overlays):
