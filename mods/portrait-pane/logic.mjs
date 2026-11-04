@@ -37,3 +37,12 @@ export function noteParts(note) {
   };
 }
 // </shared:note>
+
+// <shared:alpha>
+// `color` ("#rrggbb" or "#rrggbbaa") at opacity `a` (0 to 1); anything else comes back as it was.
+export function alpha(color, a) {
+  const m = /^#([0-9a-f]{6})(?:[0-9a-f]{2})?$/i.exec(typeof color === "string" ? color : "");
+  if (!m) return color;
+  return "#" + m[1] + Math.round(Math.max(0, Math.min(1, Number(a) || 0)) * 255).toString(16).padStart(2, "0");
+}
+// </shared:alpha>

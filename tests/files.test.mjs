@@ -4,7 +4,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import {
-  filesVisible, watchable, createGate, freeName, markOf, parseStatus, bubble, arrange,
+  filesVisible, watchable, createGate, createPacer, REFRESH_GAP, freeName, markOf, parseStatus, bubble, arrange,
   loginPath, nvimArgv, nvimFound, platformMode, find,
 } from "../mods/portrait-files/logic.mjs";
 
@@ -179,10 +179,12 @@ test("nvimArgv runs in a real sh (skipped where there is none)", { skip: process
     return r.stdout.split("\n");
   };
   const [path, sock, got] = run("/custom/bin:/usr/bin:/bin");
-  assert.equal(path, "/custom/bin:/usr/bin:/bin");
+  assert.equal(path, "/custom/bin:/usr/bin:/bin:" + process.env.PATH);
   assert.equal(sock, "/tmp/s.sock");
   assert.equal(got, file);
   assert.equal(run("")[0], process.env.PATH); // empty login PATH leaves the app's own
+  // The login PATH goes in front; the inherited one stays behind it (a short profile PATH keeps sh and friends).
+  assert.equal(run("/custom/bin")[0], "/custom/bin:" + process.env.PATH);
 });
 
 const scriptedExec = (calls, reply) => async (cmd, args, opts) => { calls.push({ cmd, args, opts }); return reply(cmd, args, opts); };
@@ -220,4 +222,41 @@ test("nvimFound: yes is remembered, 127 is not found", async () => {
   const before = seen.length;
   assert.equal(await nvimFound(counting, "m2"), true);
   assert.equal(seen.length, before);
+});
+
+test("createPacer: a burst of requests is one run per gap, a request during a run is not lost", () => {
+  let t = 0;
+  const p = createPacer({ gap: 1500, now: () => t });
+  // 100 requests while idle for the first time: the first runs, the rest are skipped while it runs.
+  assert.equal(p.request(), "now");
+  p.start();
+  for (let i = 0; i < 100; i++) assert.equal(p.request(), "skip");
+  t = 300; // the run took 300 ms
+  assert.equal(p.finish(), true, "asked again meanwhile: one more run");
+  // The trailing request must wait for the gap, and books itself once.
+  assert.equal(p.request(true), "later");
+  assert.equal(p.wait(), 1200);
+  for (let i = 0; i < 50; i++) assert.equal(p.request(), "skip", "already booked");
+  t = 1500;
+  assert.equal(p.wait(), 0);
+  assert.equal(p.request(true), "now");
+  p.start();
+  t = 1600;
+  assert.equal(p.finish(), false, "nothing asked during that run");
+  assert.equal(p.request(), "later");
+});
+
+test("createPacer: a long run is followed at once, a quiet watcher never waits", () => {
+  let t = 0;
+  const p = createPacer({ gap: 1500, now: () => t });
+  assert.equal(p.request(), "now"); p.start();
+  p.request(); // asked mid-run
+  t = 4000; // the run took longer than the gap
+  assert.equal(p.finish(), true);
+  assert.equal(p.request(true), "now");
+  p.start(); p.finish();
+  t = 10000;
+  assert.equal(p.request(), "now");
+  assert.equal(REFRESH_GAP, 1500);
+  assert.equal(p.busy, false);
 });
