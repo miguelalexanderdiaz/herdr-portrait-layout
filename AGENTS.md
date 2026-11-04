@@ -45,7 +45,7 @@ Say this in plain words before writing anything.
 1. Read `RECIPE.md` and every file you will copy before writing anything.
 2. Copy `layouts/*` into `<home>/layouts/` and each folder of `mods/` into `<home>/mods/`. Leave `RECIPE.md`, `preview.png`, `docs/`, `tests/`, `scripts/`, `plans/`, `package.json` out. **Never overwrite.** If a name is taken (the person's or Herdr's), rename the new one, using the checklist below.
 3. If the person already has an `attention-picker` (from herdr-agents-waiting), keep theirs, do not copy the bundled one, and check that its props still work: `bar-strip` opens it with `{ search: <boolean> }`, and the key `ctrl-shift-j` runs `mod.open:attention-picker`. The bundled copy ships no key of its own; the herdr-agents-waiting repository binds `ctrl-shift-a` to it, which does not clash.
-4. Merge `keys.json` into `<home>/keys.json` (create it if missing). Add the sections and keys. If a key is already used for something else, ask the person before replacing it, or leave it out and tell them which. Never delete their keys. `cmd-b` is macOS only (dead on Linux and Windows). No `ctrl-b` chords are shipped; add the optional tmux-style set (below) only if the person asks.
+4. Merge `keys.json` into `<home>/keys.json` (create it if missing). Add the sections and keys. If a key is already used for something else, ask the person before replacing it, or leave it out and tell them which. Never delete their keys. `cmd-b` is macOS only (expected dead on Linux and Windows). No `ctrl-b` chords are shipped; add the optional tmux-style set (below) only if the person asks.
 5. For each mod folder: `herdr-app check <absolute path of the folder in <home>/mods>`. Fix or report any failure.
 6. Switch: `herdr-app do layout.switch --name portrait` (only if the person asked to switch; otherwise tell them how: Settings, or `ctrl-shift-l`). Their own layout stays as it was.
 7. Optional Vault panel: only if the person has (or wants) the `vault` and `vault-reader` mods from herdr-obsidian-vault. Insert `snippets/vault-panel.json` into the `children` of the stack `panel-body` in the layout files they use.
@@ -62,7 +62,7 @@ Say this in plain words before writing anything.
 
 - Theme: the layouts set none. To pin: add `"theme": { "light": "paper", "dark": "graphite" }` to the layout root, or add `themes/<name>.json`. Do not assume the author's settings.
 - Sizes: all in the layout files (bar 246 px, strip 26, tab bar 42, status 28, panel 368, pane header 30).
-- Keys for other systems: `cmd-` is macOS only (`cmd-b` does nothing on Linux and Windows); the `ctrl-shift-` keys are meant to work everywhere (not tested on Linux or Windows). Avoid plain `ctrl-<letter>` (programs use ctrl+c d l r w a e u k z and `[`) and `ctrl-alt-` (AltGr on Windows). Check a new key against `herdr-app commands` and the person's `keys.json`.
+- Keys for other systems: `cmd-` is macOS only (`cmd-b` is expected to do nothing on Linux and Windows, where `cmd` is the Super or Windows key; untested); the `ctrl-shift-` keys are meant to work everywhere (not tested on Linux or Windows). Avoid plain `ctrl-<letter>` (programs use ctrl+c d l r w a e u k z and `[`) and `ctrl-alt-` (AltGr on Windows). Check a new key against `herdr-app commands` and the person's `keys.json`.
 - Without nvim or on Windows: nothing to do, a click shows the read-only preview and says why.
 - Linux and Windows have not been run by the author; say so rather than promise. The PowerShell install block is unverified.
 
