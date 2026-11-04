@@ -1,5 +1,7 @@
 # Portrait layout for Herdr
 
+<a href="https://miguelalexanderdiaz.github.io/herdr-portrait-layout/"><img src="docs/assets/docs-button.svg" alt="Read the documentation" width="196" height="44"></a>
+
 A [Herdr](https://herdr.dev) layout for tall, vertical monitors. Your spaces sit side by side as columns in a strip at the top, each a tree of its tabs and panes with the state of every agent. The work area gets the rest of the screen, and a side panel brings Files and Changes when you want them.
 
 ![Illustration of the portrait layout with made-up content: three space columns (api, web, docs) with agent rows and state words and a folded fourth (infra) in a strip on top, a tab bar, a large terminal pane with an agent running tests, a shell pane, and a status line.](preview.png)
