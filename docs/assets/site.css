@@ -490,26 +490,31 @@ body:has(main.home) footer.site .inner { max-width: var(--body-width); }
 /* ---- home page pictures. Still (no script, or reduced motion): the after state, what the feature shows. With
    motion.js a picture gets "play" the first time half of it is on screen (its parts start moving) and "run" while it
    stays there (they pause when it leaves). One 8 s cycle each: the change, then a long rest. */
-.pic-svg .st-a, .pic-svg .lbl-b, .pic-svg .key-hi { opacity: 0; }
+.pic-svg .st-a, .flip .lbl-b { opacity: 0; }
+
+/* Under the Two layouts picture: the layout shown and the key that flips it (they change with the picture). */
+.flip { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 12px; text-align: left; }
+.flip .names { display: grid; font-family: var(--f-mono); font-size: 13px; color: var(--fg); }
+.flip .names > * { grid-area: 1 / 1; }
+.flip kbd { font-size: 13px; }
 .pic-svg .spin { transform-box: fill-box; transform-origin: center; }
 
 @media (prefers-reduced-motion: no-preference) {
   .shot.play .spin { animation: spin 900ms linear infinite; }
   .shot.play .st-a, .shot.play .st-b, .shot.play .mv, .shot.play .slide, .shot.play .mk, .shot.play .chip,
-  .shot.play .lbl-a, .shot.play .lbl-b, .shot.play .key, .shot.play .key-hi {
+  .shot.play .lbl-a, .shot.play .lbl-b, .shot.play .key {
     animation-duration: 8s;
     animation-timing-function: var(--ease);
     animation-iteration-count: infinite;
   }
-  .shot.play :is(.spin, .st-a, .st-b, .mv, .slide, .mk, .chip, .lbl-a, .lbl-b, .key, .key-hi) { animation-play-state: paused; }
-  .shot.play.run :is(.spin, .st-a, .st-b, .mv, .slide, .mk, .chip, .lbl-a, .lbl-b, .key, .key-hi) { animation-play-state: running; }
+  .shot.play :is(.spin, .st-a, .st-b, .mv, .slide, .mk, .chip, .lbl-a, .lbl-b, .key) { animation-play-state: paused; }
+  .shot.play.run :is(.spin, .st-a, .st-b, .mv, .slide, .mk, .chip, .lbl-a, .lbl-b, .key) { animation-play-state: running; }
 
   /* Two layouts: the key, then the bar goes down and the work area up; back after a rest. */
   [data-motion="layouts"].play .mv { animation-name: flip; }
   [data-motion="layouts"].play .lbl-a { animation-name: label-a; }
   [data-motion="layouts"].play .lbl-b { animation-name: label-b; }
   [data-motion="layouts"].play .key { animation-name: key-press; }
-  [data-motion="layouts"].play .key-hi { animation-name: key-lit; }
   /* Space tree and bar strip: working, then needs you; back to working after a rest. */
   [data-motion="tree"].play .st-a, [data-motion="bell"].play .st-a { animation-name: before; }
   [data-motion="tree"].play .st-b, [data-motion="bell"].play .st-b { animation-name: after; }
@@ -522,8 +527,13 @@ body:has(main.home) footer.site .inner { max-width: var(--body-width); }
 @keyframes flip { 0%, 16% { transform: none; } 26%, 62% { transform: translateY(var(--d)); } 72%, 100% { transform: none; } }
 @keyframes label-a { 0%, 17% { opacity: 1; } 20%, 63% { opacity: 0; } 66%, 100% { opacity: 1; } }
 @keyframes label-b { 0%, 17% { opacity: 0; } 20%, 63% { opacity: 1; } 66%, 100% { opacity: 0; } }
-@keyframes key-press { 0%, 13% { transform: none; } 14%, 17% { transform: translateY(1px); } 19%, 59% { transform: none; } 60%, 63% { transform: translateY(1px); } 65%, 100% { transform: none; } }
-@keyframes key-lit { 0%, 13% { opacity: 0; } 14%, 17% { opacity: 1; } 21%, 59% { opacity: 0; } 60%, 63% { opacity: 1; } 67%, 100% { opacity: 0; } }
+@keyframes key-press {
+  0%, 13% { transform: none; border-color: var(--rule); color: var(--fg); }
+  14%, 17% { transform: translateY(1px); border-color: var(--d-orange); color: var(--d-orange); }
+  21%, 59% { transform: none; border-color: var(--rule); color: var(--fg); }
+  60%, 63% { transform: translateY(1px); border-color: var(--d-orange); color: var(--d-orange); }
+  67%, 100% { transform: none; border-color: var(--rule); color: var(--fg); }
+}
 /* A state changes at once, as in Herdr; only the bell's chip eases in. */
 @keyframes before { 0%, 30% { opacity: 1; } 30.6%, 88% { opacity: 0; } 88.6%, 100% { opacity: 1; } }
 @keyframes after { 0%, 30% { opacity: 0; } 30.6%, 88% { opacity: 1; } 88.6%, 100% { opacity: 0; } }
@@ -542,6 +552,9 @@ body:has(main.home) footer.site .inner { max-width: var(--body-width); }
 
 @media (max-width: 40rem) {
   main.home { padding: 0 16px 3rem; }
+  .cell { flex-direction: column; }
+  .cell pre { white-space: pre-wrap; overflow-wrap: anywhere; }
+  .copy { border-left: 0; border-top: 1px solid var(--rule); padding: 0.5rem 1rem; text-align: left; }
   .cell pre { font-size: 12.5px; }
   header.site .inner { padding: 0 16px; flex-direction: column; align-items: flex-start; justify-content: center; }
   .brand { padding: 1rem 0 0.6rem; }

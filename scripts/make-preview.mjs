@@ -461,27 +461,29 @@ function status(x, y, w) {
 // ---- the whole window ----------------------------------------------------------------------------------------------------------
 const W = 1080, H = 1920, BAR = 246, TABS = 42, STATUS = 28;
 const TABS_API = [{ name: "server", program: "claude", status: "working", active: true }, { name: "tests", program: "codex", status: "blocked" }];
-const WORK_H = H - BAR - STATUS - 2;
 const HERO_H = 1288; // the bar, the tab bar and the first pane (to just under its prompt box)
 // The window in layers (canvas, bar, its divider, the rule over the status line, work area, status line), so the home
 // page can move the bar and the work area from one layout to the other.
-function windowLayers(variant) {
+// A smaller window (w x h) gets the same parts: the columns share its width, and a terminal shows the last lines that
+// fit, as a terminal scrolled to its end does.
+function windowLayers(variant, { w = W, h = H, spaces = SPACES } = {}) {
   const top = variant === "top";
   // The left column: bar, work and status with a 1 px divider between them (layout "divider").
-  const workH = WORK_H;
-  const barY = top ? 0 : workH + 1, workY = top ? BAR + 1 : 0, statusY = H - STATUS;
-  const L = { canvas: rect(0, 0, W, H, G.canvas) };
-  L.bar = barStrip(0, barY, W) + tree(0, barY + 26, W, BAR - 26, SPACES);
-  L.divider = hline(0, top ? BAR : workH, W);
-  L.statusRule = hline(0, statusY - 1, W);
-  let o = tabBar(0, workY, W, TABS_API);
+  const workH = h - BAR - STATUS - 2;
+  const barY = top ? 0 : workH + 1, workY = top ? BAR + 1 : 0, statusY = h - STATUS;
+  const L = { canvas: rect(0, 0, w, h, G.canvas) };
+  L.bar = barStrip(0, barY, w) + tree(0, barY + 26, w, BAR - 26, spaces);
+  L.divider = hline(0, top ? BAR : workH, w);
+  L.statusRule = hline(0, statusY - 1, w);
+  let o = tabBar(0, workY, w, TABS_API);
   // work-body: padding 8, gap 8; the active tab split down into two panes.
-  const px = 8, py = workY + TABS + 8, pw = W - 16, total = workH - TABS - 16;
+  const px = 8, py = workY + TABS + 8, pw = w - 16, total = workH - TABS - 16;
   const h1 = Math.round((total - 8) * 0.62), h2 = total - 8 - h1;
-  o += pane(px, py, pw, h1, { id: `a-${variant}`, program: "claude", cwd: "~/code/api", status: "working", focus: true, lines: CLAUDE, after: claudePrompt });
-  o += pane(px, py + h1 + 8, pw, h2, { id: `b-${variant}`, program: "zsh", cwd: "~/code/api", lines: SHELL });
+  const tail = (lines, room) => lines.slice(Math.max(0, lines.length - Math.floor(room / 18)));
+  o += pane(px, py, pw, h1, { id: `a-${variant}`, program: "claude", cwd: "~/code/api", status: "working", focus: true, lines: tail(CLAUDE, h1 - 30 - 12 - 64), after: claudePrompt });
+  o += pane(px, py + h1 + 8, pw, h2, { id: `b-${variant}`, program: "zsh", cwd: "~/code/api", lines: tail(SHELL, h2 - 30 - 12) });
   L.work = o;
-  L.status = status(0, statusY, W);
+  L.status = status(0, statusY, w);
   return L;
 }
 const windowBody = (variant) => { const L = windowLayers(variant); return L.canvas + L.bar + L.divider + L.statusRule + L.work + L.status; };
@@ -691,8 +693,8 @@ PIC["viewer"] = () => {
 // ---- the home page's feature pictures (inline in docs/index.html) ------------------------------------------------------------
 // Each is drawn like the pictures above, as an inline <svg> whose ids carry a prefix (four of them share one page). Parts
 // the page moves have a class: st-a / st-b (a piece before and after a change, see swap()), spin (a spinner), mv (a group
-// moved by --d along y), slide (a group moved by --d along x), mk (a git mark that appears), chip (the bell's chip),
-// key / key-hi (a key cap and its pressed look), lbl-a / lbl-b (two captions). The CSS is in docs/assets/site.css,
+// moved by --d along y), slide (a group moved by --d along x), mk (a git mark that appears), chip (the bell's chip).
+// The CSS is in docs/assets/site.css,
 // "home page pictures"; docs/assets/motion.js starts and pauses it. With no CSS motion the after state shows.
 function inlineSvg(prefix, w, h, body, label) {
   const defs = [...used].sort().map(symbolOf).join("");
@@ -701,33 +703,20 @@ function inlineSvg(prefix, w, h, body, label) {
   return `<svg class="pic-svg" width="${r2(w)}" height="${r2(h)}" viewBox="0 0 ${r2(w)} ${r2(h)}" role="img" aria-label="${esc(label).replace(/"/g, "&quot;")}">${defs ? `<defs>${defs}</defs>` : ""}${body}</svg>`
     .replace(/\bid="([^"]+)"/g, `id="${prefix}-$1"`).replace(/href="#([^"]+)"/g, `href="#${prefix}-$1"`).replace(/url\(#([^)]+)\)/g, `url(#${prefix}-$1)`);
 }
-// A key cap, as the page shows it: raised, a border, the label in the UI font.
-function keyCap(x, y, label) {
-  const kw = Math.max(26, 10 + width(label, 12) + 10);
-  return { w: kw, s: `<g class="key">${boxed(x, y, kw, 26, G.raised, G.border, 5)}<g class="key-hi">${boxed(x, y, kw, 26, G.selected, G.accent, 5)}</g>${textMid(x + kw / 2, y + 13, label, { size: 12, fill: G.foreground, anchor: "middle" })}</g>` };
-}
 const HOME = {};
 // Two layouts: one window; the bar slides from the top to between the work area and the status line and back, as
 // ctrl-shift-y (keys.json) switches portrait and portrait-bottom. Still: portrait.
 HOME["two-layouts"] = {
   prefix: "tl",
-  label: "Drawing of the portrait layout in a whole window, with the bar of space columns on top, the work area under it and the status line at the bottom; ctrl-shift-y switches to portrait-bottom, which puts the bar between the work area and the status line. The content is made up.",
+  label: "Drawing of a Herdr window in the portrait layout: the bar with the strip and two space columns on top, the tab bar and two panes in the work area, the status line at the bottom; ctrl-shift-y switches to portrait-bottom, which moves the bar to just above the status line. The content is made up.",
   draw() {
-    const w = 500, h = 420, k = 384 / H, ww = W * k, wx = 40, wy = 18;
-    const L = windowLayers("top");
-    let o = rect(0, 0, w, h, G.canvas);
-    o += `<g transform="translate(${wx} ${wy}) scale(${+k.toFixed(5)})"><clipPath id="win"><rect width="${W}" height="${H}"/></clipPath><g clip-path="url(#win)">`;
-    o += L.canvas + L.statusRule + `<g class="mv" style="--d:${-(BAR + 1)}px">${L.work}</g>` + `<g class="mv" style="--d:${WORK_H - BAR}px">${L.divider}</g>` + `<g class="mv" style="--d:${WORK_H + 1}px">${L.bar}</g>` + L.status;
-    o += `</g></g>` + boxed(wx - 1, wy - 1, ww + 2, H * k + 2, "none", G.border, 2);
-    // The captions and the key, to the right of the window.
-    const cx = wx + ww + 40;
-    o += `<g class="lbl-a">${text(cx, 168, "portrait", { size: 17, weight: 600 })}${text(cx, 192, "the bar on top", { size: 13, fill: G.muted })}</g>`;
-    o += `<g class="lbl-b">${text(cx, 168, "portrait-bottom", { size: 17, weight: 600 })}${text(cx, 192, "the bar above the status line", { size: 13, fill: G.muted })}</g>`;
-    let kx = cx;
-    ["ctrl", "shift", "y"].forEach((key, i) => {
-      if (i) { o += textMid(kx + 7, 237, "+", { size: 12, fill: G.dim, anchor: "middle" }); kx += 14; }
-      const c = keyCap(kx, 224, key); o += c.s; kx += c.w;
-    });
+    // A 720 x 900 window: two open columns (each at least MIN_COL 290) and two folded spaces, so the parts stay
+    // readable at the picture's size. The caption and the key are HTML under the picture (docs/index.html).
+    const w = 720, h = 900, workH = h - BAR - STATUS - 2;
+    const spaces = [SPACES[0], SPACES[1], { ...SPACES[2], folded: true, agents: ["idle"] }, SPACES[3]];
+    const L = windowLayers("top", { w, h, spaces });
+    const o = `<clipPath id="win"><rect width="${w}" height="${h}"/></clipPath><g clip-path="url(#win)">` + L.canvas + L.statusRule +
+      `<g class="mv" style="--d:${-(BAR + 1)}px">${L.work}</g><g class="mv" style="--d:${workH - BAR}px">${L.divider}</g><g class="mv" style="--d:${workH + 1}px">${L.bar}</g>` + L.status + `</g>`;
     return [w, h, o];
   },
 };
@@ -775,7 +764,12 @@ HOME["side-panel"] = {
     const w = 560, h = 430, pw = 368, px = w - pw;
     let o = rect(0, 0, w, h, G.canvas);
     // The pane at its closed-panel width; when the panel is in, its right edge is the one drawn with the panel.
-    const pane1 = { program: "zsh", cwd: "~/code/api", focus: true, lines: SHELL };
+    // Short lines: with the panel in, the pane is 176 px wide (18 columns of text), and no line may be cut mid-word.
+    const pane1 = { program: "zsh", cwd: "~/code/api", focus: true, lines: [
+      [["api ", G.ansi4], ["❯ ", G.ansi2], ["npm test", G.terminal]], "",
+      [["PASS ", G.ansi2], ["list.ts", G.terminal]], [["PASS ", G.ansi2], ["query.ts", G.terminal]], [["FAIL ", G.ansi1], ["page.test.ts", G.terminal]],
+      [["  expected 25", G.ansi1]], "", [["Tests: ", G.terminal], ["1 failed", G.ansi1]], "", [["api ", G.ansi4], ["❯ ", G.ansi2]],
+    ] };
     o += pane(8, 8, w - 16, h - 16, pane1);
     // What slides in: the pane's right edge (10 px of a pane clipped), the 8 px work-body padding, the panel.
     const edge = px - 8, id = uid("edge");
