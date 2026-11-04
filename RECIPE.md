@@ -41,10 +41,13 @@ only if Herdr reports that the window has none (`window().buttons`), which neith
        "done", "working", "idle"; dropped when the column is narrower than 320px), the time since the state last
        changed ("<1m", "5m", "3h", "2d") and a 14px state glyph. A plain terminal or mod pane shows its program
        or mod name and its folder (path shortened with `~`, losing its start when short of room). The focused
-       pane's row is `selected`, the shown tab's row `hover`.
+       pane's row is `selected`, the shown tab's row `hover`. An agent that has no pane of its own (a sub-agent)
+       gets a row under its tab with the program icon, name, state and time; a click focuses it (`agent.focus`), and it has no
+       right-click menu.
      - A **folded space** is a 34px strip: its badge on the header line, one 14px glyph per agent (six at most, then
        `+N`), and its name running down the strip like a book spine, in the space's color when active and `muted`
-       otherwise.
+       otherwise (on a light theme the active name is mixed halfway toward `foreground`, which keeps it readable; this was
+       measured against sample light colors, not seen on a shipped light theme).
      - When the columns don't fit, a whole run of columns is shown, with 28px `‹` and `›` markers at the ends that say
        how many spaces are off that side and the most urgent state among them, and a 5px track under the columns
        whose thumb shows where the run sits.
@@ -118,7 +121,7 @@ the times move.
   Folding the space you are in keeps it folded.
 - `agent.next` and `agent.prev` follow the tree's order (`setAgentOrder`). Herdr appends the agents it was not given in
   its own order, so agents of folded spaces come last rather than being skipped; focusing one opens its space.
-- The wheel: a horizontal swipe, or Shift plus the wheel, moves the run of columns by one per 40px; plain vertical
+- The wheel: a horizontal swipe, or Shift plus the wheel, moves the run of columns by one column per notch of a mouse wheel, or per 40px of a trackpad or any device that reports pixels; plain vertical
   scrolling stays with the column. The markers do the same on click. The run follows the active space.
 - A pane that belongs to the optional Vault reader (see Built from) shows the note's name and its folder in the
   vault instead of a program and a folder, in the tree and in the pane header.
@@ -128,7 +131,7 @@ the times move.
   tab's `x`: `tab.close`. `+`: the shipped `new-menu`. The wheel over the strip: previous or next tab (see below).
 - The window buttons (Linux and Windows) run `window.minimize`, `window.maximize` and `window.close`; Windows uses
   vector icons (with a restore icon when maximized), Linux plain glyphs.
-- The wheel moves one tab per 40px of scrolling, at most three per event.
+- The wheel moves one tab per notch of a mouse wheel, or per 40px of a trackpad swipe, at most three per event.
 
 **The pane header**
 - Click: focus the pane. Hover: four 14px buttons appear: split right, split down, zoom (unzoom while zoomed), close
@@ -139,7 +142,9 @@ the times move.
   load when it is opened. Rows are 28px with a chevron, folder or file icon and the name; git changes show a letter
   mark (`A` new, `M`, `D`, `U` conflict) and a closed folder shows a dot (the conflict color when something below it is in conflict, otherwise the modified color). Limits: 500
   entries per folder (folders listed first), 5,000 in all; previews stop at 400,000 characters.
-- The panel does nothing while it is closed: no listing, no `git`, no folder watching; opening it refreshes once.
+- The panel does nothing while it is closed: no listing, no `git`, no folder watching; opening it refreshes once. While it
+  is open a change in the folder refreshes it, at most once every 1.5 seconds; up to three folders are watched and a
+  fourth relies on a 10-second timer.
 - Click a folder: expand or collapse. Click a file: open it in **nvim** in a floating window over the app, one editor
   per click even on a double click (see Watch out for where it works). Alt-click: a read-only, syntax-highlighted
   preview in the panel, with a back arrow.
@@ -305,8 +310,6 @@ are drawn by `scripts/make-preview.mjs`.
   writable the strip shows the badge and glyphs but no name.
 - **Limits:** at most 500 entries per folder and 5,000 rows in the Files panel; previews of 400,000 characters;
   six glyphs per folded strip; 170px tab names; 260px pane names.
-- **Pane-less agents:** the tree builds its rows from panes. Should Herdr ever list an agent that has no pane, it has no
-  row, though it still counts in the bell and in its space's counts.
 
 ### Load-bearing names
 
