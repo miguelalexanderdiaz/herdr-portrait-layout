@@ -117,7 +117,7 @@ test("macOS's own JavaScript edits the JSON when there is no Node (macOS only)",
 test("the installer files are the same in every repository (only the REPO line differs)", () => {
   // The other repositories' copies, when they sit next to this one (a checkout of all three).
   const strip = (t) => t.replace(/^\$?Repo\s*=.*$|^REPO=.*$/gim, "");
-  for (const f of ["install.sh", "install.ps1", "jsonedit.js"]) {
+  for (const f of ["install.sh", "install.ps1", "jsonedit.cjs"]) {
     const mine = strip(readFileSync(join(root, "install", f), "utf8"));
     for (const other of ["herdr-portrait-layout", "herdr-agents-waiting", "herdr-obsidian-vault"]) {
       const p = join(root, "..", other, "install", f);

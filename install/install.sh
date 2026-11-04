@@ -81,8 +81,8 @@ elif command -v osascript >/dev/null 2>&1; then JS="osascript"; fi
 [ "${HERDR_INSTALL_ENGINE:-}" = "none" ] && JS=""
 json() {
   case "$JS" in
-    node) node "$SRC/install/jsonedit.js" "$@" ;;
-    osascript) osascript -l JavaScript "$SRC/install/jsonedit.js" "$@" ;;
+    node) node "$SRC/install/jsonedit.cjs" "$@" ;;
+    osascript) osascript -l JavaScript "$SRC/install/jsonedit.cjs" "$@" ;;
     *) return 3 ;;
   esac
 }
@@ -186,7 +186,7 @@ if [ -n "$KEYS" ] && [ -f "$SRC/$KEYS" ]; then
     else say "  keys.json: nothing to add"; fi
     rm -f "$set_file"
   else
-    say "  keys.json: merge these into yours by hand (no Node found):"
+    say "  keys.json: merge these into yours by hand (no Node, or it failed):"
     sed 's/^/    /' "$SRC/$KEYS"
   fi
 fi
