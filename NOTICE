@@ -160,8 +160,8 @@ the Latin subsets in WOFF2 of the variable fonts, as published by the Fontsource
 5.3.1). Fontsource subset and converted them; they are not otherwise changed. They are used by docs/assets/site.css
 and docs/404.html only; the layouts and mods do not use them.
 
-  docs/assets/fonts/fraunces-latin-wght-normal.woff2          Fraunces, Copyright 2018 The Fraunces Project Authors
-                                                              (https://github.com/undercasetype/Fraunces)
+  docs/assets/fonts/fraunces-latin-full-normal.woff2          Fraunces, Copyright 2018 The Fraunces Project Authors
+  docs/assets/fonts/fraunces-latin-wght-italic.woff2          (https://github.com/undercasetype/Fraunces)
   docs/assets/fonts/source-serif-4-latin-wght-normal.woff2    Source Serif 4, Copyright 2014 - 2023 Adobe, with
   docs/assets/fonts/source-serif-4-latin-wght-italic.woff2    Reserved Font Name 'Source' (https://github.com/adobe-fonts/source-serif)
   docs/assets/fonts/jetbrains-mono-latin-wght-normal.woff2    JetBrains Mono, Copyright 2020 The JetBrains Mono Project
