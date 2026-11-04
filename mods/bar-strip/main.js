@@ -7,7 +7,7 @@ import { View, div, svg } from "gpui-kit";
 import { h_flex } from "gpui-base";
 import { run, theme, updates, layout, shared, setShared, agents, nextCommand, openOverlay, closeOverlay, keys, appHome } from "herdr";
 import * as fs from "fs/promises";
-import { PICKER, find, vaultWanted, joinPath, keyHint, waitingAgents, nextWaiting } from "./logic.mjs";
+import { PICKER, find, vaultWanted, enabledPanels, joinPath, alpha, keyHint, waitingAgents, nextWaiting } from "./logic.mjs";
 
 export default class BarStrip extends View {
   init(_props, cx) {
@@ -21,7 +21,7 @@ export default class BarStrip extends View {
     cx.spawn(async (cx) => {
       for (;;) {
         const c = await nextCommand();
-        if (c === "attention") this.picker(true);
+        if (c === "attention") this.picker();
         else if (c === "jump") this.attention();
         cx.notify();
       }
@@ -37,14 +37,14 @@ export default class BarStrip extends View {
 
   // Agents waiting on you, most urgent first (see waitingAgents).
   waiting() {
-    return waitingAgents(agents());
+    return waitingAgents(agents(), shared("agents.since"));
   }
 
-  // The "Agents waiting" list (mods/attention-picker, PICKER), with a search box or not.
+  // The "Agents waiting" list (mods/attention-picker, PICKER), with its search box.
   // One at a time: an open one is closed first.
-  picker(search) {
+  picker() {
     if (this.pickerId) { try { closeOverlay(this.pickerId); } catch {} }
-    this.pickerId = openOverlay({ mod: PICKER, kind: "dialog", width: 640, props: { search } });
+    this.pickerId = openOverlay({ mod: PICKER, kind: "dialog", width: 640, props: { search: true } });
   }
 
   // Go to the longest-waiting agent; from one of them, go to the next (wrapping).
@@ -88,12 +88,12 @@ export default class BarStrip extends View {
     return h_flex().id("attention").h(20).px(6).gap(5).flex_none().items_center().rounded(5)
       .text_color(color)
       .cursor_pointer()
-      .when(list.length > 0, (el) => el.bg(color + "1f").hover((h) => h.bg(color + "33")))
+      .when(list.length > 0, (el) => el.bg(alpha(color, 0.12)).hover((h) => h.bg(alpha(color, 0.2))))
       .tooltip((list.length
         ? `Go to the agent waiting longest, asking first${list.length > 1 ? "; again for the next" : ""}. Shift-click: search them all.`
         : "No agent is waiting on you. Shift-click: search agents.") + (key ? ` ${key}: list` : ""))
       // Click: straight to the longest-waiting agent. Shift-click: the list, with search.
-      .on_click((e) => (e?.modifiers?.shift ? this.picker(true) : this.attention()))
+      .on_click((e) => (e?.modifiers?.shift ? this.picker() : this.attention()))
       .child(svg("mods/bar-strip/bell.svg").size(13))
       .child(parts.length ? parts.join(" · ") : "Needs you");
   }
@@ -101,7 +101,8 @@ export default class BarStrip extends View {
   render() {
     const t = theme();
     const root = layout(), panel = find(root, "panel"), body = find(root, "panel-body");
-    const enabled = shared("workspace.panels") ?? ["files", "changes"];
+    const vault = vaultWanted({ installed: shared("mods.vault"), hasNode: find(body, "vault") });
+    const enabled = enabledPanels(shared("workspace.panels"), { vault });
     return h_flex().size_full().px(8).gap(4).items_center().bg(t.chrome).border_b(1).border_color(t.border).text_size(11.5)
       .child(this.button(t, "search", "mods/bar-strip/search.svg", "Search", () => run("mod.open", { name: "picker" })))
       .child(this.button(t, "machine", "mods/bar-strip/server.svg", "Add machine", () => run("mod.open", { name: "machine-add" })))
@@ -113,6 +114,6 @@ export default class BarStrip extends View {
       .when(enabled.includes("changes"), (el) => el.child(this.panelButton(t, panel, body, "changes", "Changes", "mods/bar-strip/changes.svg")))
       // The Obsidian vault (mods/vault): only when that mod is installed AND the layout has its panel
       // (snippets/vault-panel.json); either one alone would be a button that does nothing.
-      .when(vaultWanted({ installed: shared("mods.vault"), hasNode: find(body, "vault") }), (el) => el.child(this.panelButton(t, panel, body, "vault", "Vault", "mods/vault/icons/book-open.svg")));
+      .when(vault, (el) => el.child(this.panelButton(t, panel, body, "vault", "Vault", "mods/vault/icons/book-open.svg")));
   }
 }

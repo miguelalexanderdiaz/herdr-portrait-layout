@@ -9,7 +9,7 @@
 import { View, div, svg } from "gpui-kit";
 import { v_flex, h_flex, Editor, EditorState } from "gpui-base";
 import { spaces, panes, focused, exec, readTextFile, watchFolder, theme, settings, window, hc, run, notify, terminals, openOverlay, layout, home } from "herdr";
-import { filesVisible, watchable, createGate, freeName, markOf, parseStatus, bubble, arrange, loginPath, nvimArgv, nvimFound, platformMode } from "./logic.mjs";
+import { filesVisible, watchable, createGate, createPacer, freeName, parseStatus, bubble, arrange, loginPath, nvimArgv, nvimFound, platformMode } from "./logic.mjs";
 
 function location() {
   const space = spaces().find(s => s.active), f = focused();
@@ -20,6 +20,10 @@ function location() {
 const key = () => JSON.stringify(location());
 const LANG = { ts: "js", tsx: "js", mts: "js", cts: "js", jsx: "js", mjs: "js", toml: "yaml", jsonc: "json", svelte: "html", vue: "html" };
 const PER_FOLDER = 500, TOTAL = 5000;
+// A watch loop only ends at its next event and cannot be cancelled, so the folders you leave
+// keep theirs for a while: at most this many at once (macOS and Windows watch recursively, Linux
+// spends inotify watches). A folder over the cap relies on the 10 s timer.
+const MAX_WATCHERS = 3;
 
 async function directory(path, on) {
   if (!on && window()?.platform === "windows") {
@@ -45,6 +49,7 @@ export default class Files extends View {
     this.entries = new Map(); this.folders = new Set(); this.pending = new Set(); this.marks = {};
     this.watching = new Set(); // roots with a watch loop running (one per root)
     this.gate = createGate();
+    this.pacer = createPacer();
     this.wasVisible = false;
     // Slow safety net; it does nothing while the panel is closed.
     cx.timer.every(10000, cx => { this.peekWhenReady(); if (this.visible()) this.refresh(cx); });
@@ -55,18 +60,31 @@ export default class Files extends View {
   }
 
   watch(root, cx) {
-    if (this.on || this.watching.has(root) || !watchable(root, home())) return;
+    if (this.on || this.watching.has(root) || this.watching.size >= MAX_WATCHERS || !watchable(root, home())) return;
     this.watching.add(root);
     cx.spawn(async cx => {
       try {
         // Ends when the folder is no longer the shown one or the panel is closed; the next refresh starts it again.
         while (this.root === root && !this.on && this.visible()) {
           await watchFolder(root);
-          if (this.root === root && this.visible()) this.refresh(cx);
+          if (this.root === root && this.visible()) this.refreshSoon(cx);
         }
       } catch {}
       this.watching.delete(root);
     });
+  }
+
+  // A refresh asked for by the folder watch or a request that arrived mid-load: at most one run
+  // per REFRESH_GAP, and one more after a run that was asked again meanwhile.
+  refreshSoon(cx, trailing = false) {
+    const verdict = this.pacer.request(trailing);
+    if (verdict === "now") this.refresh(cx);
+    else if (verdict === "later") {
+      cx.spawn(async cx => {
+        await cx.sleep(this.pacer.wait());
+        this.refreshSoon(cx, true);
+      });
+    }
   }
 
   current(context) {
@@ -93,9 +111,11 @@ export default class Files extends View {
       this.loading = false;
       if (saved?.file) this.show(saved.file, cx);
     }
-    if (!cwd || this.loading || !this.visible()) return;
+    if (!cwd || !this.visible()) return;
+    if (this.loading) { this.pacer.request(); return; } // not lost: it runs again when this load ends
     const context = this.context;
     this.loading = true;
+    this.pacer.start();
     this.limited = false;
     cx.spawn(async cx => {
       try {
@@ -115,7 +135,12 @@ export default class Files extends View {
         if (!this.current(context)) return;
         this.marks = marks; this.error = null; this.watch(cwd, cx);
       } catch (e) { if (this.current(context)) this.error = String(e); }
-      finally { if (this.context === context) this.loading = false; cx.notify(); }
+      finally {
+        if (this.context === context) this.loading = false;
+        const more = this.pacer.finish();
+        cx.notify();
+        if (more && this.context === context) this.refreshSoon(cx, true);
+      }
     });
   }
 
@@ -174,8 +199,7 @@ export default class Files extends View {
       const socket = `/tmp/herdr-nvim-${Date.now().toString(36)}.sock`;
       const space = spaces().find((s) => s.active)?.id;
       const args = ["run", "--bg", "--json", "--no-parent", "--rm", "--name", name,
-        "--label", `editor.file=${file}`, "--label", `editor.socket=${socket}`,
-        "--label", `editor.space=${space ?? ""}`, "--cwd", root];
+        "--label", `editor.file=${file}`, "--label", `editor.socket=${socket}`, "--cwd", root];
       if (on) args.push("--on", on);
       args.push("--", ...nvimArgv(await loginPath(exec, on), 'exec nvim --listen "$1" -c "set title titlestring=%t" -- "$2"', socket, file));
       const r = await hc(args);

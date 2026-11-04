@@ -1,7 +1,7 @@
 // portrait-tabs: pure logic (mods/portrait-tabs/logic.mjs). `node --test`
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { isPanels, prunePanels, enabledPanels, vaultWanted, readJson, wheelSteps, WHEEL_STEP } from "../mods/portrait-tabs/logic.mjs";
+import { isPanels, prunePanels, enabledPanels, vaultWanted, readJson, wheelSteps, wheelStream, WHEEL_STEP } from "../mods/portrait-tabs/logic.mjs";
 
 test("isPanels accepts the remembered choices and nothing else", () => {
   assert.equal(isPanels({ s1: "files", s2: null }), true);
@@ -13,10 +13,20 @@ test("isPanels accepts the remembered choices and nothing else", () => {
 
 test("prunePanels forgets closed spaces, never against an empty list", () => {
   const panels = { s1: "files", s2: null, gone: "changes" };
-  assert.deepEqual(prunePanels(panels, ["s1", "s2"]), { s1: "files", s2: null });
-  assert.equal(prunePanels(panels, ["s1", "s2", "gone"]), panels); // unchanged: same object, no write
-  assert.equal(prunePanels(panels, []), panels);
-  assert.deepEqual(prunePanels({}, ["a"]), {});
+  const ready = [{ name: null, layout: "ready" }];
+  assert.deepEqual(prunePanels(panels, [{ id: "s1" }, { id: "s2" }], ready), { s1: "files", s2: null });
+  assert.equal(prunePanels(panels, [{ id: "s1" }, { id: "s2" }, { id: "gone" }], ready), panels); // unchanged: same object, no write
+  assert.equal(prunePanels(panels, [], ready), panels);
+  assert.deepEqual(prunePanels({}, [{ id: "a" }], ready), {});
+});
+
+test("prunePanels keeps the choice of a space on a machine that is loading or offline", () => {
+  const panels = { s1: "files", "vps/s9": "changes", "old/s3": "files" };
+  const machines = (layout) => [{ name: null, layout: "ready" }, { name: "vps", layout }, { name: "old", layout: "ready" }];
+  const spaces = [{ id: "s1" }];
+  assert.deepEqual(prunePanels(panels, spaces, machines("loading")), { s1: "files", "vps/s9": "changes" });
+  assert.deepEqual(prunePanels(panels, spaces, machines("unavailable")), { s1: "files", "vps/s9": "changes" });
+  assert.deepEqual(prunePanels(panels, spaces, machines("ready")), { s1: "files" });
 });
 
 test("enabledPanels adds the vault only when it is wanted", () => {
@@ -37,4 +47,14 @@ test("the tab wheel needs a whole step per tab and survives an inertia swipe", (
   assert.equal(tabs, 3);
   s = wheelSteps(null, -50, WHEEL_STEP, 0);
   assert.equal(s.steps, -1);
+});
+
+test("the tab wheel: one notch of a mouse wheel is one tab, a swipe is unchanged", () => {
+  const notch = (y) => ({ delta: { x: 0, y: y * 18 }, delta_lines: { x: 0, y }, touch_phase: "moved" });
+  let s = null;
+  assert.deepEqual([1, 2, 3].map((i) => (s = wheelStream(s, notch(1), "y", i * 50)).steps), [1, 1, 1]);
+  assert.equal(wheelStream(null, notch(-1), "y", 0).steps, -1);
+  s = null; let tabs = 0;
+  for (let i = 0; i < 40; i++) { s = wheelStream(s, { delta: { x: 0, y: 3 }, touch_phase: i ? "moved" : "started" }, "y", i * 10, WHEEL_STEP); tabs += s.steps; }
+  assert.equal(tabs, 3);
 });

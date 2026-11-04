@@ -35,13 +35,14 @@ function element() {
 const state = {};
 const host = {
   spaces: () => state.spaces,
+  machines: () => state.machines ?? [{ name: null, layout: "ready" }],
   agents: () => state.agents,
   panes: () => state.panes,
   terminals: () => state.terminals ?? [],
   layout: () => state.layout,
   layouts: () => ["portrait"],
-  theme: () => new Proxy({}, { get: () => "#808080" }),
-  settings: () => ({ zoom: state.zoom ?? 1 }),
+  theme: () => new Proxy({}, { get: () => state.color ?? "#808080" }),
+  settings: () => ({ zoom: state.zoom ?? 1, ...(state.dark === undefined ? {} : { dark: state.dark }) }),
   window: () => ({ platform: state.platform ?? "macos", titlebar: "none", buttons: true, maximized: false, fullscreen: false, active: true }),
   shared: (k) => state.shared?.[k],
   setShared: (k, v) => { (state.shared ??= {})[k] = v; log.calls.push(["setShared", k, v]); },
@@ -91,7 +92,7 @@ import { createRequire } from "node:module";
 const require_fs = () => createRequire(import.meta.url)("node:fs");
 
 const cx = () => {
-  const c = { notify() {}, stop_propagation() {}, spawn: (fn) => Promise.resolve(fn(c)), timer: { every(ms, fn) { (c.timers ??= []).push([ms, fn]); } } };
+  const c = { notify() {}, stop_propagation() {}, spawn: (fn) => Promise.resolve(fn(c)), sleep: (ms) => new Promise((r) => setTimeout(r, ms)), timer: { every(ms, fn) { (c.timers ??= []).push([ms, fn]); } } };
   return c;
 };
 async function mount(mod, props = {}) {
@@ -142,6 +143,8 @@ test("portrait-tree renders: open and folded columns, windowed row, pane-less ag
   assert.ok(log.ids.includes("tab-tab1"));
   assert.ok(log.ids.includes("pn-p3"), "the vault-reader pane has a row");
   assert.ok(log.ids.includes("ag-p1") && log.ids.includes("ag-p1b"));
+  // Agents without a pane (sub-agents) get a row of their own under their tab.
+  assert.ok(log.ids.includes("ag-t6") && log.ids.includes("ag-t7"), "pane-less agents have rows");
   // Folded space: strip with a spine; the write goes through the store.
   m.folded.add("s3");
   m.width = 1500;
@@ -326,4 +329,69 @@ test("portrait-files: a click opens one editor, Windows previews, a missing nvim
   assert.ok(log.calls.some((x) => x[0] === "notify" && /nvim not found/.test(x[1].title)));
   assert.equal(m.file, "a.js");
   host.exec = realExec; host.hc = realHc;
+});
+
+test("portrait-tree: the drop line follows the pointer, not the press", async () => {
+  world();
+  state.spaces = state.spaces.map((s) => ({ ...s, machine: null })); // one machine: any header can be a target
+  const { m, c } = await mount("portrait-tree");
+  m.width = 2000;
+  reset(); m.pressed = 0; m.render(c);
+  assert.ok(!log.ids.some((id) => id.startsWith("drop-")), "a press alone shows no line");
+  reset(); m.pressed = 0; m.over = 2; m.render(c);
+  assert.deepEqual(log.ids.filter((id) => id.startsWith("drop-")), ["drop-s3"]);
+  // Over the pressed header itself: no line.
+  reset(); m.pressed = 0; m.over = 0; m.render(c);
+  assert.ok(!log.ids.some((id) => id.startsWith("drop-")));
+  // A tab row: the same.
+  reset(); m.pressed = null; m.over = null; m.tabPressed = { id: "tab1", space: "s1" }; m.render(c);
+  assert.ok(!log.ids.some((id) => id.startsWith("drop-")));
+  reset(); m.tabOver = "tab2"; m.render(c);
+  assert.deepEqual(log.ids.filter((id) => id.startsWith("drop-")), ["drop-tab2"]);
+  // Another space's tab is not a target.
+  reset(); m.tabOver = "tab3"; m.render(c);
+  assert.ok(!log.ids.some((id) => id.startsWith("drop-")));
+});
+
+test("portrait-tree and portrait-tabs keep the state of a remote machine that is offline at start", async () => {
+  world();
+  state.spaces = state.spaces.filter((s) => s.id !== "s2"); // the remote machine's spaces are not listed
+  state.machines = [{ name: null, layout: "ready" }, { name: "devbox", layout: "unavailable" }];
+  localStorage._d = { folded: JSON.stringify(["devbox/s2", "gone"]), peeked: JSON.stringify(["devbox/s2"]), panels: JSON.stringify({ "devbox/s2": "files", s1: "changes", old: "files" }) };
+  const tree = await mount("portrait-tree");
+  tree.m.width = 1500; tree.m.render(tree.c);
+  assert.ok(tree.m.folded.has("devbox/s2"), "folded stays");
+  assert.ok(!tree.m.folded.has("gone"), "a local id that is gone is pruned");
+  assert.ok(JSON.parse(localStorage._d.folded).includes("devbox/s2"), "and so does what was saved");
+  const tabs = await mount("portrait-tabs");
+  tabs.m.render();
+  assert.ok("devbox/s2" in tabs.m.panels, "panel choice stays");
+  assert.ok(!("old" in tabs.m.panels));
+  // Once the machine is ready and still does not list it, it goes.
+  state.machines = [{ name: null, layout: "ready" }, { name: "devbox", layout: "ready" }];
+  tree.m.render(tree.c); tabs.m.render();
+  assert.ok(!tree.m.folded.has("devbox/s2") && !("devbox/s2" in tabs.m.panels));
+  state.machines = undefined;
+  localStorage._d = {};
+});
+
+test("portrait-files: a refresh asked for during a load is not lost, and not repeated", async () => {
+  world();
+  state.layout.children[0].hidden = false;
+  const { m, c } = await mount("portrait-files");
+  // Slow git: the first load stays in flight while two more refreshes are asked for.
+  const realExec = host.exec;
+  let release; const gate = new Promise((r) => { release = r; });
+  host.exec = async (cmd, args, o) => { log.calls.push(["exec", cmd, args, o]); if (cmd === "git" && args.includes("status")) await gate; return { code: 0, stdout: cmd === "git" ? "" : "", stderr: "" }; };
+  const { createPacer } = await import("../mods/portrait-files/logic.mjs");
+  m.pacer = createPacer({ gap: 30 });
+  reset();
+  m.render(c);
+  m.refresh(c); m.refresh(c);
+  await new Promise((r) => setTimeout(r, 20));
+  assert.equal(log.calls.filter((x) => x[0] === "exec" && x[1] === "git" && x[2].includes("status")).length, 1, "one load in flight");
+  release();
+  await new Promise((r) => setTimeout(r, 150));
+  assert.equal(log.calls.filter((x) => x[0] === "exec" && x[1] === "git" && x[2].includes("status")).length, 2, "exactly one more after it, not zero and not three");
+  host.exec = realExec;
 });

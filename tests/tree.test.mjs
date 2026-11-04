@@ -1,12 +1,12 @@
-// portrait-tree: pure logic (mods/portrait-tree/logic.mjs). `node --test tests/`
+// portrait-tree: pure logic (mods/portrait-tree/logic.mjs). `node --test`
 import { h, LIN } from "./fake-home.mjs";
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
-  rgb, hex, inkOn, mix, clean, duration, nameOf, dedupeNames, tilde, basename, dirname, noteParts,
-  safeStorage, readJson, writeJson, isStringArray, isChangedMap, pruneIds, pruneChanged,
+  rgb, hex, inkOn, mix, markText, cleanTitle, alpha, tabRows, duration, nameOf, dedupeNames, tilde, basename, dirname, noteParts,
+  safeStorage, readJson, writeJson, isStringArray, isChangedMap, pruneSpaceIds, pruneChanged,
   spineFile, spineSvg, xml, joinPath, createSpineStore, SPINE_DIR,
-  planColumns, wheelSteps, MIN_COL, FOLDED_COL, MARKER,
+  planColumns, wheelSteps, wheelStream, MIN_COL, FOLDED_COL, MARKER, WHEEL_STEP,
 } from "../mods/portrait-tree/logic.mjs";
 
 test("colors: rgb/hex round trip, bad input is grey, inkOn picks the readable ink", () => {
@@ -22,9 +22,15 @@ test("colors: rgb/hex round trip, bad input is grey, inkOn picks the readable in
   assert.equal(mix("#102030", "#102030", 0.7), "#102030");
 });
 
-test("clean strips leading symbols; duration formats", () => {
-  assert.equal(clean("✳ Fix the bug "), "Fix the bug");
-  assert.equal(clean(undefined), "");
+test("cleanTitle strips the status glyph, keeps a leading dot; duration formats", () => {
+  assert.equal(cleanTitle("✳ Fix the bug "), "Fix the bug");
+  assert.equal(cleanTitle("✳ Fix it"), "Fix it");
+  assert.equal(cleanTitle(".env"), ".env");
+  assert.equal(cleanTitle("✳ .gitignore"), ".gitignore");
+  assert.equal(cleanTitle("..."), ""); // no letter or digit: nothing to show
+  assert.equal(cleanTitle("✳ ✳"), "");
+  assert.equal(cleanTitle("~/code"), "code");
+  assert.equal(cleanTitle(undefined), "");
   assert.equal(duration(0), "<1m");
   assert.equal(duration(59 * 60000), "59m");
   assert.equal(duration(60 * 60000), "1h");
@@ -140,10 +146,97 @@ test("safeStorage/writeJson never throw", () => {
   assert.equal(mem.data.k, "[1]");
 });
 
-test("pruneIds keeps live ids and never prunes against an empty list", () => {
-  assert.deepEqual(pruneIds(["a", "b", "c"], ["a", "c", "z"]), ["a", "c"]);
-  assert.deepEqual(pruneIds(new Set(["a", "b"]), []), ["a", "b"]);
-  assert.deepEqual(pruneIds([], ["a"]), []);
+test("pruneSpaceIds: unlisted ids go, except those of a machine that is not ready", () => {
+  const local = { name: null, layout: "ready" };
+  const spaces = [{ id: "a" }, { id: "c" }];
+  // This computer is ready: its unlisted ids are dropped.
+  assert.deepEqual(pruneSpaceIds(["a", "b", "c"], spaces, [local]), ["a", "c"]);
+  assert.deepEqual(pruneSpaceIds(new Set(["a", "b"]), spaces, [local]), ["a"]);
+  assert.deepEqual(pruneSpaceIds([], spaces, [local]), []);
+  // A remote machine that is loading or unavailable (offline at start): its ids stay.
+  for (const layout of ["loading", "unavailable"]) {
+    assert.deepEqual(pruneSpaceIds(["a", "b", "vps/x", "vps/y"], spaces, [local, { name: "vps", layout }]), ["a", "vps/x", "vps/y"], layout);
+  }
+  // Once it is ready, what it does not list is gone, what it lists stays.
+  const ready = [local, { name: "vps", layout: "ready" }];
+  assert.deepEqual(pruneSpaceIds(["vps/x", "vps/y"], [{ id: "a" }, { id: "vps/x" }], ready), ["vps/x"]);
+  // A machine nobody listed is unknown: keep. So is this computer when machines() says nothing yet.
+  assert.deepEqual(pruneSpaceIds(["other/z"], spaces, [local]), ["other/z"]);
+  assert.deepEqual(pruneSpaceIds(["b"], spaces, []), ["b"]);
+  assert.deepEqual(pruneSpaceIds(["b"], spaces, undefined), ["b"]);
+  // The local computer loading: nothing is dropped from its side either.
+  assert.deepEqual(pruneSpaceIds(["b"], spaces, [{ name: null, layout: "loading" }]), ["b"]);
+  // Never against an empty list; plain ids work too.
+  assert.deepEqual(pruneSpaceIds(["a", "vps/x"], [], [local, { name: "vps", layout: "ready" }]), ["a", "vps/x"]);
+  assert.deepEqual(pruneSpaceIds(["a", "b"], undefined, [local]), ["a", "b"]);
+  assert.deepEqual(pruneSpaceIds(["a", "b"], ["a"], [local]), ["a"]);
+});
+
+test("alpha: six digits, eight digits, anything else unchanged", () => {
+  assert.equal(alpha("#e3814f", 0.12), "#e3814f1f");
+  assert.equal(alpha("#e3814f", 0.2), "#e3814f33");
+  assert.equal(alpha("#e3814fcc", 0.15), "#e3814f26"); // an 8-digit colour: its own alpha is replaced
+  assert.equal(alpha("#E3814F", 1), "#E3814Fff");
+  assert.equal(alpha("#e3814f", -3), "#e3814f00");
+  assert.equal(alpha("#e3814f", 9), "#e3814fff");
+  assert.equal(alpha("#e3814f", "x"), "#e3814f00");
+  for (const bad of ["ansi1", "#fff", "#12345", "red", "", undefined, null, 5]) assert.equal(alpha(bad, 0.5), bad);
+});
+
+test("markText: pale marks are darkened on a light theme only, and then read as text", () => {
+  const MARKS = ["#22a99a", "#e3814f", "#5b8def", "#8b7cf6", "#3fae6a", "#d9649a"];
+  const lum = (c) => rgb(c).map((v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; }).reduce((s, v, i) => s + v * [0.2126, 0.7152, 0.0722][i], 0);
+  const contrast = (a, b) => { const x = lum(a) + 0.05, y = lum(b) + 0.05; return Math.max(x, y) / Math.min(x, y); };
+  for (const c of MARKS) {
+    assert.equal(markText(c, "#1a1a1a", true), c); // dark theme: unchanged
+    assert.equal(markText(c, "#1a1a1a", undefined), c); // not told: unchanged
+    for (const fg of ["#000000", "#1a1a1a", "#333333"]) for (const bg of ["#ffffff", "#f4f1ea", "#ebe8e1"]) {
+      assert.ok(contrast(markText(c, fg, false), bg) >= 4.5, `${c} on ${bg} with ${fg}`);
+    }
+  }
+});
+
+test("tabRows: panes in order, then the tab's pane-less agents by address; the last row closes the tab", () => {
+  const p = (pane) => ({ pane });
+  const a = (address, pane = "") => ({ address, pane });
+  assert.deepEqual(tabRows([], []), []);
+  assert.deepEqual(tabRows(undefined, undefined), []);
+  assert.deepEqual(tabRows([p("p1"), p("p2")], []).map((r) => [r.kind, r.branch]), [["pane", "├─"], ["pane", "└─"]]);
+  const rows = tabRows([p("p1")], [a("t9"), a("t2"), a("t5", "p5"), a("t3", null)]);
+  assert.deepEqual(rows.map((r) => r.kind), ["pane", "agent", "agent", "agent"]);
+  assert.deepEqual(rows.slice(1).map((r) => r.agent.address), ["t2", "t3", "t9"]); // t5 has a pane: not here
+  assert.deepEqual(rows.map((r) => r.branch), ["├─", "├─", "├─", "└─"]);
+  // A tab with only sub-agents.
+  const only = tabRows([], [a("t1"), a("t0")]);
+  assert.deepEqual(only.map((r) => [r.agent.address, r.branch]), [["t0", "├─"], ["t1", "└─"]]);
+  assert.deepEqual(tabRows([p("p1")], [a("t1", "p1")]).map((r) => r.kind), ["pane"]);
+});
+
+test("wheelStream: a notch is one step, a trackpad needs 40 px, a new gesture starts clean", () => {
+  const px = (y, touch_phase = "moved") => ({ delta: { x: 0, y }, touch_phase });
+  const lines = (y) => ({ delta: { x: 0, y: y * 18 }, delta_lines: { x: 0, y }, touch_phase: "moved" });
+  // Three notches: three steps, one each.
+  let s = null, steps = [];
+  for (let i = 0; i < 3; i++) { s = wheelStream(s, lines(1), "y", i * 100); steps.push(s.steps); }
+  assert.deepEqual(steps, [1, 1, 1]);
+  assert.equal(wheelStream(null, lines(-1), "y", 0).steps, -1);
+  assert.equal(wheelStream(null, lines(3), "y", 0).steps, 3);
+  assert.equal(wheelStream(null, lines(0.4), "y", 0).steps, 0); // a fraction waits for the rest
+  // Pixels: as before, 40 per step.
+  s = null; let total = 0;
+  for (let i = 0; i < 40; i++) { s = wheelStream(s, px(3), "y", i * 10); total += s.steps; }
+  assert.equal(total, 3);
+  assert.equal(wheelStream(null, px(50), "y", 0, WHEEL_STEP).steps, 1);
+  // "started" drops the remainder of the last gesture.
+  s = wheelStream(null, px(30), "y", 0);
+  assert.equal(wheelStream(s, px(30), "y", 10).steps, 1);
+  assert.equal(wheelStream(s, px(30, "started"), "y", 10).steps, 0);
+  // Changing unit (trackpad to wheel) does not carry pixels over.
+  assert.equal(wheelStream(s, lines(1), "y", 10).steps, 1);
+  // The other axis, and junk, never throw.
+  assert.equal(wheelStream(null, { delta: { x: 90, y: 0 } }, "x", 0).steps, 2);
+  assert.equal(wheelStream(null, {}, "y", 0).steps, 0);
+  assert.equal(wheelStream(null, undefined, "y", 0).steps, 0);
 });
 
 test("pruneChanged: keeps live and recent, drops old dead ones, empty live list prunes nothing", () => {
