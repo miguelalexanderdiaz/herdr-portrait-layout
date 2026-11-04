@@ -132,11 +132,12 @@ test("check-recipe still passes when RECIPE.md has CRLF line endings", (t) => {
 
 // ---- privacy
 fails("a home path in a file", "privacy-scan", (s) => appendFileSync(s.file("CONTRIBUTING.md"), `\nsee ${homePath}\n`), /home path/);
-fails("a home path on a plain line of a plan", "privacy-scan", (s) => appendFileSync(s.file("plans/round-2/PLAN.md"), `\nthe author keeps notes in ${homePath} on disk\n`), /plans\/round-2\/PLAN\.md:\d+: mac home path/);
+fails("a home path on a plain line of a plan", "privacy-scan", (s) => s.write("plans/round-2/PLAN.md", `# Plan\n\nthe author keeps notes in ${homePath} on disk\n`), /plans\/round-2\/PLAN\.md:\d+: mac home path/);
 test("privacy-scan lets a plan line that shows a pattern through", (t) => {
   if (skip) return t.skip(skip);
   const s = scratch();
-  appendFileSync(s.file("plans/round-2/PLAN.md"), `\nthe scan looks for ${["", "Users", "[a-z]+"].join("/")} and ends with <home>\n`);
+  // plans/ is git-ignored and absent from a fresh checkout: the case writes its own plan file.
+  s.write("plans/round-2/PLAN.md", `# Plan\n\nthe scan looks for ${["", "Users", "[a-z]+"].join("/")} and ends with <home>\n`);
   const r = s.run("privacy-scan");
   assert.equal(r.code, 0, r.out);
 });

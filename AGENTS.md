@@ -26,7 +26,6 @@ package.json                     only gives `npm test` and `npm run check` names
 RECIPE.md, preview.png           Herdr's build brief and picture; not copied on install
 docs/                            GitHub Pages site (plain HTML and CSS)
 NOTICE, LICENSE                  Apache-2.0 and what is derived from where
-plans/                           process notes of the improvement rounds; not part of the layout
 ```
 
 Each mod has `main.js`, `mod.json`, its own icons, and often a `logic.mjs` of pure functions that tests import.
@@ -44,7 +43,7 @@ Say this in plain words before writing anything.
 ## Install (Herdr's protocol for layouts other people made)
 
 1. Read `RECIPE.md` and every file you will copy before writing anything.
-2. Copy `layouts/*` into `<home>/layouts/` and each folder of `mods/` into `<home>/mods/`. Leave `RECIPE.md`, `preview.png`, `docs/`, `tests/`, `scripts/`, `plans/`, `package.json` out. **Never overwrite.** If a name is taken (the person's or Herdr's), rename the new one, using the checklist below.
+2. Copy `layouts/*` into `<home>/layouts/` and each folder of `mods/` into `<home>/mods/`. Leave `RECIPE.md`, `preview.png`, `docs/`, `tests/`, `scripts/`, `package.json` out. **Never overwrite.** If a name is taken (the person's or Herdr's), rename the new one, using the checklist below.
 3. If the person already has an `attention-picker` (from herdr-agents-waiting), keep theirs, do not copy the bundled one, and check that its props still work: `bar-strip` opens it with `{ search: <boolean> }`, and the key `ctrl-shift-j` runs `mod.open:attention-picker`. The bundled copy ships no key of its own; the herdr-agents-waiting repository binds `ctrl-shift-a` to it, which does not clash.
 4. Merge `keys.json` into `<home>/keys.json` (create it if missing). Add the sections and keys. If a key is already used for something else, ask the person before replacing it, or leave it out and tell them which. Never delete their keys. `cmd-b` is macOS only (expected dead on Linux and Windows). No `ctrl-b` chords are shipped; add the optional tmux-style set (below) only if the person asks.
 5. For each mod folder: `herdr-app check <absolute path of the folder in <home>/mods>`. Fix or report any failure.
