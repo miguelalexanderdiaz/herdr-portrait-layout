@@ -12,7 +12,10 @@
 <a class="skip" href="#main">Skip to content</a>
 <header class="site"><div class="inner">
 <a class="brand" href="index.html">Portrait layout for Herdr</a>
-<nav class="site" aria-label="Documentation"><ul><li><a href="index.html">Overview</a></li><li><a href="install.html">Install</a></li><li><a href="usage.html">Usage</a></li><li><a href="configuration.html">Configuration</a></li><li><a href="platforms.html">Platforms</a></li><li><a href="privacy.html">Privacy</a></li><li><a href="how-it-works.html">How it works</a></li><li><a href="troubleshooting.html">Troubleshooting</a></li><li><a href="for-agents.html" aria-current="page">For agents</a></li></ul></nav>
+<nav class="site" aria-label="Documentation">
+<details class="menu"><summary>Menu: For agents</summary><ul><li><a href="index.html">Overview</a></li><li><a href="install.html">Install</a></li><li><a href="usage.html">Usage</a></li><li><a href="configuration.html">Configuration</a></li><li><a href="platforms.html">Platforms</a></li><li><a href="privacy.html">Privacy</a></li><li><a href="how-it-works.html">How it works</a></li><li><a href="troubleshooting.html">Troubleshooting</a></li><li><a href="for-agents.html" aria-current="page">For agents</a></li></ul></details>
+<ul class="wide"><li><a href="index.html">Overview</a></li><li><a href="install.html">Install</a></li><li><a href="usage.html">Usage</a></li><li><a href="configuration.html">Configuration</a></li><li><a href="platforms.html">Platforms</a></li><li><a href="privacy.html">Privacy</a></li><li><a href="how-it-works.html">How it works</a></li><li><a href="troubleshooting.html">Troubleshooting</a></li><li><a href="for-agents.html" aria-current="page">For agents</a></li></ul>
+</nav>
 </div></header>
 <main id="main">
 <h1>For agents</h1>
@@ -21,9 +24,9 @@
 <h2 id="tell">Before you install, tell the person</h2>
 <ul>
 <li>No mod uses the network.</li>
-<li>They run: <code>sh</code> (or <code>powershell</code> on Windows) to list folders, <code>git</code> for change marks, <code>hc run</code> and <code>hc read</code>, and <code>nvim</code> through the login shell.</li>
-<li>They read the folder of the focused pane, one file when alt-clicked, and the screen text of blocked or finished agents while the waiting list is open.</li>
-<li>They write <code>data/portrait-tree-spines/*.svg</code> in the Herdr home folder and nvim sockets under <code>/tmp</code>.</li>
+<li>They run: <code>sh</code> (or <code>powershell</code> on Windows) to list folders, <code>git</code> for change marks, <code>hc run</code> and <code>nvim</code> through the login shell; the waiting list runs <code>hc read</code> every 3 seconds while it is open.</li>
+<li>They read the folder of the focused pane; one file's text when it is alt-clicked, or clicked where nvim is unavailable (Windows, nvim not found); whether <code>mods/vault/main.js</code> exists; and the last 60 lines of the screen of blocked or finished agents while the waiting list is open.</li>
+<li>They write <code>data/portrait-tree-spines/*.svg</code> in the Herdr home folder, nvim sockets under <code>/tmp</code> (and labels with the full file path on the nvim terminal), and small records in the mods' local storage, among them <code>attention.seen</code> (agent address, state group, time).</li>
 </ul>
 
 <h2 id="install">Install steps</h2>
@@ -39,16 +42,16 @@
 <ul>
 <li>A layout file: the keys section <code>layout:&lt;name&gt;</code> and the <code>layout.switch:&lt;other&gt;</code> values.</li>
 <li>A mod folder: its own <code>mods/&lt;name&gt;/</code> asset paths in <code>svg()</code> and <code>image()</code> calls, and the <code>mod</code> name in the layouts. For <code>attention-picker</code>, the constant <code>PICKER</code> in <code>bar-strip</code>.</li>
-<li>Never rename the ids <code>bar</code>, <code>panel</code>, <code>panel-body</code>, <code>vault</code>.</li>
+<li>Never rename the ids the mods look up: <code>panel</code>, <code>panel-body</code>, <code>files</code>, <code>changes</code>, <code>vault</code>. <code>bar</code> is named only by the key <code>layout.toggle:bar</code>. A layout file also names its thumbnail in the root field <code>preview</code>. RECIPE.md has the full list.</li>
 </ul>
 
 <h2 id="safe">Editing safely</h2>
 <ul>
 <li>Do not write into a live Herdr home from a script in a checkout: every save reloads on the person's screen at once. Work in a scratch copy selected with <code>HERDR_APP_HOME</code>.</li>
 <li>Do not drive someone's running app (<code>herdr-app do</code>, <code>shot</code>, <code>status</code>) without asking.</li>
-<li><code>mods/attention-picker</code> is a bundled copy. Change it in the herdr-agents-waiting repository.</li>
+<li><code>mods/attention-picker</code> is a bundled copy, checked against a hash list. Change it in the herdr-agents-waiting repository and re-sync it (CONTRIBUTING.md).</li>
 <li>The three <code>cloned_from</code> mods are copies of Herdr 0.1.12 mods and are never updated by Herdr.</li>
-<li>Tests: <code>node --test</code> (no argument); <code>herdr-app check</code> on each mod; the scripts in <code>scripts/</code>.</li>
+<li>Tests: <code>node --test</code> (no argument); <code>herdr-app check</code> on each mod; <code>npm test</code> and <code>npm run check</code> run the tests and every script in <code>scripts/</code>.</li>
 </ul>
 <p>Full text with the gotchas list: <a href="https://github.com/miguelalexanderdiaz/herdr-portrait-layout/blob/main/AGENTS.md">AGENTS.md</a>.</p>
 </main>

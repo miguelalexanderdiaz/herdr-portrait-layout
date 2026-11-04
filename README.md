@@ -6,34 +6,32 @@ A [Herdr](https://herdr.dev) layout for tall, vertical monitors. Your spaces sit
 
 *An illustration with made-up content, not a screenshot of anyone's setup.*
 
-Docs for humans: the [documentation site](docs/index.html) (published with GitHub Pages from `docs/`). Docs for agents: [AGENTS.md](AGENTS.md) and [llms.txt](llms.txt). The build brief Herdr asks for is [RECIPE.md](RECIPE.md).
+Docs for humans: the [documentation site](https://miguelalexanderdiaz.github.io/herdr-portrait-layout/) (GitHub Pages from `docs/`; the address is live once the repository is public and Pages is on; until then open `docs/index.html` from a clone). Docs for agents: [AGENTS.md](AGENTS.md) and [llms.txt](llms.txt). Herdr's build brief: [RECIPE.md](RECIPE.md).
 
 ## What you get
 
 | Part | What it is |
 |---|---|
-| Layout `portrait` | Bar (strip plus space tree) on top, then tab bar, work area, status line. Side panel on the right, hidden until opened. |
-| Layout `portrait-bottom` | The same, with the bar between the work area and the status line. |
-| `portrait-tree` | One column per space: tabs, panes, every agent with its state and time in it. Spaces fold into thin strips and open by themselves when an agent in them gets focus. |
+| Layouts `portrait`, `portrait-bottom` | Bar (strip plus space tree) on top, then tab bar, work area, status line. The second puts the bar between the work area and the status line. A side panel on the right is hidden until opened. |
+| `portrait-tree` | One column per space: tabs, panes, every agent with its state and time in it (an agent without a pane gets a row under its tab). Spaces fold into thin strips and open by themselves when an agent in them gets focus. |
 | `bar-strip` | Search, Add machine, Settings; a bell that says who needs you; Files, Changes and (optional) Vault buttons. |
 | `portrait-tabs`, `portrait-pane` | Tab bar and pane header, cloned from Herdr's shipped mods. They remember the side panel per space. |
 | `portrait-files`, `nvim-float` | Files for the focused pane's folder with git marks; click a file to edit it in a floating nvim (macOS and Linux). |
 | `attention-picker` | The *Agents waiting* list (bundled copy of the herdr-agents-waiting mod). |
+| Vault panel (optional) | Works without the Obsidian mods. To add it, install `vault` and `vault-reader` from herdr-obsidian-vault and paste `snippets/vault-panel.json` into the `children` of the `panel-body` stack in each layout you use. The Vault button, tab and note rows appear only when the mod and the panel are both there. |
 
 ## Requirements
 
-- The Herdr desktop app, 0.1.12 or newer (built and used on 0.1.12).
-- `git` for change marks in Files; `nvim` for click-to-edit (both optional).
-- No network, no account, nothing to install. macOS, Linux or Windows: see the table below.
+The Herdr desktop app, 0.1.12 or newer (built and used on 0.1.12). `git` (change marks) and `nvim` (click-to-edit) are optional. No network, no account.
 
 | Feature | macOS | Linux | Windows |
 |---|---|---|---|
-| Layouts, tree, tab bar, pane headers, bell, waiting list | Works | Expected to work | Expected to work |
-| Files listing and git marks | Works | Expected to work | Expected to work (PowerShell listing) |
-| Click a file to edit in nvim | Works | Expected to work | No: opens the read-only preview and says so once |
+| Layouts, tree, tab bar, pane headers, bell, waiting list | Works | Not run, expected to work | Not run, expected to work |
+| Files listing and git marks | Works | Not run, expected to work | Not run, expected to work (PowerShell listing) |
+| Click a file to edit in nvim | Works | Not run, expected to work | No: opens the read-only preview and says so once |
 | Keys | `cmd-` and `ctrl-shift-` | `ctrl-shift-` | `ctrl-shift-` |
 
-Developed and used on macOS. Linux and Windows are described from the code, not from a test run. Details and the code that decides each row: [Platforms](docs/platforms.html).
+Developed and used on macOS only. Linux and Windows are described from the code, not from a test run; no CI run has been reported yet. The layouts keep the system title bar, so no window buttons are drawn on Linux and Windows. Details, and the code that decides each row: [Platforms](https://miguelalexanderdiaz.github.io/herdr-portrait-layout/platforms.html).
 
 ## Install
 
@@ -49,6 +47,8 @@ It follows Herdr's protocol for shared layouts: tells you what runs, never overw
 
 ### By hand, macOS and Linux
 
+Tried in a scratch Herdr home on macOS (`HERDR_APP_HOME=<empty folder>`): everything copied, `herdr-app check` passed for all seven mods.
+
 ```sh
 git clone https://github.com/miguelalexanderdiaz/herdr-portrait-layout.git
 cd herdr-portrait-layout
@@ -58,6 +58,7 @@ H="${HERDR_APP_HOME:-$HOME/.config/herdr-app}"
 mkdir -p "$H/layouts" "$H/mods"
 
 # Never overwrite: anything that already exists is reported and skipped.
+# Includes the layouts' .svg thumbnails. Rename a layout together with its "preview" field.
 for f in layouts/*; do
   if [ -e "$H/$f" ]; then echo "exists, rename first: $f"; else cp "$f" "$H/layouts/"; fi
 done
@@ -66,11 +67,8 @@ for m in mods/*; do
   if [ -e "$H/mods/$n" ]; then echo "exists, skip or rename: $n"; else cp -R "$m" "$H/mods/$n"; fi
 done
 
-# Check every mod you now have.
-for m in mods/*; do herdr-app check "$H/mods/${m#mods/}"; done
-
-# Switch to the layout.
-herdr-app do layout.switch --name portrait
+for m in mods/*; do herdr-app check "$H/mods/${m#mods/}"; done   # check every mod you now have
+herdr-app do layout.switch --name portrait                          # switch to the layout
 ```
 
 ### By hand, Windows (PowerShell)
@@ -79,8 +77,8 @@ herdr-app do layout.switch --name portrait
 git clone https://github.com/miguelalexanderdiaz/herdr-portrait-layout.git
 cd herdr-portrait-layout
 
-# The Herdr home folder: the "Home:" line of  herdr-app --help
-$H = "<the path printed by herdr-app --help>"
+# The Herdr home folder. If herdr-app --help prints another folder, set $H to it.
+$H = if ($env:HERDR_APP_HOME) { $env:HERDR_APP_HOME } else { Join-Path $HOME ".config\herdr-app" }
 New-Item -ItemType Directory -Force "$H\layouts", "$H\mods" | Out-Null
 
 foreach ($f in Get-ChildItem layouts) {
@@ -96,106 +94,56 @@ foreach ($m in Get-ChildItem mods -Directory) { herdr-app check "$H\mods\$($m.Na
 herdr-app do layout.switch --name portrait
 ```
 
-The PowerShell commands follow its documentation and have not been run on Windows. Then merge the repository's `keys.json` into yours (below). If you already have `attention-picker` from herdr-agents-waiting, keep yours and skip the bundled one.
+The PowerShell block follows its documentation and has not been run on Windows; the default home folder there is unconfirmed, so trust what `herdr-app --help` prints. Then merge the repository's `keys.json` into yours (next section). If you already have `attention-picker` from herdr-agents-waiting, keep yours and skip the bundled one.
 
 ## Keys
 
 | Section | Key | Action | What it does |
 |---|---|---|---|
 | `layout:portrait` | `ctrl-shift-g` | `layout.toggle:bar` | Show or hide the bar (strip and space tree) |
-| `layout:portrait` | `cmd-b` | `layout.toggle:bar` | macOS alias of the bar toggle. It is also Herdr's macOS default for the sidebar toggle, which these layouts have no node for, so the layout section re-points it |
-| `layout:portrait` | `ctrl-shift-y` | `layout.switch:portrait-bottom` | Switch to portrait-bottom (bar between the work area and the status line) |
-| `layout:portrait` | `ctrl-shift-j` | `bar-strip.attention` | Open the Agents waiting list, with its search box |
+| `layout:portrait` | `cmd-b` | `layout.toggle:bar` | macOS alias of the bar toggle (Herdr's macOS default for the sidebar toggle, which these layouts have no node for) |
+| `layout:portrait` | `ctrl-shift-y` | `layout.switch:portrait-bottom` | Switch to portrait-bottom |
+| `layout:portrait` | `ctrl-shift-j` | `mod.open:attention-picker` | Open or close the Agents waiting list, with its search box |
 | `layout:portrait-bottom` | `ctrl-shift-g` | `layout.toggle:bar` | Show or hide the bar (strip and space tree) |
-| `layout:portrait-bottom` | `cmd-b` | `layout.toggle:bar` | macOS alias of the bar toggle. It is also Herdr's macOS default for the sidebar toggle, which these layouts have no node for, so the layout section re-points it |
-| `layout:portrait-bottom` | `ctrl-shift-y` | `layout.switch:portrait` | Switch to the portrait layout (bar on top) |
-| `layout:portrait-bottom` | `ctrl-shift-j` | `bar-strip.attention` | Open the Agents waiting list, with its search box |
+| `layout:portrait-bottom` | `cmd-b` | `layout.toggle:bar` | macOS alias of the bar toggle (Herdr's macOS default for the sidebar toggle, which these layouts have no node for) |
+| `layout:portrait-bottom` | `ctrl-shift-y` | `layout.switch:portrait` | Switch to the portrait layout |
+| `layout:portrait-bottom` | `ctrl-shift-j` | `mod.open:attention-picker` | Open or close the Agents waiting list, with its search box |
 
-`cmd-` keys are macOS. `bar-strip.attention` is delivered only to a shown bar-strip, so it is bound inside the two layout sections. If you rename a layout, rename its `layout:<name>` section and the `layout.switch:` values with it. The bell's tooltip prints the key really bound on your machine.
-
-### Optional: tmux-style chords
-
-Not shipped, because a bound `ctrl-b` prefix takes `ctrl-b` from the programs in your terminals (readline, tmux). Chords are not described in Herdr's written reference; this is the form the author used on macOS with 0.1.12. After saving, look for `keys.error` in the Herdr home folder.
-
-```json
-{
-  "layout:portrait": {
-    "ctrl-b a": "bar-strip.attention",
-    "ctrl-b b": "layout.toggle:bar",
-    "ctrl-b shift-b": "layout.switch:portrait-bottom"
-  },
-  "layout:portrait-bottom": {
-    "ctrl-b a": "bar-strip.attention",
-    "ctrl-b b": "layout.toggle:bar",
-    "ctrl-b shift-b": "layout.switch:portrait"
-  }
-}
-```
-
-## Optional: Vault panel
-
-The layouts work without the Obsidian mods. To add the Vault panel, install `vault` and `vault-reader` from herdr-obsidian-vault and paste `snippets/vault-panel.json` into the `children` of the `panel-body` stack in each layout you use. The Vault button, tab and note rows appear only when both the mod and the panel are there.
+`cmd-b` is macOS only; on Linux and Windows `cmd` is the Super or Windows key, which the system usually keeps, so expect it to do nothing there (untested) and use `ctrl-shift-g`. If you rename a layout, rename its `layout:<name>` section and the `layout.switch:` values with it. The bell's tooltip prints the key really bound on your machine. `ctrl-b` chords are not shipped (they take `ctrl-b` from your terminals); the optional set is on the [Configuration page](https://miguelalexanderdiaz.github.io/herdr-portrait-layout/configuration.html#tmux) and in [AGENTS.md](AGENTS.md).
 
 ## Theme
 
-No theme is pinned: Settings decides. Any Herdr theme works, because the mods use only theme colours. To fix one in the layout, add `"theme": { "light": "paper", "dark": "graphite" }` to the layout's root, or carry your own `themes/<name>.json`.
+No theme is pinned: Settings decides, and every Herdr theme names the same colours, so any theme works. Chrome, text and state colours come from the theme (`foreground`, `background`, `muted`, `dim`, `chrome`, `raised`, `hover`, `selected`, `border`, `accent`, `working`, `blocked`, `done`, `idle`; Files also uses `ansi1` to `ansi6`). The exceptions are the space marks, six fixed colours that look the same on every theme, with a white or near-black letter chosen per colour by contrast. The mark colour is also the title rule and the active folded space's name; on a light theme that name is mixed toward the text colour for contrast (how it looks on `paper` has not been seen). To fix a theme in the layout, add `"theme": { "light": "paper", "dark": "graphite" }` to the layout's root, or carry your own `themes/<name>.json`.
 
 ## Privacy
 
-Nothing here uses the network. This is everything the mods read, run and write:
+Nothing here uses the network (`rg -n "fetch|XMLHttpRequest|WebSocket" mods` prints nothing). What each mod reads, runs and writes:
 
-| Mod | Reads | Runs | Writes or stores | Where to check |
-|---|---|---|---|---|
-| bar-strip | Agent list and status, the layout tree, the key bindings (to print the bell's key), whether an app update is ready, and whether the file `mods/vault/main.js` exists in the Herdr home folder (existence only, at start and every 60 seconds). | Nothing. Opens Herdr's own dialogs and runs Herdr commands (`agent.focus`, `layout.select`, `layout.show`, `layout.hide`, `mod.open`, `app.settings`). | Shared key `mods.vault` (a yes or no). | `probeVault`, `keyHint`, `attention`, `picker` |
-| portrait-tree | Spaces, tabs, panes, agents and their state, terminal labels (`editor.file`), shared keys `space.colors` and `vault.panes`. | Nothing. | The mod's local storage: `folded` and `peeked` (space ids, dropped when the space is gone) and `changed` (agent address and the time its state last changed; an agent that is gone loses its entry after 7 days). Shared key `agents.since`. One small SVG per space name under `data/portrait-tree-spines/` in the Herdr home folder (the rotated name on a folded space); files of names that no longer exist are deleted once when the tree starts. | `track`, `reveal`, `createSpineStore`, `pruneChanged` |
-| portrait-tabs | Spaces, tabs, panes, layout tree, window info. | Nothing. | Local storage `panels`: which side panel each space last had open (dropped when the space is gone). | `syncPanel`, `prunePanels` |
-| portrait-pane | The one pane it heads: program, folder, state, zoom. | Nothing. | Nothing. | `render` |
-| portrait-files | Folder listings of the focused pane's folder (500 entries per folder, 5,000 in all), the git state of that folder, and, on alt-click only, the text of one file (up to 400,000 characters shown). | `sh` to list a folder (macOS, Linux, remote machines), `powershell` on a Windows local machine, `git rev-parse --show-prefix` and `git status` (read-only flags, no lock), your login shell once per machine to read its PATH (`printenv PATH`), `command -v nvim`, `hc run` to start nvim, and `nvim` in a terminal Herdr shows. Nothing runs while the Files panel is closed. | A socket file for each nvim it starts, in `/tmp` on macOS and Linux. Labels on that terminal: `editor.file` (the full file path), `editor.socket` and `editor.space`; `hc ls` shows them. | `directory`, `refresh`, `edit`, `loginPath`, `nvimArgv`, `show` |
-| nvim-float | Terminal list and labels, spaces, panes. | `sh` running `nvim --server ... --remote-send`, `--remote` and `--remote-expr` against the socket of an nvim this layout started, only when you use its close button or Keep menu. | Nothing. | `nvim`, `keptEditors` |
-| attention-picker (bundled) | Agent list. While the list is open, the visible screen text of every agent that is blocked or done, read with `hc read`; only the last question or message line is kept and shown. | `hc read` every 2 seconds while the list is open. | Shared key `attention.sort` (the sort order you picked). | `readPreviews` |
+- `bar-strip` reads agents, the layout tree and your key bindings, and whether `mods/vault/main.js` exists (existence only, every 60 seconds). It runs nothing. It writes the shared key `mods.vault`.
+- `portrait-tree` reads spaces, machines, tabs, panes and agents. It stores which spaces are folded, and when each agent's state last changed (an agent that is gone loses its entry after 7 days). It writes one small SVG per space name under `data/portrait-tree-spines/` in the Herdr home folder.
+- `portrait-tabs` stores which side panel each space last had open. `portrait-pane` reads its own pane and stores nothing.
+- `portrait-files` lists the focused pane's folder (500 entries per folder, 5,000 in all), runs `sh` or `powershell`, `git status` and your login shell once for its PATH, and starts nvim; nothing runs while the panel is closed. It reads one file's text when you alt-click it (or click it where nvim is unavailable). nvim sockets go to `/tmp`; the nvim terminal carries labels with the full file path, which `hc ls` shows.
+- `nvim-float` runs `nvim --remote` commands against an nvim this layout started, only from its close button or Keep menu.
+- `attention-picker` (bundled) reads the screen text of blocked or finished agents with `hc read` (60 lines each, every 3 seconds, only while the list is open) and keeps one question or message line per agent. It remembers when it first saw each agent's state in local storage (`attention.seen`: agent address, state group, time; no screen text). It writes the shared key `attention.sort`.
 
-Fuller text: [Privacy](docs/privacy.html).
+The full table with the function that does each thing: [Privacy](https://miguelalexanderdiaz.github.io/herdr-portrait-layout/privacy.html).
 
 ## Troubleshooting
 
 - **Layout won't load.** Read `layout.error` in the Herdr home folder; `ctrl-alt-shift-escape` always returns to the default layout.
-- **Bell key does nothing.** The command reaches only a shown bar-strip: bound per layout, and not while the bar is hidden.
-- **A click shows a preview or "Couldn't open nvim".** nvim is not on your login shell's PATH (you get "nvim not found on PATH" and the preview), `hc run` failed, or the terminal did not appear within 10 seconds. On Windows a click opens the preview instead.
+- **The waiting-list key does nothing.** Check `keys.error`, that the key is in the section of the shown layout, and that the mod is named `attention-picker`.
+- **A click shows a preview or "Couldn't open nvim".** nvim is not on your login shell's PATH, `hc run` failed, or the terminal did not appear within 10 seconds. On Windows a click opens the preview.
 - **No Vault button.** It needs the `vault` mod and the `vault` panel node, both.
-- **Columns cut off.** Each needs 290 px; use the arrow markers, swipe sideways, fold spaces, or widen the bar.
+- **Columns cut off.** Each needs 290 px; use the arrow markers, swipe sideways, fold spaces, or widen the bar. A folded space is 34 px wide.
 
-More: [Troubleshooting](docs/troubleshooting.html).
+More: [Troubleshooting](https://miguelalexanderdiaz.github.io/herdr-portrait-layout/troubleshooting.html).
 
 ## Uninstall
 
-Switch to another layout (`ctrl-shift-l` cycles), delete `layouts/portrait*.json` (and `.svg`) and the mod folders you copied from the Herdr home folder, remove the keys you merged, and delete `data/portrait-tree-spines/` there. Leftover `/tmp/herdr-nvim-*.sock` files vanish on reboot.
+Switch to another layout (`ctrl-shift-l` cycles), delete `layouts/portrait*.json` and `.svg` and the mod folders you copied from the Herdr home folder, remove the keys you merged, and delete `data/portrait-tree-spines/` there. Leftover `/tmp/herdr-nvim-*.sock` files vanish on reboot.
 
 ## What is original, cloned, bundled
 
-| Piece | Kind | Origin |
-|---|---|---|
-| layouts `portrait`, `portrait-bottom` | Cloned | Started from Herdr's shipped `main` layout (0.1.12, `cloned_from` in the file), then changed heavily. |
-| `portrait-tree` | Original | Written for this layout. |
-| `bar-strip` | Original | Written for this layout. |
-| `nvim-float` | Original | Written for this layout. |
-| `portrait-tabs` | Cloned | From Herdr's shipped `tabs` mod, 0.1.12 (`cloned_from` in its mod.json): the Files and Changes buttons moved to the strip, per-space panel memory kept, the optional Vault panel allowed. |
-| `portrait-pane` | Cloned | From Herdr's shipped `pane` mod, 0.1.12: shows a note's name and folder for panes of the optional Vault reader. |
-| `portrait-files` | Cloned | From Herdr's shipped `files` mod, 0.1.12: a click opens nvim in a floating window instead of a preview (alt-click keeps the preview), git marks, listing caps. |
-| Icons | Copied | Small SVG icons carried inside each mod's folder: Lucide icons (ISC licence) and art copied from Herdr's shipped mods (Apache-2.0). [NOTICE](NOTICE) lists each file. |
-| `attention-picker` | Bundled copy | Canonical source: the herdr-agents-waiting repository. This copy is synced by the maintainer; change it there, not here. |
-
-Needs from Herdr (shipped mods and overlays):
-
-| Needs | Used by | If it is gone |
-|---|---|---|
-| `workspace-status` (shipped mod) | Layout: the 28 px status line. | The status line is empty. |
-| `changes` (shipped mod) | Layout: the Changes tab of the side panel. | That tab is empty. |
-| `picker` (shipped overlay) | bar-strip: the Search button. | Search does nothing. |
-| `machine-add` (shipped overlay) | bar-strip: the Add machine button. | The button does nothing. |
-| `menu` and `new-menu` (shipped overlays) | portrait-tree and portrait-tabs: right-click menus and the + button. | Menus and + do nothing. |
-| Theme colors (`chrome`, `canvas`, `raised`, `hover`, `selected`, `border`, `accent`, `working`, `blocked`, `done`, `idle`) | Everything. Any Herdr theme has them. | Not applicable: every theme defines them. |
-| `hc` (herdr-core) and `nvim` on the login shell's PATH | Click-to-edit in portrait-files, the waiting list's previews. | Files: a message and the read-only preview instead of nvim. The waiting list shows no question text. |
-
-## Contributing, changelog, licence
+`portrait-tree`, `bar-strip` and `nvim-float` are original. The two layouts and `portrait-tabs`, `portrait-pane`, `portrait-files` are clones of Herdr's shipped 0.1.12 layout and mods (`cloned_from`), changed. `attention-picker` is a bundled copy; its source is the herdr-agents-waiting repository, so change it there, not here. Small icons are carried inside each mod: Lucide icons (ISC; a few also MIT), art copied from Herdr's shipped mods (Apache-2.0), and two drawings made for this layout; [NOTICE](NOTICE) lists every file. What the layout needs from Herdr (its status line, Changes tab, search and menu overlays) is on [How it works](https://miguelalexanderdiaz.github.io/herdr-portrait-layout/how-it-works.html).
 
 [CONTRIBUTING.md](CONTRIBUTING.md), [CHANGELOG.md](CHANGELOG.md). Apache-2.0, see [LICENSE](LICENSE) and [NOTICE](NOTICE).

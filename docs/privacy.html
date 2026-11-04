@@ -12,7 +12,10 @@
 <a class="skip" href="#main">Skip to content</a>
 <header class="site"><div class="inner">
 <a class="brand" href="index.html">Portrait layout for Herdr</a>
-<nav class="site" aria-label="Documentation"><ul><li><a href="index.html">Overview</a></li><li><a href="install.html">Install</a></li><li><a href="usage.html">Usage</a></li><li><a href="configuration.html">Configuration</a></li><li><a href="platforms.html">Platforms</a></li><li><a href="privacy.html" aria-current="page">Privacy</a></li><li><a href="how-it-works.html">How it works</a></li><li><a href="troubleshooting.html">Troubleshooting</a></li><li><a href="for-agents.html">For agents</a></li></ul></nav>
+<nav class="site" aria-label="Documentation">
+<details class="menu"><summary>Menu: Privacy</summary><ul><li><a href="index.html">Overview</a></li><li><a href="install.html">Install</a></li><li><a href="usage.html">Usage</a></li><li><a href="configuration.html">Configuration</a></li><li><a href="platforms.html">Platforms</a></li><li><a href="privacy.html" aria-current="page">Privacy</a></li><li><a href="how-it-works.html">How it works</a></li><li><a href="troubleshooting.html">Troubleshooting</a></li><li><a href="for-agents.html">For agents</a></li></ul></details>
+<ul class="wide"><li><a href="index.html">Overview</a></li><li><a href="install.html">Install</a></li><li><a href="usage.html">Usage</a></li><li><a href="configuration.html">Configuration</a></li><li><a href="platforms.html">Platforms</a></li><li><a href="privacy.html" aria-current="page">Privacy</a></li><li><a href="how-it-works.html">How it works</a></li><li><a href="troubleshooting.html">Troubleshooting</a></li><li><a href="for-agents.html">For agents</a></li></ul>
+</nav>
 </div></header>
 <main id="main">
 <h1>Privacy and side effects</h1>
@@ -28,16 +31,16 @@
 </dl>
 <h3>portrait-tree</h3>
 <dl>
-<dt>Reads</dt><dd>Spaces, tabs, panes, agents and their state, terminal labels (<code>editor.file</code>), shared keys <code>space.colors</code> and <code>vault.panes</code>.</dd>
+<dt>Reads</dt><dd>Spaces, the list of machines (to keep a remote machine's saved state while it is loading or offline), tabs, panes, agents and their state, whether the theme is light, terminal labels (<code>editor.file</code>), shared keys <code>space.colors</code> and <code>vault.panes</code>.</dd>
 <dt>Runs</dt><dd>Nothing.</dd>
-<dt>Writes or stores</dt><dd>The mod's local storage: <code>folded</code> and <code>peeked</code> (space ids, dropped when the space is gone) and <code>changed</code> (agent address and the time its state last changed; an agent that is gone loses its entry after 7 days). Shared key <code>agents.since</code>. One small SVG per space name under <code>data/portrait-tree-spines/</code> in the Herdr home folder (the rotated name on a folded space); files of names that no longer exist are deleted once when the tree starts.</dd>
+<dt>Writes or stores</dt><dd>The mod's local storage: <code>folded</code> and <code>peeked</code> (space ids, dropped when the space is gone and its machine is ready) and <code>changed</code> (agent address and the time its state last changed; an agent that is gone loses its entry after 7 days). Shared key <code>agents.since</code>. One small SVG per space name under <code>data/portrait-tree-spines/</code> in the Herdr home folder (the rotated name on a folded space); files of names that no longer exist are deleted once when the tree starts.</dd>
 <dt>Where to check</dt><dd><code>track</code>, <code>reveal</code>, <code>createSpineStore</code>, <code>pruneChanged</code></dd>
 </dl>
 <h3>portrait-tabs</h3>
 <dl>
-<dt>Reads</dt><dd>Spaces, tabs, panes, layout tree, window info.</dd>
+<dt>Reads</dt><dd>Spaces, the list of machines, tabs, panes, layout tree, window info.</dd>
 <dt>Runs</dt><dd>Nothing.</dd>
-<dt>Writes or stores</dt><dd>Local storage <code>panels</code>: which side panel each space last had open (dropped when the space is gone).</dd>
+<dt>Writes or stores</dt><dd>Local storage <code>panels</code>: which side panel each space last had open (dropped when the space is gone and its machine is ready).</dd>
 <dt>Where to check</dt><dd><code>syncPanel</code>, <code>prunePanels</code></dd>
 </dl>
 <h3>portrait-pane</h3>
@@ -49,9 +52,9 @@
 </dl>
 <h3>portrait-files</h3>
 <dl>
-<dt>Reads</dt><dd>Folder listings of the focused pane's folder (500 entries per folder, 5,000 in all), the git state of that folder, and, on alt-click only, the text of one file (up to 400,000 characters shown).</dd>
+<dt>Reads</dt><dd>Folder listings of the focused pane's folder (500 entries per folder, 5,000 in all), the git state of that folder, and the text of one file (up to 400,000 characters shown) when you alt-click it, or click it where nvim cannot be used (Windows, or nvim not found).</dd>
 <dt>Runs</dt><dd><code>sh</code> to list a folder (macOS, Linux, remote machines), <code>powershell</code> on a Windows local machine, <code>git rev-parse --show-prefix</code> and <code>git status</code> (read-only flags, no lock), your login shell once per machine to read its PATH (<code>printenv PATH</code>), <code>command -v nvim</code>, <code>hc run</code> to start nvim, and <code>nvim</code> in a terminal Herdr shows. Nothing runs while the Files panel is closed.</dd>
-<dt>Writes or stores</dt><dd>A socket file for each nvim it starts, in <code>/tmp</code> on macOS and Linux. Labels on that terminal: <code>editor.file</code> (the full file path), <code>editor.socket</code> and <code>editor.space</code>; <code>hc ls</code> shows them.</dd>
+<dt>Writes or stores</dt><dd>A socket file for each nvim it starts, in <code>/tmp</code> on macOS and Linux. Labels on that terminal: <code>editor.file</code> (the full file path) and <code>editor.socket</code>; <code>hc ls</code> shows them.</dd>
 <dt>Where to check</dt><dd><code>directory</code>, <code>refresh</code>, <code>edit</code>, <code>loginPath</code>, <code>nvimArgv</code>, <code>show</code></dd>
 </dl>
 <h3>nvim-float</h3>
@@ -63,18 +66,18 @@
 </dl>
 <h3>attention-picker (bundled)</h3>
 <dl>
-<dt>Reads</dt><dd>Agent list. While the list is open, the visible screen text of every agent that is blocked or done, read with <code>hc read</code>; only the last question or message line is kept and shown.</dd>
-<dt>Runs</dt><dd><code>hc read</code> every 2 seconds while the list is open.</dd>
-<dt>Writes or stores</dt><dd>Shared key <code>attention.sort</code> (the sort order you picked).</dd>
-<dt>Where to check</dt><dd><code>readPreviews</code></dd>
+<dt>Reads</dt><dd>Agent list and spaces; the shared keys <code>agents.since</code> (when portrait-tree publishes it) and <code>space.colors</code>. While the list is open, the last 60 lines of the screen of every agent that is blocked or done, read with <code>hc read</code>; only the last question or message line is kept and shown.</dd>
+<dt>Runs</dt><dd><code>hc read</code> for each blocked or finished agent, every 3 seconds, only while the list is open (the first read happens when it opens).</dd>
+<dt>Writes or stores</dt><dd>Shared key <code>attention.sort</code> (the sort order you picked). Local storage <code>attention.seen</code>: for each agent, its address, its state group and the time the picker first saw it in that state; no screen text, and an agent that is gone is dropped.</dd>
+<dt>Where to check</dt><dd><code>readPreviews</code>, <code>trackSeen</code>, <code>saveSeen</code></dd>
 </dl>
 
 <h2>What this means in practice</h2>
 <ul>
-<li><strong>Folders.</strong> The Files panel lists the folder of the pane you focus and reads one file's text only when you alt-click it. It does not read file contents otherwise.</li>
-<li><strong>Terminal text.</strong> Only the waiting list reads terminal screens, and only for agents that are blocked or done, and only while the list is open. It keeps one line.</li>
+<li><strong>Folders.</strong> The Files panel lists the folder of the pane you focus and reads one file's text only for the read-only preview (alt-click, or a click where nvim is unavailable). It does not read file contents otherwise. nvim, when it runs, reads the file itself.</li>
+<li><strong>Terminal text.</strong> Only the waiting list reads terminal screens, and only for agents that are blocked or done, and only while the list is open. It keeps one line per agent, in memory, and stores no screen text.</li>
 <li><strong>A visible label.</strong> An nvim started from Files carries labels with the full file path and the socket path. Any program or person who runs <code>hc ls</code> on the same machine can see them.</li>
-<li><strong>Files written.</strong> Spine images under <code>data/portrait-tree-spines/</code> contain your space names and nothing else. nvim removes its socket in <code>/tmp</code> when it exits normally.</li>
+<li><strong>Files written.</strong> Spine images under <code>data/portrait-tree-spines/</code> contain your space names and nothing else. nvim removes its socket in <code>/tmp</code> when it exits normally. The layout's mods and the waiting list keep small records in Herdr's local storage for a mod: fold state, state-change times, the open side panel per space, and <code>attention.seen</code> (above).</li>
 <li><strong>Agents.</strong> The programs you run in terminals do whatever they do. This layout does not add to it.</li>
 </ul>
 
