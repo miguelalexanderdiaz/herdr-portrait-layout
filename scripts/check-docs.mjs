@@ -28,6 +28,11 @@ for (const f of PAGES_FILES) if (exists(f)) for (const m of read(f).matchAll(/gi
 // Is https://<host><path> an allowed address in `from`? github.com and herdr.dev always; <owner>.github.io/<repo> in the Pages files only.
 function hostAllowed(from, host, path = "") {
   if (ALLOWED_HOSTS.has(host.toLowerCase())) return true;
+  // The one-line install fetches this repository's own install/ scripts from raw.githubusercontent.com.
+  if (host.toLowerCase() === "raw.githubusercontent.com") {
+    const owner = /^\/([\w.-]+)/.exec(path)?.[1]?.toLowerCase();
+    return Boolean(owner) && [...repoLinks].some((r) => r.split("/")[0] === owner);
+  }
   const m = /^([a-z0-9-]+)\.github\.io$/i.exec(host);
   if (!m || !PAGES_FILES.has(from)) return false;
   const repo = /^\/([\w.-]+)/.exec(path)?.[1];

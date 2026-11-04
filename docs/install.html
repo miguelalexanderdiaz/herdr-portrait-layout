@@ -19,7 +19,22 @@
 </div></header>
 <main id="main">
 <h1>Install</h1>
-<p class="lead">Two ways: ask an agent, or copy the files yourself. Either way nothing in your existing layouts, mods or keys is overwritten.</p>
+<p class="lead">One command does it. An agent, or copying the files yourself, works too.</p>
+
+<h2 id="one-command">One command</h2>
+<p>macOS and Linux:</p>
+<pre><code>curl -fsSL https://raw.githubusercontent.com/miguelalexanderdiaz/herdr-portrait-layout/main/install/install.sh | sh</code></pre>
+<p>Windows (PowerShell):</p>
+<pre><code>irm https://raw.githubusercontent.com/miguelalexanderdiaz/herdr-portrait-layout/main/install/install.ps1 | iex</code></pre>
+<p>It first lists what the mods reach (no network; the programs they run; what they read, as on <a href="privacy.html">Privacy</a>) and asks before writing anything. Then it:</p>
+<ol>
+<li>copies the two layouts and the mods into your Herdr home, and adds the Vault panel when the <code>vault</code> mod is installed;</li>
+<li>keeps your <code>attention-picker</code> if you already have one (from herdr-agents-waiting);</li>
+<li>merges <code>keys.json</code> into yours, asking before it replaces a key you already use;</li>
+<li>runs <code>herdr-app check</code> on every mod and, the first time, switches to the <code>portrait</code> layout.</li>
+</ol>
+<p>Anything it replaces is backed up first under <code>community/herdr-portrait-layout/</code> in the Herdr home, and running it again updates in place. Options: <code>sh -s -- --yes</code> answers every question with yes (Windows: <code>$env:HERDR_YES = 1</code> first); <code>--home &lt;folder&gt;</code> or <code>HERDR_APP_HOME</code> picks another Herdr home; from a clone, run <code>install/install.sh</code> or <code>.\install\install.ps1</code>. Merging <code>keys.json</code> uses Node, or on macOS the system's own JavaScript; without either the script prints the keys to add by hand. The scripts are short and readable: <a href="https://github.com/miguelalexanderdiaz/herdr-portrait-layout/tree/main/install">install/</a>.</p>
+<p>To remove it: the same line with <code>sh -s -- --uninstall</code> (Windows: <code>$env:HERDR_UNINSTALL = 1</code> first). It removes only what it installed, and only the keys you have not changed since.</p>
 
 <h2 id="agent">With an agent</h2>
 <p>In a terminal agent inside Herdr (or any agent that can edit your Herdr home folder), say:</p>
@@ -34,6 +49,7 @@
 <p>The step-by-step version for agents is <a href="for-agents.html">For agents</a> and <a href="https://github.com/miguelalexanderdiaz/herdr-portrait-layout/blob/main/AGENTS.md">AGENTS.md</a>.</p>
 
 <h2 id="by-hand">By hand</h2>
+<p>What the script does, as separate steps, for anyone who prefers to copy the files themselves.</p>
 <p>You need a clone of the repository and the path of your Herdr home folder. <code>herdr-app --help</code> prints it on its last line. On macOS it is <code>~/.config/herdr-app</code>, and Herdr's reference uses that path throughout, so expect the same on Linux; <code>HERDR_APP_HOME</code> overrides it. On Windows the default is not confirmed here, so use what <code>herdr-app --help</code> prints.</p>
 <h3>macOS and Linux</h3>
 <p>To try it without touching your own setup, run it in a scratch Herdr home first (<code>HERDR_APP_HOME=&lt;empty folder&gt;</code>).</p>
