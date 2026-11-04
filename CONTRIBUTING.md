@@ -95,7 +95,7 @@ Put it in `mods/<name>/` with a `main.js` and `mod.json`; carry its own icons; a
 
 ## Commits
 
-A clear subject, a body that says why, and no personal data. One logical change per commit. Commit with a GitHub noreply address; a personal address in the history is what `npm run check:history` is there to catch.
+A clear subject, a body that says why, and no personal data. One logical change per commit. Commit with a GitHub noreply address (the author's own commits use their public blog address, which the check allows); a personal address in the history is what `npm run check:history` is there to catch.
 
 ## Publishing
 

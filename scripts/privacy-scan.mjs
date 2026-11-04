@@ -87,7 +87,7 @@ if (ci) {
       scan(`commit ${sha.slice(0, 8)}`, body ?? "");
     }
     // Author and committer addresses: name the commit and the role so the owner can find it (git log --format='%h %ae %ce').
-    const NOREPLY = /@users\.noreply\.github\.com$|^noreply@(github|anthropic)\.com$/;
+    const NOREPLY = /@users\.noreply\.github\.com$|^noreply@(github|anthropic)\.com$|^theoverfittingclub@gmail\.com$/; // last: the author's public commit address
     const log = execFileSync("git", ["log", "--format=%h%x1f%ae%x1f%ce", ...range], { cwd: abs("."), encoding: "utf8", maxBuffer: 1 << 26 });
     for (const row of log.split(/\r?\n/).filter(Boolean)) {
       const [sha, author, committer] = row.split("\x1f");
