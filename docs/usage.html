@@ -62,14 +62,20 @@
 <h2 id="files">The Files panel</h2>
 <p>Open it with the Files button. It lists the folder of the focused pane (or the space's folder when nothing has focus), on the machine that pane lives on. It does not look at anything while closed.</p>
 <ul>
-<li>Click a folder to expand or collapse it. Click a file to edit it in a floating nvim window (macOS and Linux); one click starts one nvim, even on a double click. On Windows, or when nvim is not on your PATH, it shows the read-only preview and says why.</li>
+<li>Click a folder to expand or collapse it. Click a file and it opens where it makes sense:
+<ul>
+<li><strong>Text</strong> opens in the editor shown at the right of the panel's header. Click it (<code>&#9662;</code>) to pick another: the list has only what is installed on the folder's machine, among nvim, Helix, Vim, micro and nano (in a floating window over the app; one click starts one editor, even on a double click), VS Code, Zed and Sublime Text (in their own window), <em>Default app</em> and <em>Preview only</em>. With nothing picked it is nvim when installed, else the default app. Windows offers the default app and the preview; a folder on another machine offers its terminal editors.</li>
+<li><strong>Pictures and PDFs</strong> open in a viewer window: a picture fits the window, a PDF shows its pages one under another. <em>Open in Preview</em> (the default app outside macOS) hands it to the system; Esc or the close button closes it. Every PDF page needs Poppler; without it macOS shows the first page.</li>
+<li><strong>Documents, media and archives</strong> open in the system's app. Programs and scripts are never started.</li>
+</ul></li>
+<li>Right-click a file for <em>Open with</em>: the same editors, or <em>Viewer</em> and <em>Default app</em> for a picture or PDF, for that one file.</li>
 <li>Alt-click a file for a read-only preview inside the panel. The arrow in the header goes back. Binary files and unreadable files say so; long files are cut at 400,000 characters.</li>
 <li>Git marks: <code>A</code> added or untracked, <code>M</code> modified, <code>D</code> deleted, <code>U</code> conflict. A closed folder with a changed file inside shows a dot, in the conflict colour if a conflict is inside and otherwise in the modified colour. Marks appear when the folder is inside a git work tree and <code>git</code> is on the PATH.</li>
 <li>Folders are listed before files. Limits: 500 entries per folder and 5,000 in all; the panel says when it cut a list. The <code>.git</code> folder itself is not listed. On Windows, in a folder with more than 500 entries, the 500 shown are the first ones PowerShell returns, not necessarily the folders first.</li>
 <li>The list loads when you open the panel, refreshes when the focus moves to another folder or files change in it (a folder watch, not set on your home folder or a drive root), and every 10 seconds while the panel is open. A busy folder (a build writing files) is not re-read more often than every 1.5 seconds, and at most three folders are watched at once; a fourth relies on the 10-second timer. Nothing runs while the panel is closed.</li>
 </ul>
-<h3>The floating nvim</h3>
-<p>The editor opens in a window over the app, 90% wide and 85% high, with a title bar: the file, its folder, <strong>Keep</strong> and a close button. <em>Keep &rarr; New tab</em> turns the window's nvim into a tab. <em>Keep &rarr; Add to &hellip;</em> opens the file as a buffer in an nvim you kept earlier in this space, focuses that tab and closes the window. The close button quits nvim (<code>:confirm qa</code>, so it asks about unsaved changes), and the window closes when nvim ends.</p>
+<h3>The floating editor</h3>
+<p>A terminal editor opens in a window over the app, 90% wide and 85% high, with a title bar: the file, its folder and <strong>Keep</strong>. <em>Keep &rarr; New tab</em> turns the window's editor into a tab. With nvim there is more: <em>Keep &rarr; Add to &hellip;</em> opens the file as a buffer in an nvim you kept earlier in this space, focuses that tab and closes the window, and a close button quits nvim (<code>:confirm qa</code>, so it asks about unsaved changes). Other editors close the way they always do. The window closes when the editor ends.</p>
 
 <h2 id="changes">Changes</h2>
 <p>The <em>Changes</em> tab is Herdr's own shipped mod, unchanged.</p>

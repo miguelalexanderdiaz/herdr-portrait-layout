@@ -14,8 +14,9 @@ mods/bar-strip/                  strip: Search, Add machine, Settings, bell, pan
 mods/portrait-tree/              one column per space: tabs, panes, agents; folding
 mods/portrait-tabs/              tab bar (clone of shipped tabs 0.1.12) + panel memory per space
 mods/portrait-pane/              pane header (clone of shipped pane 0.1.12)
-mods/portrait-files/             Files panel (clone of shipped files 0.1.12); click opens nvim
-mods/nvim-float/                 title bar and Keep menu of the floating nvim
+mods/portrait-files/             Files panel (clone of shipped files 0.1.12); click opens the picked editor, the viewer or the system's app
+mods/nvim-float/                 title bar and Keep menu of a floating terminal editor (nvim gets Add to and close)
+mods/portrait-viewer/            window that shows a picture or a PDF from Files (PDF code copied from herdr-obsidian-vault)
 mods/attention-picker/           BUNDLED COPY of herdr-agents-waiting; do not edit here
 snippets/vault-panel.json        optional Vault panel node
 keys.json                        keys to merge
@@ -63,7 +64,7 @@ Say this in plain words before writing anything.
 - Theme: the layouts set none. To pin: add `"theme": { "light": "paper", "dark": "graphite" }` to the layout root, or add `themes/<name>.json`. Do not assume the author's settings.
 - Sizes: all in the layout files (bar 246 px, strip 26, tab bar 42, status 28, panel 368, pane header 30).
 - Keys for other systems: `cmd-` is macOS only (`cmd-b` is expected to do nothing on Linux and Windows, where `cmd` is the Super or Windows key; untested); the `ctrl-shift-` keys are meant to work everywhere (not tested on Linux or Windows). Avoid plain `ctrl-<letter>` (programs use ctrl+c d l r w a e u k z and `[`) and `ctrl-alt-` (AltGr on Windows). Check a new key against `herdr-app commands` and the person's `keys.json`.
-- Without nvim or on Windows: nothing to do, a click shows the read-only preview and says why.
+- Without nvim or on Windows: nothing to do; text opens in the default app (a script in the read-only preview), and the Files header's ▾ picks another editor.
 - Linux and Windows have not been run by the author; say so rather than promise. The PowerShell install block is unverified.
 
 Optional tmux-style chords (not shipped: a bound `ctrl-b` prefix takes `ctrl-b` from the person's programs; Herdr's written reference does not describe chords, this is the form the author used on macOS with 0.1.12; afterwards look for `keys.error` in `<home>`):

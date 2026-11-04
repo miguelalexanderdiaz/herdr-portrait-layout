@@ -52,10 +52,10 @@
 </dl>
 <h3>portrait-files</h3>
 <dl>
-<dt>Reads</dt><dd>Folder listings of the focused pane's folder (500 entries per folder, 5,000 in all), the git state of that folder, and the text of one file (up to 400,000 characters shown) when you alt-click it, or click it where nvim cannot be used (Windows, or nvim not found).</dd>
-<dt>Runs</dt><dd><code>sh</code> to list a folder (macOS, Linux, remote machines), <code>powershell</code> on a Windows local machine, <code>git rev-parse --show-prefix</code> and <code>git status</code> (read-only flags, no lock), your login shell once per machine to read its PATH (<code>printenv PATH</code>), <code>command -v nvim</code>, <code>hc run</code> to start nvim, and <code>nvim</code> in a terminal Herdr shows. Nothing runs while the Files panel is closed.</dd>
-<dt>Writes or stores</dt><dd>A socket file for each nvim it starts, in <code>/tmp</code> on macOS and Linux. Labels on that terminal: <code>editor.file</code> (the full file path) and <code>editor.socket</code>; <code>hc ls</code> shows them.</dd>
-<dt>Where to check</dt><dd><code>directory</code>, <code>refresh</code>, <code>edit</code>, <code>loginPath</code>, <code>nvimArgv</code>, <code>show</code></dd>
+<dt>Reads</dt><dd>Folder listings of the focused pane's folder (500 entries per folder, 5,000 in all), the git state of that folder, and the text of one file (up to 400,000 characters shown) when you alt-click it or pick the read-only preview.</dd>
+<dt>Runs</dt><dd><code>sh</code> to list a folder (macOS, Linux, remote machines), <code>powershell</code> on a Windows local machine, <code>git rev-parse --show-prefix</code> and <code>git status</code> (read-only flags, no lock), your login shell once per machine to read its PATH (<code>printenv PATH</code>), <code>command -v</code> for each editor it can offer (and, on macOS, a look for their apps in <code>/Applications</code> and <code>~/Applications</code>), <code>hc run</code> to start a terminal editor in a terminal Herdr shows, the app you picked (<code>open -a</code> on macOS, its command elsewhere), and <code>open</code>, <code>xdg-open</code> or <code>rundll32</code> to hand a document to the system's app (never a program). Nothing runs while the Files panel is closed.</dd>
+<dt>Writes or stores</dt><dd>A socket file for each nvim it starts, in <code>/tmp</code> on macOS and Linux. Labels on an editor's terminal: <code>editor.file</code> (the full file path) and, for nvim, <code>editor.socket</code>; <code>hc ls</code> shows them. The shared keys <code>files.editor</code> (your editor choice) and <code>files.request</code> (the last Open with choice).</dd>
+<dt>Where to check</dt><dd><code>directory</code>, <code>refresh</code>, <code>edit</code>, <code>detect</code>, <code>terminalEditor</code>, <code>loginPath</code>, <code>nvimArgv</code>, <code>show</code></dd>
 </dl>
 <h3>nvim-float</h3>
 <dl>
@@ -63,6 +63,13 @@
 <dt>Runs</dt><dd><code>sh</code> running <code>nvim --server &hellip; --remote-send</code>, <code>--remote</code> and <code>--remote-expr</code> against the socket of an nvim this layout started, only when you use its close button or Keep menu.</dd>
 <dt>Writes or stores</dt><dd>Nothing.</dd>
 <dt>Where to check</dt><dd><code>nvim</code>, <code>keptEditors</code></dd>
+</dl>
+<h3>portrait-viewer</h3>
+<dl>
+<dt>Reads</dt><dd>The picture or PDF you click in Files, only inside your home folder.</dd>
+<dt>Runs</dt><dd><code>pdfinfo</code> and <code>pdftoppm</code> (Poppler, when installed) to count and draw PDF pages; on macOS <code>qlmanage</code> (the first page without Poppler) and <code>sips</code> (the size of AVIF and TIFF pictures); <code>stat</code> or <code>powershell</code> for file dates; <code>where</code> or your login shell to find Poppler; <code>open -a Preview</code>, <code>xdg-open</code> or <code>rundll32</code> when you press Open.</dd>
+<dt>Writes or stores</dt><dd>Copies of the pictures and drawn pages under <code>data/portrait-viewer/cache/</code> in the Herdr home folder; entries older than 30 days, and the oldest past 200 MB, are deleted.</dd>
+<dt>Where to check</dt><dd><code>createViewer</code>, <code>image</code>, <code>pdfPage</code>, <code>prune</code>, <code>load</code></dd>
 </dl>
 <h3>attention-picker (bundled)</h3>
 <dl>

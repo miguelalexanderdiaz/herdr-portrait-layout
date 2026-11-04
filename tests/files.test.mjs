@@ -6,7 +6,9 @@ import { spawnSync } from "node:child_process";
 import {
   filesVisible, watchable, createGate, createPacer, REFRESH_GAP, freeName, markOf, parseStatus, bubble, arrange,
   loginPath, nvimArgv, nvimFound, platformMode, find,
+  fileKind, canOpen, systemOpen, EDITORS, DETECT, parseDetect, editorChoices, pickEditor, appCommand, editorScript,
 } from "../mods/portrait-files/logic.mjs";
+import { canOpen as viewerCanOpen, viewKind } from "../mods/portrait-viewer/logic.mjs";
 
 const layoutWith = ({ hidden, active } = {}) => ({
   id: "root", children: [
@@ -259,4 +261,80 @@ test("createPacer: a long run is followed at once, a quiet watcher never waits",
   assert.equal(p.request(), "now");
   assert.equal(REFRESH_GAP, 1500);
   assert.equal(p.busy, false);
+});
+
+// ---- what a click opens -------------------------------------------------------------------
+
+test("fileKind: pictures, PDFs, documents and programs; anything else is text", () => {
+  for (const f of ["a.png", "b.JPG", "c.jpeg", "d.gif", "e.webp", "f.svg", "g.tiff"]) assert.equal(fileKind(f), "image", f);
+  assert.equal(fileKind("doc/Report.PDF"), "pdf");
+  for (const f of ["a.docx", "b.zip", "c.mp4", "d.sqlite", "e.woff2", "setup.exe", "App.dmg", "x.jar"]) assert.equal(fileKind(f), "other", f);
+  for (const f of ["main.rs", "README.md", "Makefile", ".env.example", "run.sh", "a.min.js", "noext"]) assert.equal(fileKind(f), "text", f);
+});
+
+test("canOpen refuses programs, and agrees with the viewer's copy", () => {
+  const sample = ["a.pdf", "b.png", "c.docx", "d.sh", "e.app", "f.exe", "g.py", "h.md", "i.command", "j.jar", "k.txt", "l.js"];
+  for (const f of sample) assert.equal(canOpen(f), viewerCanOpen(f), f);
+  assert.equal(canOpen("x.sh"), false);
+  assert.equal(canOpen("x.md"), true);
+  for (const f of ["a.png", "b.pdf", "c.svg"]) assert.equal(viewKind(f) === null, fileKind(f) !== "image" && fileKind(f) !== "pdf", f);
+});
+
+test("systemOpen: open, xdg-open, rundll32 (never cmd), the file as an argument", () => {
+  const f = "/p/a & b.docx";
+  assert.deepEqual(systemOpen("macos", f), ["open", [f]]);
+  assert.deepEqual(systemOpen("linux", f), ["xdg-open", [f]]);
+  assert.deepEqual(systemOpen("windows", f), ["rundll32", ["url.dll,FileProtocolHandler", f]]);
+});
+
+test("parseDetect reads bin: and app: lines and ignores the rest", () => {
+  assert.deepEqual(parseDetect("Welcome!\nbin:nvim\r\nbin:hx\napp:Zed\nbin:nvim\n"), { bins: ["nvim", "hx"], apps: ["Zed"] });
+  assert.deepEqual(parseDetect(null), { bins: [], apps: [] });
+});
+
+test("editorChoices: what is installed, per machine and system", () => {
+  const ids = (o) => editorChoices(o).map((e) => e.id);
+  const found = { bins: ["nvim", "hx", "code"], apps: ["Zed"] };
+  assert.deepEqual(ids({ platform: "macos", on: null, found }), ["nvim", "hx", "code", "zed", "default", "preview"]);
+  assert.deepEqual(ids({ platform: "linux", on: null, found }), ["nvim", "hx", "code", "default", "preview"], "no macOS apps on Linux");
+  assert.deepEqual(ids({ platform: "windows", on: null, found }), ["default", "preview"]);
+  assert.deepEqual(ids({ platform: "windows", on: "devbox", found }), ["nvim", "hx", "preview"], "another machine: its terminal editors");
+  assert.deepEqual(ids({ platform: "macos", on: null, found: null }), ["default", "preview"]);
+});
+
+test("pickEditor: the saved choice when offered, else nvim, else the default app, else a terminal editor, else the preview", () => {
+  const of = (...list) => list.map((id) => EDITORS.find((e) => e.id === id));
+  assert.equal(pickEditor("code", of("nvim", "code", "default", "preview")), "code");
+  assert.equal(pickEditor("zed", of("nvim", "code", "default", "preview")), "nvim");
+  assert.equal(pickEditor(undefined, of("code", "default", "preview")), "default");
+  assert.equal(pickEditor(undefined, of("micro", "preview")), "micro");
+  assert.equal(pickEditor("default", of("preview")), "preview");
+});
+
+test("appCommand and editorScript: the file is an argument, never code", () => {
+  const f = "/p/$(touch pwned).txt";
+  assert.deepEqual(appCommand("macos", "code", f), ["open", ["-a", "Visual Studio Code", f]]);
+  assert.deepEqual(appCommand("linux", "zed", f), ["zed", [f]]);
+  assert.equal(appCommand("macos", "nvim", f), null);
+  assert.equal(appCommand("macos", "default", f), null);
+  for (const e of EDITORS.filter((x) => x.term)) {
+    const s = editorScript(e.id);
+    assert.ok(s.includes('"$2"') && !s.includes("pwned"), e.id);
+    assert.ok(s.startsWith(`exec ${e.id} `), e.id);
+  }
+  assert.ok(editorScript("nvim").includes('--listen "$1"'));
+});
+
+test("DETECT runs in a real sh and finds what is on PATH (skipped where there is none)", { skip: process.platform === "win32" || spawnSync("sh", ["-c", "true"]).status !== 0 }, () => {
+  const r = spawnSync("sh", ["-c", DETECT], { encoding: "utf8", env: { PATH: process.env.PATH, HOME: "/nonexistent" } });
+  assert.equal(r.status, 0, r.stderr);
+  const got = parseDetect(r.stdout);
+  for (const b of got.bins) assert.ok(EDITORS.some((e) => e.id === b), b);
+  const none = spawnSync("sh", ["-c", DETECT], { encoding: "utf8", env: { PATH: "/nonexistent", HOME: "/nonexistent" } });
+  assert.deepEqual(parseDetect(none.stdout).bins, [], "nothing on an empty PATH");
+});
+
+test("freeName follows the editor", () => {
+  assert.equal(freeName(["hx"], "hx"), "hx-2");
+  assert.equal(freeName([], "micro"), "micro");
 });

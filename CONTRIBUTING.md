@@ -77,7 +77,7 @@ Never copy `gpui-kit.d.ts` or `jsconfig.json` (Herdr writes them). `bundled.json
 
 ## Manual checklist (in a scratch Herdr that is yours)
 
-Fold and unfold a space; focus an agent in a folded space; the bell (click, shift-click, the key); the waiting list; Files: open a folder, click a file, alt-click a file, git marks; Keep menu in the floating nvim; flip the layout; toggle the bar; open and close the side panel on two spaces and switch between them; a layout without the Vault mods.
+Fold and unfold a space; focus an agent in a folded space; the bell (click, shift-click, the key); the waiting list; Files: open a folder, click a text file, a picture and a PDF (the viewer, with and without Poppler), a document, alt-click a file, pick another editor with the header's ▾ and right-click Open with, git marks; Keep menu in the floating nvim and in a floating Helix or micro; flip the layout; toggle the bar; open and close the side panel on two spaces and switch between them; a layout without the Vault mods.
 
 ## Don't touch
 

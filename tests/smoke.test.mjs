@@ -92,7 +92,7 @@ import { createRequire } from "node:module";
 const require_fs = () => createRequire(import.meta.url)("node:fs");
 
 const cx = () => {
-  const c = { notify() {}, stop_propagation() {}, spawn: (fn) => Promise.resolve(fn(c)), sleep: (ms) => new Promise((r) => setTimeout(r, ms)), timer: { every(ms, fn) { (c.timers ??= []).push([ms, fn]); } } };
+  const c = { notify() {}, stop_propagation() {}, focus_handle: () => ({ focus() {} }), spawn: (fn) => Promise.resolve(fn(c)), sleep: (ms) => new Promise((r) => setTimeout(r, ms)), timer: { every(ms, fn) { (c.timers ??= []).push([ms, fn]); }, after() {} } };
   return c;
 };
 async function mount(mod, props = {}) {
@@ -280,10 +280,21 @@ test("portrait-files does no work while the panel is closed, and loads when it o
   assert.ok(git[2].includes("--") && git[2].includes("."), "status is limited to the shown folder");
 });
 
-test("portrait-files: a click opens one editor, Windows previews, a missing nvim falls back", async () => {
+test("portrait-files: a click opens one editor in the picked or found editor; Windows has the default app and the preview", async () => {
   world();
   state.layout.children[0].hidden = false;
-  // Windows, local folder: no hc run, a one-time toast, the preview.
+  const realExec = host.exec, realHc = host.hc;
+  // What the machine has installed: nvim and VS Code (as an app, macOS).
+  const machine = (stdout) => async (cmd, args, o) => {
+    log.calls.push(["exec", cmd, args, o]);
+    const script = args?.[1] ?? "";
+    if (script.includes("printenv")) return { code: 0, stdout: "/opt/bin:/usr/bin\n", stderr: "" };
+    if (script.includes("command -v")) return { code: 0, stdout, stderr: "" };
+    return { code: 0, stdout: "", stderr: "" };
+  };
+  host.hc = async (...a) => { log.calls.push(["hc", ...a]); return { code: 0, stdout: '{"address":"t42"}', stderr: "" }; };
+
+  // Windows, local folder: no hc run; a script opens in the preview (with one notice), a document in the system's app.
   state.platform = "windows";
   let { m, c } = await mount("portrait-files");
   m.render(c);
@@ -291,44 +302,147 @@ test("portrait-files: a click opens one editor, Windows previews, a missing nvim
   reset();
   await m.edit("a.js", c); await m.edit("b.js", c);
   assert.equal(log.calls.filter((x) => x[0] === "hc").length, 0);
-  assert.equal(log.calls.filter((x) => x[0] === "notify").length, 1);
+  assert.equal(log.calls.filter((x) => x[0] === "notify").length, 1, "one notice for both");
   assert.equal(m.file, "b.js");
-  // macOS: two quick clicks start one nvim.
+  reset();
+  await m.edit("notes.txt", c);
+  assert.ok(log.calls.some((x) => x[0] === "exec" && x[1] === "rundll32"), "text goes to the default app");
+
+  // macOS with nvim: two quick clicks start one nvim, through the login shell's PATH.
   state.platform = "macos";
+  host.exec = machine("bin:nvim\napp:Visual Studio Code\n");
   ({ m, c } = await mount("portrait-files"));
   m.render(c);
   await new Promise((r) => setTimeout(r, 10));
-  const realExec = host.exec;
-  host.exec = async (cmd, args, o) => { log.calls.push(["exec", cmd, args, o]); return { code: 0, stdout: args[1]?.includes("printenv") ? "/opt/bin:/usr/bin\n" : "", stderr: "" }; };
-  const realHc = host.hc;
-  host.hc = async (...a) => { log.calls.push(["hc", ...a]); return { code: 0, stdout: '{"address":"t42"}', stderr: "" }; };
   reset();
   await Promise.all([m.edit("a.js", c), m.edit("a.js", c)]);
   const runs = log.calls.filter((x) => x[0] === "hc");
   assert.equal(runs.length, 1, "double click: one editor");
   const args = runs[0][1];
   assert.ok(args.includes("--rm") && args.includes("--no-parent"));
+  assert.ok(args.some((a) => a.startsWith("editor.socket=")), "nvim gets a socket");
   const dash = args.indexOf("--");
   assert.equal(args[dash + 1], "sh");
   assert.equal(args[dash + 5], "/opt/bin:/usr/bin");
-  assert.ok(m.peekFor && m.peekFor.terminal === "t42");
+  assert.ok(m.peekFor && m.peekFor.terminal === "t42" && m.peekFor.editor === "nvim");
   // The terminal never shows up: after 10 s it is killed, the gate re-opens.
   m.peekFor.since -= 11000;
   reset();
   m.peekWhenReady();
   assert.ok(log.calls.some((x) => x[0] === "run" && x[1] === "terminal.kill" && x[2].terminal === "t42"));
   assert.equal(m.gate.busy, false);
-  // nvim missing: falls back to the preview with a toast.
-  host.exec = async (cmd, args, o) => { log.calls.push(["exec", cmd, args, o]); return args[1]?.includes("command -v nvim") ? { code: 127, stdout: "", stderr: "" } : { code: 0, stdout: "/opt/bin\n", stderr: "" }; };
+
+  // The picked app: VS Code through open -a; a choice that isn't installed falls back to nvim.
+  state.shared["files.editor"] = "code";
+  reset();
+  await m.edit("a.js", c);
+  assert.ok(log.calls.some((x) => x[0] === "exec" && x[1] === "open" && x[2][0] === "-a" && x[2][1] === "Visual Studio Code"));
+  state.shared["files.editor"] = "zed";
+  reset();
+  await m.edit("a.js", c);
+  assert.equal(log.calls.filter((x) => x[0] === "hc").length, 1, "zed is not installed: nvim");
+  m.peekFor = null; m.gate.leave();
+
+  // Linux: an app runs by its command through the login shell's PATH, the file as an argument (run in a real sh).
+  state.platform = "linux";
+  host.exec = machine("bin:nvim\nbin:zed\n");
   ({ m, c } = await mount("portrait-files"));
   m.render(c);
   await new Promise((r) => setTimeout(r, 10));
   reset();
-  await m.edit("a.js", c);
+  await m.edit("a.js", c, "zed");
+  const zed = log.calls.find((x) => x[0] === "exec" && x[1] === "sh" && x[2].includes("zed"));
+  assert.ok(zed, "zed through sh");
+  if (process.platform !== "win32") {
+    const { spawnSync } = await import("node:child_process");
+    const echo = [...zed[2]];
+    echo[1] = echo[1].replace('exec "$1" "$2"', 'printf "%s|%s" "$1" "$2"');
+    const r = spawnSync("sh", echo, { encoding: "utf8" });
+    assert.equal(r.stdout, `zed|${h("@LIN/proj/a.js")}`, "the command is $1 and the file $2 after the PATH shift");
+  }
+  state.platform = "macos";
+
+  // Helix from Open with: its own name, no socket.
+  host.exec = machine("bin:nvim\nbin:hx\n");
+  ({ m, c } = await mount("portrait-files"));
+  m.render(c);
+  await new Promise((r) => setTimeout(r, 10));
+  reset();
+  await m.edit("a.js", c, "hx");
+  const hx = log.calls.find((x) => x[0] === "hc")[1];
+  assert.equal(hx[hx.indexOf("--name") + 1], "hx");
+  assert.ok(!hx.some((a) => String(a).startsWith("editor.socket=")));
+  m.peekFor = null; m.gate.leave();
+
+  // Pictures and PDFs open in the viewer (inside the home folder); documents in the system's app; programs never.
+  reset();
+  await m.edit("logo.png", c);
+  await m.edit("docs/report.pdf", c);
+  const viewers = log.calls.filter((x) => x[0] === "openOverlay" && x[1].mod === "portrait-viewer");
+  assert.deepEqual(viewers.map((x) => x[1].props.file), [h("@LIN/proj/logo.png"), h("@LIN/proj/docs/report.pdf")]);
+  reset();
+  await m.edit("slides.pptx", c);
+  assert.ok(log.calls.some((x) => x[0] === "exec" && x[1] === "open" && x[2][0] === h("@LIN/proj/slides.pptx")));
+  reset();
+  await m.edit("setup.exe", c);
+  assert.equal(log.calls.filter((x) => x[0] === "exec" && x[1] === "open").length, 0, "a program is never started");
+  assert.ok(log.calls.some((x) => x[0] === "notify" && x[1].title === "Not opened"));
+  reset();
+  await m.edit("logo.png", c, "default");
+  assert.ok(log.calls.some((x) => x[0] === "exec" && x[1] === "open"), "Open with, Default app");
+
+  // Nothing installed: the default app (a script: the preview).
+  host.exec = machine("");
+  state.shared["files.editor"] = undefined;
+  ({ m, c } = await mount("portrait-files"));
+  m.render(c);
+  await new Promise((r) => setTimeout(r, 10));
+  reset();
+  await m.edit("README.md", c);
   assert.equal(log.calls.filter((x) => x[0] === "hc").length, 0);
-  assert.ok(log.calls.some((x) => x[0] === "notify" && /nvim not found/.test(x[1].title)));
-  assert.equal(m.file, "a.js");
+  assert.ok(log.calls.some((x) => x[0] === "exec" && x[1] === "open" && x[2][0] === h("@LIN/proj/README.md")));
+  reset();
+  await m.edit("run.sh", c);
+  assert.equal(m.file, "run.sh", "a script: the preview");
   host.exec = realExec; host.hc = realHc;
+});
+
+test("portrait-files: the Open with popups hand the choice back, and the panel opens it", async () => {
+  world();
+  state.layout.children[0].hidden = false;
+  const popup = await mount("portrait-files", { menu: "open", choices: ["nvim", "preview"], path: "a.js", root: h("@LIN/proj"), on: null, overlay: "o9" });
+  reset();
+  assert.doesNotThrow(() => popup.m.render(popup.c));
+  assert.ok(log.ids.includes("files-menu-0") && log.ids.includes("files-menu-1"));
+  const editor = await mount("portrait-files", { menu: "editor", choices: ["nvim", "code", "default", "preview"], current: "nvim", overlay: "o8" });
+  reset();
+  assert.doesNotThrow(() => editor.m.render(editor.c));
+  assert.ok(log.texts.includes("VS Code"));
+  // A request from the popup: the panel showing that folder takes it once.
+  state.props = {};
+  const { m, c } = await mount("portrait-files");
+  m.render(c);
+  await new Promise((r) => setTimeout(r, 10));
+  state.shared["files.request"] = { at: Date.now(), root: h("@LIN/proj"), on: null, path: "a.js", editor: "preview" };
+  m.render(c);
+  await new Promise((r) => setTimeout(r, 10));
+  assert.equal(m.file, "a.js");
+  m.show(null);
+  m.render(c);
+  await new Promise((r) => setTimeout(r, 10));
+  assert.equal(m.file, null, "not taken twice");
+  state.shared["files.request"] = undefined;
+});
+
+test("portrait-viewer renders a picture, a PDF and nothing", async () => {
+  world();
+  for (const props of [{ file: h("@LIN/proj/logo.png"), overlay: "o1" }, { file: h("@LIN/proj/a.pdf"), overlay: "o1" }, {}]) {
+    const { m, c } = await mount("portrait-viewer", props);
+    assert.doesNotThrow(() => m.render(c), JSON.stringify(props));
+    m.pages = [{ path: "data/portrait-viewer/cache/x.png", w: 3000, h: 2000 }];
+    assert.doesNotThrow(() => m.render(c));
+    m.close();
+  }
 });
 
 test("portrait-tree: the drop line follows the pointer, not the press", async () => {

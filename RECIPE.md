@@ -145,15 +145,27 @@ the times move.
 - The panel does nothing while it is closed: no listing, no `git`, no folder watching; opening it refreshes once. While it
   is open a change in the folder refreshes it, at most once every 1.5 seconds; up to three folders are watched and a
   fourth relies on a 10-second timer.
-- Click a folder: expand or collapse. Click a file: open it in **nvim** in a floating window over the app, one editor
-  per click even on a double click (see Watch out for where it works). Alt-click: a read-only, syntax-highlighted
-  preview in the panel, with a back arrow.
-- The floating window's title bar shows the program's icon, the file's name and its folder and has two buttons:
-  *Keep*, a menu with "New tab" (the nvim becomes a tab of the space, `terminal.keep`) and, for every nvim tab already
-  kept in the space, "Add to <tab>" (the file opens there as a buffer, that tab is focused and the float quits); and
-  `x`, which quits the float's nvim (`:confirm qa`, so unsaved changes ask first). The window closes when nvim ends.
-- The nvims started here are labeled with their file (`editor.file`) and their socket (`editor.socket`); the tree shows the
-  file as the pane's name.
+- Click a folder: expand or collapse. Click a file and it opens where it makes sense:
+  - **Text** opens in the editor picked with the `▾` at the right of the panel's header (saved in shared
+    `files.editor`). The menu lists only what is installed on the folder's machine: terminal editors (nvim, Helix, Vim,
+    micro, nano) open in a floating window over the app, one editor per click even on a double click; apps (VS Code,
+    Zed, Sublime Text) open in their own window; *Default app* hands the file to the system; *Preview only* keeps the
+    read-only preview in the panel. With nothing picked, nvim when it is installed, else the default app.
+  - **Pictures** (PNG, JPEG, GIF, WebP, BMP, SVG; AVIF and TIFF on macOS) and **PDFs** open in a viewer window
+    (`portrait-viewer`): a picture fits the window, a PDF shows its pages one under another (up to 200). It has
+    *Open in Preview* (macOS; *Open in the default app* elsewhere) and `x`; Esc closes it.
+  - **Documents, media and archives** (Office files, audio, video, zip, ...) open in the system's app.
+  - **Programs are never started** (scripts, `.app`, `.exe`, ...): text ones open in the editor, or in the preview
+    when the default app is picked.
+- Right-click a file: *Open with* for that one file (the editors above for text; *Viewer* or *Default app* for a
+  picture or PDF). Alt-click: a read-only, syntax-highlighted preview in the panel, with a back arrow.
+- A terminal editor's floating window has a title bar with the program's icon, the file's name and its folder and
+  *Keep*, a menu with "New tab" (the editor becomes a tab of the space, `terminal.keep`). For nvim it also lists, for
+  every nvim tab already kept in the space, "Add to <tab>" (the file opens there as a buffer, that tab is focused and
+  the float quits), and has `x`, which quits the float's nvim (`:confirm qa`, so unsaved changes ask first). Other
+  editors are closed the way they close. The window closes when the editor ends.
+- The editors started here are labeled with their file (`editor.file`), nvim also with its socket (`editor.socket`); the
+  tree shows the file as the pane's name.
 
 **What moves:** the tree and the strip follow focus and status live; the panel, the folded set and each agent's time
 are remembered across restarts (the mods' own `localStorage`).
@@ -218,8 +230,9 @@ the `vault` node; without both, nothing about the Vault is drawn and nothing is 
 | `bar-strip` | the 26px strip, the bell and the panel buttons | commands `attention` (the list) and `jump` (what a bell click does) through `nextCommand()`; opens `attention-picker` with props `{ search }`; its bell tooltip reads the person's bindings with `keys()` |
 | `portrait-tabs` | the tab pills, window buttons, per-space panel memory (clone of the shipped `tabs` 0.1.12) | none |
 | `portrait-pane` | the pane header (clone of the shipped `pane` 0.1.12) | `props()` = `{ pane, terminal }` from the app |
-| `portrait-files` | the Files panel with the nvim launcher and the read-only preview (clone of the shipped `files` 0.1.12) | none |
-| `nvim-float` | the floating nvim's title bar and its Keep menu; opened only through `openOverlay` | `props()` = `{ terminal, socket, file, space, on, overlay }` or `{ menu: true, window, ... }` |
+| `portrait-files` | the Files panel: opens each file in the picked editor, the viewer or the system's app, and the read-only preview (clone of the shipped `files` 0.1.12) | none in the panel; as its own popups `props()` = `{ menu: "editor", choices, current }` or `{ menu: "open", choices, path, root, on }` |
+| `nvim-float` | the title bar of a floating terminal editor and its Keep menu; opened only through `openOverlay` | `props()` = `{ terminal, socket, file, space, on, editor, overlay }` or `{ menu: true, window, ... }` |
+| `portrait-viewer` | the window that shows a picture or a PDF clicked in Files; opened only through `openOverlay` | `props()` = `{ file }` |
 | `attention-picker` | the Agents waiting dialog (640px wide, `overlay` in its own `mod.json`); a bundled copy of the herdr-agents-waiting repo's mod, hash-checked in `scripts/bundled.json`, do not edit | `props()` = `{ search }` (the search box is on unless it is `false`; `mod.open` passes no props); reads shared `agents.since` (when `portrait-tree` publishes it, otherwise it times states itself), `attention.sort` (also written), `space.colors` |
 
 **Shipped mods it needs** (Herdr 0.1.12 or newer; they are replaced whole on every Herdr start, never edited here):
@@ -227,7 +240,9 @@ the `vault` node; without both, nothing about the Vault is drawn and nothing is 
 `machine-add`, `menu`, `new-menu`. No other shipped file is read: the icons are copied into the mods that use them (see
 `NOTICE`).
 
-**Shared state:** writes `agents.since` (agent address to the time of its last state change) and `mods.vault` (a boolean:
+**Shared state:** writes `files.editor` (the editor text files open with, an id such as `nvim` or `code`),
+`files.request` (the last *Open with* choice: `{ at, root, on, path, editor }`, read by the panel and ignored after 10
+seconds), `agents.since` (agent address to the time of its last state change) and `mods.vault` (a boolean:
 `bar-strip` looks for `<app home>/mods/vault/main.js` at start and every 60 seconds); reads `workspace.panels` (which
 panel tabs the person has enabled, default `["files", "changes"]`), `space.colors` (space id to a color name or
 `#rrggbb`), `layout` (the shown layout's name) and `vault.panes` (pane id to `{ vault, file, id }`, only for Vault note
@@ -239,7 +254,9 @@ first seen in it; no screen text); corrupt or foreign values fall back to empty,
 setAgentOrder, theme, settings, layout, updates, window, home, appHome, keys, machines, props, nextCommand,
 openOverlay, closeOverlay, notify, exec, hc, readTextFile, watchFolder`; from Node-style modules, only `fs/promises`
 (`portrait-tree`: `readFile`, `readdir`, `mkdir`, `writeFile` and `unlink` on its spine SVGs under
-`<app home>/data/portrait-tree-spines/`; `bar-strip`: `exists` on `<app home>/mods/vault/main.js`); commands `agent.focus`, `layout.show`, `layout.hide`, `layout.select`,
+`<app home>/data/portrait-tree-spines/`; `bar-strip`: `exists` on `<app home>/mods/vault/main.js`; `portrait-viewer`:
+`readFile` on the clicked picture, and `readFile`, `writeFile`, `mkdir`, `readdir`, `unlink` and `rmdir` under
+`<app home>/data/portrait-viewer/cache/`); commands `agent.focus`, `layout.show`, `layout.hide`, `layout.select`,
 `layout.toggle`, `layout.switch`, `mod.open`, `app.settings`, `space.select`, `space.move`, `space.new`, `tab.select`,
 `tab.move`, `tab.rename`, `tab.close`, `pane.focus`, `pane.split`, `pane.zoom`, `pane.close`, `terminal.keep`,
 `terminal.kill` (ends an nvim terminal that did not start in time), `overlay.close` (`attention-picker` closes itself),
@@ -249,9 +266,14 @@ openOverlay, closeOverlay, notify, exec, hc, readTextFile, watchFolder`; from No
 - **Network:** none. No mod calls `fetch`, `WebSocket`, `XMLHttpRequest` or any other network API (`node scripts/check-recipe.mjs`
   fails if one appears). `hc` and `exec` reach other machines only through Herdr's own machine connections.
 - **Runs programs:** `git` (`rev-parse`, `status`, read-only, for the Files marks, only while the panel is open); `sh`
-  (lists a folder; launches nvim on macOS and Linux and on remote POSIX machines; starts the person's login shell once to
-  read its `PATH` with `printenv PATH`, so **that shell's startup files run**); `powershell` (lists a folder on Windows);
-  `nvim` (the Files click); `hc` (`hc run` to start the nvim terminal; `hc read <agent> --lines 60` in `attention-picker`
+  (lists a folder; looks up which editors are installed with `command -v` and, on macOS, whether their apps are in
+  `/Applications` or `~/Applications`, at most once a minute; launches terminal editors on macOS and Linux and on remote
+  POSIX machines; starts the person's login shell once to read its `PATH` with `printenv PATH`, so **that shell's
+  startup files run**); `powershell` (lists a folder on Windows; reads file stamps for the viewer's cache); the editor
+  you pick (`nvim`, `hx`, `vim`, `micro`, `nano`, `code`, `zed` or `subl`) on the file you click; `open` (macOS),
+  `xdg-open` (Linux) or `rundll32` (Windows) to hand a file to the system's app, never a program; for the viewer
+  `pdfinfo` and `pdftoppm` (Poppler, when installed), `qlmanage` and `sips` (macOS, without Poppler or for AVIF and
+  TIFF sizes), `stat` (file stamps) and `where` (finding Poppler on Windows); `hc` (`hc run` to start the editor's terminal; `hc read <agent> --lines 60` in `attention-picker`
   only, for each blocked or finished agent every 3 seconds while its list is open, to find the question on screen). Files,
   `git`, `sh`, `nvim` and `hc run` run on the machine of the folder that is shown (`on`), which may be a remote one;
   `hc read` reads agents on any machine Herdr lists.
@@ -259,9 +281,12 @@ openOverlay, closeOverlay, notify, exec, hc, readTextFile, watchFolder`; from No
   `readTextFile`, on the folder's own machine); whether `<app home>/mods/vault/main.js` exists (existence only); terminal
   text through `hc read` (`attention-picker` only; kept in memory while the list is open, not stored); the person's key
   bindings (`bar-strip`, for the bell's tooltip); the shared values above; the app's own list of spaces, tabs, panes,
-  terminals and agents (names, folders, titles). The nvim terminal is labeled with `editor.file=<full path>` and
-  `editor.socket=<socket path>`, which any other mod can read.
-- **Writes outside its folder:** one small SVG per space name under `<app home>/data/portrait-tree-spines/` (the
+  terminals and agents (names, folders, titles); the picture or PDF you click (the viewer, only inside the home
+  folder). An editor's terminal is labeled with `editor.file=<full path>` (nvim also with `editor.socket=<socket
+  path>`), which any other mod can read.
+- **Writes outside its folder:** copies of the pictures and drawn PDF pages the viewer shows, under
+  `<app home>/data/portrait-viewer/cache/` (Herdr draws pictures only from the app's folder; entries over 30 days old
+  or past 200 MB are deleted); one small SVG per space name under `<app home>/data/portrait-tree-spines/` (the
   rotated name of a folded space; the folder is not inside the mod because Herdr reloads a mod when its files
   change; stale ones of removed spaces are deleted); a unix socket `/tmp/herdr-nvim-<id>.sock` per nvim started from the
   panel (macOS and Linux; nvim itself creates it); the mods' `localStorage` (folded spaces, remembered panels, state times, and `attention.seen`: agent address, state
@@ -284,12 +309,15 @@ are drawn by `scripts/make-preview.mjs`.
   read-only preview that a Windows click opens, the login-shell `PATH` lookup under fish, and the window-button rules
   below are written from the code and from Herdr's documentation; checks and tests run on all three systems in CI, but
   CI does not start Herdr. Treat these as hypotheses until `scripts/PUBLISH.md` step 4's result table is filled in.
-- **Editing in nvim works on macOS and Linux and on remote POSIX machines; on Windows a click opens the read-only preview**
-  (with a one-time notice per session that nvim editing is not available there). nvim must be installed on the machine of
-  the folder; the `PATH` of the person's login shell is read once (`printenv PATH`, which also works in fish) and the
-  launch runs in plain `sh`, so Homebrew and similar installs are found. If nvim is not on that `PATH` a toast says "nvim
-  not found on PATH" and the read-only preview opens instead. A click that cannot start nvim in 10 seconds ends the
-  terminal it started and says so. The socket stays under `/tmp` because macOS temp folders can exceed the 104-byte
+- **Terminal editors work on macOS and Linux and on remote POSIX machines; on Windows (this computer) the choice is the
+  default app or the preview.** The editor must be installed on the machine of the folder; the `PATH` of the person's
+  login shell is read once (`printenv PATH`, which also works in fish) and the launch runs in plain `sh`, so Homebrew and
+  similar installs are found. A folder on another machine offers its terminal editors only, and its pictures, PDFs and
+  documents don't open (the viewer and the system's app run here). A click that cannot start the editor in 10 seconds
+  ends the terminal it started and says so.
+- **The viewer reads only inside the home folder** (a limit of Herdr mods): a picture or PDF elsewhere opens in the
+  system's app. Every PDF page needs Poppler (`brew install poppler`, `apt install poppler-utils`, `scoop install
+  poppler`); without it macOS shows the first page and the other systems the install hint. The socket stays under `/tmp` because macOS temp folders can exceed the 104-byte
   limit of a unix socket path.
 - **Herdr's script engine has no `Intl`.** `new Intl.Collator()` fails `herdr-app check`; sort with `localeCompare`.
 - **Keys:** `cmd-b` is macOS only: on Linux and Windows `cmd` is read as the Super or Windows key (not tried on a live build), which the
@@ -316,7 +344,7 @@ are drawn by `scripts/make-preview.mjs`.
 Other pieces look these up by name. A build or a rename that drops one breaks something silently.
 
 - **Layout ids:** `root`, `left`, `bar`, `bar-strip`, `tree`, `work`, `tabs`, `work-body`, `main`, `status`, `panel`, `panel-body`, `files`, `changes`
-- **Mods:** `portrait-tree`, `bar-strip`, `portrait-tabs`, `portrait-pane`, `portrait-files`, `nvim-float`, `attention-picker`, `workspace-status`, `changes`, `picker`, `machine-add`, `menu`, `new-menu`
+- **Mods:** `portrait-tree`, `bar-strip`, `portrait-tabs`, `portrait-pane`, `portrait-files`, `nvim-float`, `portrait-viewer`, `attention-picker`, `workspace-status`, `changes`, `picker`, `machine-add`, `menu`, `new-menu`
 - **Key sections:** `layout:portrait`, `layout:portrait-bottom`
 - **Shared keys:** `agents.since`, `workspace.panels`, `space.colors`, `mods.vault`
 - **Commands:** `bar-strip.attention`, `mod.open`, `layout.toggle`, `layout.switch`, `layout.select`, `layout.show`, `layout.hide`, `agent.focus`

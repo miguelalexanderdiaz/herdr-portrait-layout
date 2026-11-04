@@ -8,6 +8,10 @@ Every merged round adds its lines here; tagging a release moves them under the n
 
 ### Added
 
+- Files opens each file where it makes sense. Text opens in the editor picked with the new `▾` in the panel header (nvim, Helix, Vim, micro, nano, VS Code, Zed, Sublime Text, the default app or the read-only preview; only what is installed is listed; nvim stays the default when installed). Right-click a file for *Open with*.
+- `portrait-viewer`: pictures and PDFs open in a viewer window (PDF pages drawn with Poppler, the first page through Quick Look on macOS without it), with *Open in Preview*. Its code is copied from the herdr-obsidian-vault reader.
+- Documents, media and archives open in the system's app; programs are never started.
+
 - `scripts/ci.workflow.yml`, the CI definition (tests and `npm run check` on Ubuntu, Windows and macOS; actions pinned to commits). It becomes active when the maintainer copies it to `.github/workflows/ci.yml` (see `scripts/PUBLISH.md`); no run has been reported yet. `package.json` gives the short names `npm test`, `npm run check` and `npm run check:history`; `.github/dependabot.yml` keeps the action pins current.
 - `scripts/bundled.json` and `scripts/bundled.mjs`: the bundled `attention-picker` is hash-checked, so a hand edit or a forgotten file fails `validate`.
 - `tests/api.test.mjs` (every Herdr function the mods import exists in the app's type files; skipped without them) and `tests/docs-claims.test.mjs` (the numbers in the docs equal the constants in the code).

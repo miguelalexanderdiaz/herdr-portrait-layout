@@ -1,0 +1,506 @@
+// Pure helpers of portrait-viewer (no gpui-kit, no herdr): `node --test` loads this file.
+//
+// The platform part (opening files, file stamps, finding Poppler, image headers, the
+// install hints) is copied unchanged from mods/vault-reader/platform.js of
+// herdr-obsidian-vault, which draws PDFs and pictures the same way; a mod folder must stand
+// alone, so it is a copy. The picture cache at the end is a trimmed copy of that mod's
+// assets-core.js: pictures and PDF pages only, cached under data/portrait-viewer/cache.
+
+// "macos" | "linux" | "windows" (as herdr's window().platform), from any spelling.
+export function normPlatform(p) {
+  const s = String(p ?? "").toLowerCase();
+  if (s === "macos" || s === "darwin" || s === "mac") return "macos";
+  if (s === "windows" || s === "win32" || s === "win") return "windows";
+  return "linux";
+}
+
+// ---- paths ----------------------------------------------------------------
+
+// Forward slashes, no trailing slash (the root "/" and "C:/" keep theirs). Backslashes are separators
+// only in Windows paths ("C:\\..." or "\\\\server\\..."); in a POSIX name they are part of it.
+export function normPath(p) {
+  let s = String(p ?? "");
+  if (/^[A-Za-z]:[\\/]|^\\\\/.test(s)) s = s.replace(/\\/g, "/");
+  s = s.replace(/\/{2,}/g, "/");
+  if (s.length > 1 && s.endsWith("/") && !/^[A-Za-z]:\/$/.test(s)) s = s.slice(0, -1);
+  return s;
+}
+
+export const nameOf = (p) => normPath(p).split("/").filter(Boolean).pop() ?? String(p);
+
+// ~ for the home folder in a path shown to the person.
+export function tilde(p, home) {
+  const path = normPath(p), h = normPath(home ?? "");
+  if (h && (path === h || path.startsWith(h + "/"))) return "~" + path.slice(h.length);
+  return path;
+}
+
+// The path of `p` inside `root` ("a/b.md"), or null when it is outside. Both are
+// normalized first, so Windows separators from watchFolder() and pickFolder() work.
+export function relOf(root, p) {
+  const r = normPath(root), q = normPath(p);
+  if (q === r) return "";
+  return q.startsWith(r + "/") ? q.slice(r.length + 1) : null;
+}
+
+// ---- opening files ---------------------------------------------------------
+
+// The program and arguments that open `target` (a file or an http/https/mailto URL) with the
+// system's default app. Windows uses rundll32's FileProtocolHandler rather than `cmd /c start`:
+// cmd would read an "&" in a URL as the start of another command.
+export function openCommand(platform, target) {
+  switch (normPlatform(platform)) {
+    case "macos": return ["open", [target]];
+    case "windows": return ["rundll32", ["url.dll,FileProtocolHandler", target]];
+    default: return ["xdg-open", [target]];
+  }
+}
+
+// Files that start a program when the system opens them. A note can link to any file of a vault
+// someone else shared; the reader opens documents, not programs.
+const PROGRAM_EXT = /\.(app|command|tool|workflow|action|terminal|scpt|scptd|sh|bash|zsh|fish|csh|bat|cmd|com|exe|msi|msp|scr|pif|ps1|psm1|vbs|vbe|js|jse|wsf|wsh|lnk|url|reg|hta|jar|desktop|appimage|run|bin|pkg|dmg|deb|rpm|apk|py|pl|rb|php)$/i;
+export const canOpen = (file) => !PROGRAM_EXT.test(String(file ?? ""));
+
+// PDFs and pictures open in Preview on macOS (as the button says), elsewhere in the default app.
+export function previewCommand(platform, target) {
+  return normPlatform(platform) === "macos" ? ["open", ["-a", "Preview", target]] : openCommand(platform, target);
+}
+export const previewName = (platform) => (normPlatform(platform) === "macos" ? "Preview" : "your default app");
+export const previewLabel = (platform) => (normPlatform(platform) === "macos" ? "Open in Preview" : "Open in the default app");
+
+// Keyboard: the back shortcut as shown in a tooltip, per OS. Alt+Left and Backspace work everywhere.
+
+const psQuote = (s) => `'${String(s).replace(/'/g, "''")}'`;
+
+// Commands to try, in order, that print "<mtime>:<size> <path>" per file. The stamp
+// only has to change when the file does. variant 0 is the platform's own stat.
+export function statCommand(platform, paths, variant = 0) {
+  const p = normPlatform(platform);
+  if (p === "windows") {
+    const script = `$ErrorActionPreference='SilentlyContinue'; Get-Item -LiteralPath ${paths.map(psQuote).join(",")} | ForEach-Object { "$($_.LastWriteTimeUtc.Ticks):$($_.Length) $($_.FullName)" }`;
+    return ["powershell", ["-NoProfile", "-NonInteractive", "-Command", script]];
+  }
+  const bsd = ["stat", ["-f", "%m:%z %N", ...paths]];
+  const gnu = ["stat", ["-c", "%Y:%s %n", ...paths]];
+  return (p === "macos") === (variant === 0) ? bsd : gnu;
+}
+export const statVariants = (platform) => (normPlatform(platform) === "windows" ? 1 : 2);
+
+// stdout of statCommand → Map(path as given → "mtime:size"). Paths come back as the OS
+// prints them; they are matched to the ones asked for by normalized spelling.
+export function parseStat(stdout, paths) {
+  const asked = new Map(paths.map((p) => [normPath(p), p]));
+  const res = new Map();
+  for (const line of String(stdout ?? "").split(/\r?\n/)) {
+    const m = line.match(/^(\d+:\d+) (.+)$/);
+    if (!m) continue;
+    const given = asked.get(normPath(m[2]));
+    if (given != null) res.set(given, m[1]);
+  }
+  return res;
+}
+
+// Stamps for many files at once. exec(cmd, args) → { code, stdout }.
+export async function stampsOf(platform, paths, exec) {
+  if (!paths.length) return new Map();
+  for (let v = 0; v < statVariants(platform); v++) {
+    const [cmd, args] = statCommand(platform, paths, v);
+    const r = await exec(cmd, args).catch(() => null);
+    const got = parseStat(r?.stdout, paths);
+    if (got.size) return got;
+  }
+  return new Map();
+}
+
+// ---- image headers (replaces sips) -------------------------------------------
+
+const be32 = (b, i) => ((b[i] << 24) | (b[i + 1] << 16) | (b[i + 2] << 8) | b[i + 3]) >>> 0;
+const le16 = (b, i) => b[i] | (b[i + 1] << 8);
+const le24 = (b, i) => b[i] | (b[i + 1] << 8) | (b[i + 2] << 16);
+const le32 = (b, i) => (b[i] | (b[i + 1] << 8) | (b[i + 2] << 16) | (b[i + 3] << 24)) >>> 0;
+const ascii = (b, i, n) => String.fromCharCode(...b.slice(i, i + n));
+
+// The size of a raster image from its first bytes: { type, w, h } or null.
+// type: "png" | "jpg" | "gif" | "webp" | "bmp". (SVG is handled by svgSize.)
+export function imageInfo(bytes) {
+  const b = bytes;
+  if (!b || b.length < 12) return null;
+  if (b[0] === 0x89 && ascii(b, 1, 3) === "PNG" && b.length >= 24) return { type: "png", w: be32(b, 16), h: be32(b, 20) };
+  if (ascii(b, 0, 3) === "GIF") return { type: "gif", w: le16(b, 6), h: le16(b, 8) };
+  if (b[0] === 0xff && b[1] === 0xd8) {
+    let i = 2;
+    while (i + 9 < b.length) {
+      if (b[i] !== 0xff) { i++; continue; }
+      const marker = b[i + 1];
+      if (marker === 0xff) { i++; continue; }
+      if (marker === 0xd8 || marker === 0x01 || (marker >= 0xd0 && marker <= 0xd7)) { i += 2; continue; }
+      const len = (b[i + 2] << 8) | b[i + 3];
+      const sof = marker >= 0xc0 && marker <= 0xcf && marker !== 0xc4 && marker !== 0xc8 && marker !== 0xcc;
+      if (sof) return { type: "jpg", w: (b[i + 7] << 8) | b[i + 8], h: (b[i + 5] << 8) | b[i + 6] };
+      if (len < 2) return null;
+      i += 2 + len;
+    }
+    return null;
+  }
+  if (ascii(b, 0, 4) === "RIFF" && ascii(b, 8, 4) === "WEBP" && b.length >= 30) {
+    const fmt = ascii(b, 12, 4);
+    if (fmt === "VP8X") return { type: "webp", w: le24(b, 24) + 1, h: le24(b, 27) + 1 };
+    if (fmt === "VP8 ") return { type: "webp", w: le16(b, 26) & 0x3fff, h: le16(b, 28) & 0x3fff };
+    if (fmt === "VP8L") {
+      const bits = le32(b, 21);
+      return { type: "webp", w: (bits & 0x3fff) + 1, h: ((bits >>> 14) & 0x3fff) + 1 };
+    }
+    return null;
+  }
+  if (b[0] === 0x42 && b[1] === 0x4d && b.length >= 26) {
+    const h = le32(b, 22) | 0;
+    return { type: "bmp", w: le32(b, 18), h: Math.abs(h) };
+  }
+  return null;
+}
+
+// The first `limit` bytes as text, decoded as UTF-8 (invalid bytes become U+FFFD). Herdr's JavaScript has
+// no TextDecoder (probed in round 2), and an SVG header may hold a non-ASCII title or comment before its
+// size, so a plain byte-to-char loop would not do.
+export function utf8Text(bytes, limit = bytes?.length ?? 0) {
+  const n = Math.min(limit, bytes?.length ?? 0);
+  let out = "";
+  for (let i = 0; i < n;) {
+    const c = bytes[i];
+    let cp = 0xfffd, len = 1;
+    if (c < 0x80) cp = c;
+    else if (c >= 0xc2 && c < 0xe0 && (bytes[i + 1] & 0xc0) === 0x80) { cp = ((c & 0x1f) << 6) | (bytes[i + 1] & 0x3f); len = 2; }
+    else if (c >= 0xe0 && c < 0xf0 && (bytes[i + 1] & 0xc0) === 0x80 && (bytes[i + 2] & 0xc0) === 0x80) {
+      const v = ((c & 0x0f) << 12) | ((bytes[i + 1] & 0x3f) << 6) | (bytes[i + 2] & 0x3f);
+      if (v >= 0x800 && (v < 0xd800 || v > 0xdfff)) { cp = v; len = 3; }
+    } else if (c >= 0xf0 && c < 0xf5 && (bytes[i + 1] & 0xc0) === 0x80 && (bytes[i + 2] & 0xc0) === 0x80 && (bytes[i + 3] & 0xc0) === 0x80) {
+      const v = ((c & 0x07) << 18) | ((bytes[i + 1] & 0x3f) << 12) | ((bytes[i + 2] & 0x3f) << 6) | (bytes[i + 3] & 0x3f);
+      if (v >= 0x10000 && v <= 0x10ffff) { cp = v; len = 4; }
+    }
+    out += String.fromCodePoint(cp);
+    i += len;
+  }
+  return out;
+}
+
+// The size an SVG declares (width/height, else viewBox), or a default.
+export function svgSize(text) {
+  const head = String(text ?? "").slice(0, 2000);
+  const num = (re) => Number((head.match(re) || [])[1]) || null;
+  let w = num(/<svg[^>]*\swidth="([\d.]+)(?:px)?"/), h = num(/<svg[^>]*\sheight="([\d.]+)(?:px)?"/);
+  const vb = head.match(/viewBox="[\d.\-]+[ ,]+[\d.\-]+[ ,]+([\d.]+)[ ,]+([\d.]+)"/);
+  if ((!w || !h) && vb) { w = Number(vb[1]); h = Number(vb[2]); }
+  return { w: w ?? 400, h: h ?? 300 };
+}
+export const looksLikeSvg = (text) => /<svg[\s>]/i.test(String(text ?? "").slice(0, 2000));
+
+// macOS only, and only as fallbacks: sips reads the size of formats imageInfo() doesn't (AVIF, TIFF),
+// Quick Look draws a PDF's first page when Poppler is not installed.
+export const macImageSizeCommand = (file) => ["sips", ["-g", "pixelWidth", "-g", "pixelHeight", file]];
+export const macThumbnailCommand = (outDir, file) => ["qlmanage", ["-t", "-s", "2400", "-o", outDir, file]];
+
+// ---- programs ----------------------------------------------------------------
+
+// Arguments that make a tool print its version and exit 0 (Poppler uses -v).
+const VERSION_ARGS = { pdftoppm: ["-v"], pdfinfo: ["-v"] };
+export const versionArgs = (name) => VERSION_ARGS[name] ?? ["--version"];
+
+// Homebrew on Linux installs under its own user's home (written in parts: it is not a person's path).
+const LINUXBREW = ["", "home", "linuxbrew", ".linuxbrew", "bin"].join("/");
+
+// Where a tool may live when the app's PATH doesn't have it: tried after the bare name.
+export function toolCandidates(platform, name, home) {
+  const h = normPath(home ?? "");
+  switch (normPlatform(platform)) {
+    case "macos":
+      return [name, `/opt/homebrew/bin/${name}`, `/usr/local/bin/${name}`, `/opt/local/bin/${name}`, `${h}/.nix-profile/bin/${name}`, `${h}/.volta/bin/${name}`];
+    case "windows": {
+      const exe = `${name}.exe`;
+      const list = [name, `${h}/scoop/shims/${exe}`, `${h}/AppData/Local/Microsoft/WinGet/Links/${exe}`, `C:/ProgramData/chocolatey/bin/${exe}`,
+        `${h}/.volta/bin/${exe}`];
+      if (name === "node") list.push("C:/Program Files/nodejs/node.exe");
+      if (name === "pdftoppm" || name === "pdfinfo") list.push(`${h}/scoop/apps/poppler/current/Library/bin/${exe}`, `C:/Program Files/poppler/Library/bin/${exe}`, `C:/Program Files/poppler/bin/${exe}`);
+      if (name === "rg") list.push(`C:/Program Files/ripgrep/${exe}`);
+      return list;
+    }
+    default:
+      return [name, `/usr/local/bin/${name}`, `/usr/bin/${name}`, `/bin/${name}`, `/snap/bin/${name}`, `${LINUXBREW}/${name}`,
+        `${h}/.nix-profile/bin/${name}`, `${h}/.local/bin/${name}`, `${h}/.volta/bin/${name}`];
+  }
+}
+
+// Node installed by a version manager: dirs under home whose bin/node may exist.
+export function nodeManagerDirs(platform, home) {
+  const h = normPath(home ?? "");
+  return normPlatform(platform) === "windows"
+    ? [`${h}/AppData/Roaming/nvm`, `${h}/AppData/Local/fnm_multishells`]
+    : [`${h}/.nvm/versions/node`, `${h}/.local/share/fnm/node-versions`, `${h}/.fnm/node-versions`, `${h}/.asdf/installs/nodejs`];
+}
+
+// Highest version folder name first: "v22.14.0" before "v20.11.1".
+export function newestFirst(names) {
+  const key = (n) => (String(n).match(/\d+/g) ?? []).slice(0, 3).map((x) => String(x).padStart(6, "0")).join(".");
+  return [...names].sort((a, b) => key(b).localeCompare(key(a)));
+}
+
+// → path to a working `name`, or null. exec(cmd, args) → { code, stdout } (rejects when it can't start).
+// readdir(dir) → names | rejects, optional: used for Node version managers.
+export async function findTool({ name, platform, home, exec, readdir, via = true }) {
+  const p = normPlatform(platform);
+  const probe = async (bin) => {
+    const r = await exec(bin, versionArgs(name)).catch(() => null);
+    return r?.code === 0;
+  };
+  for (const bin of toolCandidates(p, name, home)) if (await probe(bin)) return bin;
+  if (readdir && name === "node") {
+    for (const dir of nodeManagerDirs(p, home)) {
+      const names = await readdir(dir).catch(() => []);
+      for (const v of newestFirst(names)) {
+        const nested = p === "windows" ? `${dir}/${v}/node.exe` : `${dir}/${v}/bin/node`;
+        if (await probe(nested)) return nested;
+        const flat = `${dir}/${v}/installation/bin/node`;
+        if (p !== "windows" && await probe(flat)) return flat;
+      }
+    }
+  }
+  if (via) {
+    // The system's own lookup: where.exe on Windows; on macOS/Linux the person's login shell,
+    // which has the PATH their terminal has (nvm, Homebrew, mise ...).
+    const r = p === "windows"
+      ? await exec("where", [name]).catch(() => null)
+      : await exec("sh", ["-c", `exec "\${SHELL:-sh}" -lc 'command -v ${name}'`]).catch(() => null);
+    const first = (r?.stdout ?? "").split(/\r?\n/).map((s) => s.trim()).find((s) => /^([A-Za-z]:|\/)/.test(s));
+    if (r?.code === 0 && first && await probe(first)) return first;
+  }
+  return null;
+}
+
+// A tool finder with a cache: found stays found; a miss is forgotten after `missTtl` ms, so
+// installing the tool while Herdr runs works without a restart.
+export function makeToolFinder(opts) {
+  const { now = () => Date.now(), missTtl = 30_000 } = opts;
+  const cache = new Map();
+  return async (name) => {
+    const hit = cache.get(name);
+    if (hit && (hit.path || now() - hit.at < missTtl)) return hit.path;
+    const path = await findTool({ ...opts, name });
+    cache.set(name, { path, at: now() });
+    return path;
+  };
+}
+
+// Node 22.4 or newer: "v22.14.0" → true. render.mjs needs the global WebSocket, which Node 22 only has
+
+const HINTS = {
+  rg: { macos: "brew install ripgrep", linux: "install ripgrep with your package manager (for example: apt install ripgrep)", windows: "winget install BurntSushi.ripgrep.MSVC" },
+  poppler: { macos: "brew install poppler", linux: "install poppler-utils with your package manager (for example: apt install poppler-utils)", windows: "scoop install poppler" },
+  node: { macos: "brew install node", linux: "install Node.js 22.4 or newer (nodejs.org, or your package manager)", windows: "winget install OpenJS.NodeJS" },
+  curl: { macos: "curl ships with macOS", linux: "install curl with your package manager (for example: apt install curl)", windows: "curl ships with Windows 10 and newer" },
+  browser: { macos: "install Google Chrome, Chromium, Brave or Microsoft Edge", linux: "install Chrome, Chromium, Brave or Microsoft Edge", windows: "Microsoft Edge is built into Windows; or install Chrome or Brave" },
+  obsidian: { macos: "install the Obsidian app (obsidian.md)", linux: "install the Obsidian app (obsidian.md)", windows: "install the Obsidian app (obsidian.md)" },
+};
+
+// → "<what> isn't installed: <hint>" for the UI. what: rg | poppler | node | curl | browser | obsidian.
+export function missingMessage(platform, what) {
+  const names = { rg: "ripgrep (rg)", poppler: "Poppler (pdftoppm, pdfinfo)", node: "Node.js 22.4 or newer", curl: "curl", browser: "A Chromium-based browser", obsidian: "The Obsidian app" };
+  const hint = HINTS[what]?.[normPlatform(platform)] ?? "";
+  const lead = what === "browser" || what === "obsidian" ? `${names[what]} wasn't found` : `${names[what] ?? what} isn't installed`;
+  return hint ? `${lead}: ${hint}` : lead;
+}
+
+// What the renderer (render/render.mjs) can fail with → one plain sentence, never a path or raw JSON.
+// err: { error: kind | message } from the renderer's JSON, or a thrown message.
+
+// ---- the picture cache ---------------------------------------------------------------
+// image() only loads files under the app's folder, so a picture is copied there first and a
+// PDF page is drawn there. Each entry: <key>.<ext> + <key>.json ({ w, h } in logical px, or
+// { error }). Never inside a mod folder: Herdr reloads a mod whose folder changes. Errors that
+// depend on the machine (Poppler missing) are not cached, so installing it fixes them.
+
+export const REL = "data/portrait-viewer/cache";
+export const IMAGE_MAX_BYTES = 40_000_000;
+export const PDF_MAX_PAGES = 200; // pages drawn for one PDF; the rest open in the system's app
+export const CACHE_MAX_AGE_DAYS = 30;
+export const CACHE_MAX_MB = 200;
+
+export const IMAGE_EXT = /\.(png|jpe?g|gif|webp|bmp|svg|avif|tiff?)$/i;
+export const viewKind = (file) => (/\.pdf$/i.test(String(file ?? "")) ? "pdf" : IMAGE_EXT.test(String(file ?? "")) ? "image" : null);
+
+// A problem that is the file's own (not an image, a page that cannot be drawn): cached until the file changes.
+export class FileProblem extends Error {}
+
+// FNV-1a, twice with different seeds: a 64-bit key as hex.
+export function hash(s) {
+  let a = 0x811c9dc5, b = 0x01000193 ^ 0x5bd1e995;
+  for (let i = 0; i < s.length; i++) {
+    const c = s.charCodeAt(i);
+    a = Math.imul(a ^ c, 0x01000193);
+    b = Math.imul(b ^ c, 0x5bd1e995) ^ (b >>> 13);
+  }
+  return (a >>> 0).toString(16).padStart(8, "0") + (b >>> 0).toString(16).padStart(8, "0");
+}
+
+// A stamp "mtime:size" → { ms, size }. Unix prints seconds, Windows prints .NET ticks.
+export function parseStamp(stamp) {
+  const [t, s] = String(stamp).split(":").map(Number);
+  const ms = t > 1e15 ? t / 10000 - 62135596800000 : t * 1000;
+  return { ms, size: s || 0 };
+}
+
+const stemOf = (name) => name.replace(/\.[^.]+$/, "");
+// files: [{ name, ms, size }] → names to delete: whole entries older than maxAgeMs, then the oldest
+// until the folder is under maxBytes (each entry's json first).
+export function pruneList(files, now, maxAgeMs, maxBytes) {
+  const groups = new Map();
+  for (const f of files) {
+    const g = groups.get(stemOf(f.name)) ?? { names: [], ms: 0, size: 0 };
+    g.names.push(f.name); g.ms = Math.max(g.ms, f.ms); g.size += f.size;
+    groups.set(stemOf(f.name), g);
+  }
+  const drop = [];
+  const keep = [...groups.values()].filter((g) => { if (now - g.ms > maxAgeMs) { drop.push(g); return false; } return true; });
+  let total = keep.reduce((n, g) => n + g.size, 0);
+  keep.sort((a, b) => a.ms - b.ms);
+  while (total > maxBytes && keep.length) { const g = keep.shift(); total -= g.size; drop.push(g); }
+  return drop.flatMap((g) => [...g.names].sort((a, b) => Number(b.endsWith(".json")) - Number(a.endsWith(".json"))));
+}
+
+// deps: { exec, fs: { readFile, readText, writeFile, mkdir, unlink, rmdir, readdir }, appHome, home, platform, now? }
+export function createViewer(deps) {
+  const { exec, fs, appHome, home } = deps;
+  const platform = normPlatform(deps.platform);
+  const now = deps.now ?? (() => Date.now());
+  const abs = (rel) => `${appHome}/${rel}`;
+  const tool = makeToolFinder({ platform, home, exec, readdir: fs.readdir, now });
+  let ready = false;
+  const ensureDir = async () => {
+    if (ready) return;
+    await fs.mkdir(abs(REL), { recursive: true }).catch(() => {});
+    ready = true;
+  };
+  const meta = async (key) => {
+    try { const m = JSON.parse(await fs.readText(abs(`${REL}/${key}.json`))); return m && typeof m === "object" ? m : null; } catch { return null; }
+  };
+  const putMeta = (key, value) => fs.writeFile(abs(`${REL}/${key}.json`), JSON.stringify(value)).catch(() => {});
+  const hit = (key, ext, m) => (m.error ? { error: m.error } : { path: `${REL}/${key}.${ext}`, w: m.w, h: m.h });
+  const fail = async (key, e) => {
+    const error = String(e?.message ?? e);
+    if (e instanceof FileProblem) await putMeta(key, { error });
+    return { error };
+  };
+
+  async function sizeOf(bytes, ext, destPath) {
+    if (ext === "svg") return svgSize(utf8Text(bytes, 4000));
+    const info = imageInfo(bytes);
+    if (info) return { w: info.w, h: info.h };
+    if (platform === "macos" && destPath) {
+      const [cmd, args] = macImageSizeCommand(destPath);
+      const r = await exec(cmd, args).catch(() => null);
+      const w = Number((r?.stdout?.match(/pixelWidth:\s*(\d+)/) || [])[1]);
+      const h = Number((r?.stdout?.match(/pixelHeight:\s*(\d+)/) || [])[1]);
+      if (w && h) return { w, h };
+    }
+    throw new FileProblem("Not a picture this viewer can show");
+  }
+
+  // The file's stamp ("mtime:size"), or "" when it can't be read: part of every cache key.
+  const stamp = async (file) => (await stampsOf(platform, [file], exec)).get(file) ?? "";
+
+  // A picture → { path, w, h } | { error }, at its pixel size.
+  async function image(file, st) {
+    await ensureDir();
+    const ext = (file.match(/\.(\w+)$/) || [, "png"])[1].toLowerCase();
+    const key = hash(`img:${file}:${st}`);
+    const m = await meta(key);
+    if (m) return hit(key, ext, m);
+    try {
+      if (parseStamp(st).size > IMAGE_MAX_BYTES) throw new FileProblem("This picture is too large to show here");
+      const bytes = await fs.readFile(file);
+      if (bytes.length > IMAGE_MAX_BYTES) throw new FileProblem("This picture is too large to show here");
+      const dest = abs(`${REL}/${key}.${ext}`);
+      await fs.writeFile(dest, bytes);
+      const { w, h } = await sizeOf(bytes, ext, dest);
+      await putMeta(key, { w, h });
+      return { path: `${REL}/${key}.${ext}`, w, h };
+    } catch (e) { return fail(key, e); }
+  }
+
+  // How many pages a PDF has → { pages } | { error, missing? }.
+  async function pdfInfo(file, st) {
+    await ensureDir();
+    const key = hash(`pdfinfo:${file}:${st}`);
+    const m = await meta(key);
+    if (m) return m;
+    const bin = await tool("pdfinfo");
+    if (!bin) return { error: missingMessage(platform, "poppler"), missing: "poppler" };
+    const r = await exec(bin, [file]).catch((e) => ({ code: 1, stderr: String(e) }));
+    const pages = Number((r.stdout?.match(/^Pages:\s+(\d+)/m) || [])[1]);
+    const res = r.code === 0 && pages ? { pages } : { error: (r.stderr || "Couldn't read the PDF").trim().slice(0, 200) };
+    await putMeta(key, res);
+    return res;
+  }
+
+  // Page n (from 1) of a PDF, drawn at 2x → { path, w, h } | { error, missing? }.
+  async function pdfPage(file, st, n) {
+    await ensureDir();
+    const key = hash(`pdfpage:${file}:${st}:${n}`);
+    const m = await meta(key);
+    if (m) return hit(key, "png", m);
+    const bin = await tool("pdftoppm");
+    if (!bin) return { error: missingMessage(platform, "poppler"), missing: "poppler" };
+    try {
+      const r = await exec(bin, ["-png", "-r", "144", "-f", String(n), "-l", String(n), "-singlefile", file, abs(`${REL}/${key}`)]);
+      if (r.code !== 0) throw new FileProblem(r.stderr?.trim() || `Couldn't draw page ${n}`);
+      const bytes = await fs.readFile(abs(`${REL}/${key}.png`));
+      const { w, h } = await sizeOf(bytes, "png");
+      const shown = { w: Math.round(w / 2), h: Math.round(h / 2) };
+      await putMeta(key, shown);
+      return { path: `${REL}/${key}.png`, ...shown };
+    } catch (e) { return fail(key, e); }
+  }
+
+  // Without Poppler, macOS can still draw the first page (Quick Look) → { path, w, h } | { error }.
+  async function quickLook(file, st) {
+    if (platform !== "macos") return { error: missingMessage(platform, "poppler"), missing: "poppler" };
+    await ensureDir();
+    const key = hash(`ql:${file}:${st}`);
+    const m = await meta(key);
+    if (m) return hit(key, "png", m);
+    const tmp = abs(`${REL}/ql-${key}`);
+    try {
+      await fs.mkdir(tmp, { recursive: true });
+      const [cmd, args] = macThumbnailCommand(tmp, file);
+      const r = await exec(cmd, args);
+      const made = (await fs.readdir(tmp)).find((f) => f.endsWith(".png"));
+      if (!made) throw new FileProblem(r.stderr?.trim() || "Quick Look made no preview");
+      const bytes = await fs.readFile(`${tmp}/${made}`);
+      await fs.writeFile(abs(`${REL}/${key}.png`), bytes);
+      const { w, h } = await sizeOf(bytes, "png");
+      const shown = { w: Math.round(w / 2), h: Math.round(h / 2) };
+      await putMeta(key, shown);
+      return { path: `${REL}/${key}.png`, ...shown };
+    } catch (e) { return fail(key, e); }
+    finally {
+      for (const f of await fs.readdir(tmp).catch(() => [])) await fs.unlink(`${tmp}/${f}`).catch(() => {});
+      await fs.rmdir(tmp).catch(() => {});
+    }
+  }
+
+  // Entries older than maxAgeDays go, then the oldest until the folder is under maxMB.
+  async function prune(maxAgeDays = CACHE_MAX_AGE_DAYS, maxMB = CACHE_MAX_MB) {
+    const names = await fs.readdir(abs(REL)).catch(() => []);
+    const paths = names.filter((n) => /\.[a-z0-9]+$/i.test(n)).map((n) => abs(`${REL}/${n}`));
+    const files = [];
+    for (let i = 0; i < paths.length; i += 150) {
+      for (const [p, s] of await stampsOf(platform, paths.slice(i, i + 150), exec)) files.push({ name: p.slice(p.lastIndexOf("/") + 1), ...parseStamp(s) });
+    }
+    const drop = pruneList(files, now(), maxAgeDays * 86_400_000, maxMB * 1_048_576);
+    for (const n of drop) await fs.unlink(abs(`${REL}/${n}`)).catch(() => {});
+    return drop.length;
+  }
+
+  // The system's app for the file (Preview on macOS for pictures and PDFs).
+  const openOutside = (file) => { const [cmd, args] = previewCommand(platform, file); return exec(cmd, args); };
+
+  return { platform, stamp, image, pdfInfo, pdfPage, quickLook, prune, openOutside };
+}
