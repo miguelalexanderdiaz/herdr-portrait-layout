@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Troubleshooting - Portrait layout for Herdr</title>
+<meta name="description" content="Fixes for the common problems with the portrait layout and the cause of each.">
+<link rel="stylesheet" href="assets/site.css">
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="site"><div class="inner">
+<a class="brand" href="index.html">Portrait layout for Herdr</a>
+<nav class="site" aria-label="Documentation"><ul><li><a href="index.html">Overview</a></li><li><a href="install.html">Install</a></li><li><a href="usage.html">Usage</a></li><li><a href="configuration.html">Configuration</a></li><li><a href="platforms.html">Platforms</a></li><li><a href="privacy.html">Privacy</a></li><li><a href="how-it-works.html">How it works</a></li><li><a href="troubleshooting.html" aria-current="page">Troubleshooting</a></li><li><a href="for-agents.html">For agents</a></li></ul></nav>
+</div></header>
+<main id="main">
+<h1>Troubleshooting</h1>
+<p class="lead">Start with the escape hatch and the status, then the list below.</p>
+<ul>
+<li><kbd>ctrl-alt-shift-escape</kbd> always works: it sets the shown layout and <code>keys.json</code> aside and returns to Herdr's default layout.</li>
+<li><code>herdr-app status</code> lists what the window shows and any errors. Herdr also writes <code>layout.error</code> and <code>keys.error</code> files in its home folder when a file is invalid, and keeps the last good version.</li>
+</ul>
+
+<h2>The layout does not load or looks wrong</h2>
+<p>Open <code>layout.error</code> in the Herdr home folder. A missing mod name in the layout or a JSON slip shows there. If you renamed a mod, the <code>mod</code> names in the layout and the <code>mods/&lt;name&gt;/</code> paths inside the mod must be renamed with it.</p>
+
+<h2>The bell key does nothing</h2>
+<p><code>bar-strip.attention</code> reaches only a bar-strip that is shown. It is bound in the two layout sections of <code>keys.json</code>, so it does nothing in another layout, while the bar is hidden (the toggle key hides it) or if you renamed the layout without renaming the keys section. The bell's tooltip names the key that is really bound.</p>
+
+<h2>&ldquo;Couldn't open nvim&rdquo;</h2>
+<ul>
+<li>nvim is not on the PATH of your login shell. Test with <code>$SHELL -lc 'command -v nvim'</code>.</li>
+<li><code>hc run</code> failed: the message shown has its error.</li>
+<li>The terminal did not show up within 10 seconds: the message names it.</li>
+<li>On Windows this is expected: a click opens the read-only preview instead.</li>
+</ul>
+
+<h2>Files says &ldquo;No folder&rdquo; or &ldquo;No files&rdquo;</h2>
+<p>The focused pane has no folder (for example a mod pane) and the space has none either. Focus a terminal pane. A line saying the list is limited means a folder had more than 500 entries or the total passed 5,000.</p>
+
+<h2>Files shows no marks</h2>
+<p>Marks come from <code>git status</code> in the focused folder. They are missing outside a git work tree, when git is not on the PATH, or on a machine where git failed.</p>
+
+<h2>The Vault button or panel is missing</h2>
+<p>By design: it needs the <code>vault</code> mod installed and the <code>vault</code> node in the layout's <code>panel-body</code>. See <a href="configuration.html#vault">Configuration</a>.</p>
+
+<h2>A folded space's name is blank for a moment</h2>
+<p>The rotated name is an image written on first use under <code>data/portrait-tree-spines/</code>; the strip redraws once the file exists. If it stays blank, check that the Herdr home folder is writable.</p>
+
+<h2>Columns are cut off</h2>
+<p>Each column needs 290 px. With more spaces than fit, arrow markers appear at the ends; click them, swipe sideways, shift-scroll, or fold spaces. You can also widen the bar by dragging its divider.</p>
+
+<h2>The colours look wrong</h2>
+<p>The layout uses whatever theme Settings has chosen. Pick another theme, or pin one in the layout (see <a href="configuration.html#theme">Configuration</a>).</p>
+
+<h2>A mod did not update after I saved it</h2>
+<p>A broken save keeps the old version running. Run <code>herdr-app check &lt;folder&gt;</code> for the exact error, and <code>herdr-app status</code>.</p>
+
+<h2>Still stuck</h2>
+<p>Open an issue at <a href="https://github.com/miguelalexanderdiaz/herdr-portrait-layout/issues">github.com/miguelalexanderdiaz/herdr-portrait-layout/issues</a> with your Herdr version (<code>herdr-app --version</code>), your operating system and the text of <code>herdr-app status</code>. Do not paste screenshots of your windows or file paths that include your name.</p>
+</main>
+<footer class="site"><div class="inner">
+<p>Apache-2.0. Source and issues: <a href="https://github.com/miguelalexanderdiaz/herdr-portrait-layout">github.com/miguelalexanderdiaz/herdr-portrait-layout</a>. Written for humans and for agents: see <a href="for-agents.html">For agents</a> and <a href="llms.txt">llms.txt</a>.</p>
+</div></footer>
+</body>
+</html>

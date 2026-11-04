@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Configuration - Portrait layout for Herdr</title>
+<meta name="description" content="Theme, sizes, keys, the optional Vault panel and optional tmux-style keys for the portrait layout.">
+<link rel="stylesheet" href="assets/site.css">
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="site"><div class="inner">
+<a class="brand" href="index.html">Portrait layout for Herdr</a>
+<nav class="site" aria-label="Documentation"><ul><li><a href="index.html">Overview</a></li><li><a href="install.html">Install</a></li><li><a href="usage.html">Usage</a></li><li><a href="configuration.html" aria-current="page">Configuration</a></li><li><a href="platforms.html">Platforms</a></li><li><a href="privacy.html">Privacy</a></li><li><a href="how-it-works.html">How it works</a></li><li><a href="troubleshooting.html">Troubleshooting</a></li><li><a href="for-agents.html">For agents</a></li></ul></nav>
+</div></header>
+<main id="main">
+<h1>Configuration</h1>
+<p class="lead">The layout pins nothing about your look. Everything below is a choice you make in your own Herdr home folder.</p>
+
+<h2 id="theme">Theme</h2>
+<p>Neither layout sets a <code>theme</code>, so the theme you chose in Settings applies. The mods only use theme colours (<code>chrome</code>, <code>canvas</code>, <code>raised</code>, <code>hover</code>, <code>selected</code>, <code>border</code>, <code>accent</code>, <code>working</code>, <code>blocked</code>, <code>done</code>, <code>idle</code>), so any shipped or user theme works. Two ways to make it a fixed part of the layout, both optional:</p>
+<ul>
+<li>Pin one of Herdr's shipped themes, one for light and one for dark system appearance. In the layout file add to the root object: <code>"theme": { "light": "paper", "dark": "graphite" }</code>.</li>
+<li>Carry your own theme file in <code>themes/&lt;name&gt;.json</code> in the Herdr home folder (see Herdr's reference for its fields) and name it in the same <code>theme</code> field.</li>
+</ul>
+<p>The look this layout was designed with used a personal theme that is not part of this repository and not needed. The illustration on the Overview page uses the default Herdr colours.</p>
+
+<h2 id="sizes">Sizes</h2>
+<p>All in the layout files, <code>layouts/portrait.json</code> and <code>layouts/portrait-bottom.json</code>:</p>
+<div class="scroll" role="region" aria-label="What table" tabindex="0"><table><thead><tr><th scope="col">What</th><th scope="col">Value</th><th scope="col">Where in the file</th></tr></thead><tbody><tr><td>Bar (strip plus tree)</td><td>246 px tall (min 90, max 1400)</td><td><code>bar</code> node, <code>size.px</code></td></tr><tr><td>Strip</td><td>26 px</td><td><code>bar-strip</code> node</td></tr><tr><td>Tab bar</td><td>42 px</td><td><code>tabs</code> node</td></tr><tr><td>Status line</td><td>28 px</td><td><code>status</code> node</td></tr><tr><td>Side panel</td><td>368 px wide (min 280, max 1600), hidden until opened</td><td><code>panel</code> node</td></tr><tr><td>Pane header</td><td>30 px</td><td><code>main</code> block, <code>pane.header.height</code></td></tr><tr><td>Pane frame</td><td>radius 10, gap 8, border 1 px, focus ring 1 px accent</td><td><code>main</code> block, <code>pane</code></td></tr><tr><td>Work area padding</td><td>8 px, gap 8</td><td><code>work-body</code> node</td></tr><tr><td>Terminal padding</td><td>14 px horizontal, 12 px vertical</td><td>root, <code>terminal_padding</code></td></tr></tbody></table></div>
+<p>Each tree column needs at least 290 px of width (constant <code>MIN_COL</code> in <code>portrait-tree</code>); with a tall strip and many spaces, drag the divider under the bar or fold spaces you do not need.</p>
+
+<h2 id="keys">Keys</h2>
+<p>The repository's <code>keys.json</code>, row for row. Keys with <kbd>cmd</kbd> are for macOS; the <kbd>ctrl-shift</kbd> ones work everywhere. The bell's tooltip prints the key actually bound for <code>bar-strip.attention</code> on your machine.</p>
+<div class="scroll" role="region" aria-label="Section table" tabindex="0"><table><thead><tr><th scope="col">Section</th><th scope="col">Key</th><th scope="col">Action</th><th scope="col">What it does</th></tr></thead><tbody><tr><td><code>layout:portrait</code></td><td><kbd>ctrl-shift-g</kbd></td><td><code>layout.toggle:bar</code></td><td>Show or hide the bar (strip and space tree)</td></tr><tr><td><code>layout:portrait</code></td><td><kbd>cmd-b</kbd></td><td><code>layout.toggle:bar</code></td><td>macOS alias of the bar toggle. It is also Herdr's macOS default for the sidebar toggle, which these layouts have no node for, so the layout section re-points it</td></tr><tr><td><code>layout:portrait</code></td><td><kbd>ctrl-shift-y</kbd></td><td><code>layout.switch:portrait-bottom</code></td><td>Switch to portrait-bottom (bar between the work area and the status line)</td></tr><tr><td><code>layout:portrait</code></td><td><kbd>ctrl-shift-j</kbd></td><td><code>bar-strip.attention</code></td><td>Open the Agents waiting list, with its search box</td></tr><tr><td><code>layout:portrait-bottom</code></td><td><kbd>ctrl-shift-g</kbd></td><td><code>layout.toggle:bar</code></td><td>Show or hide the bar (strip and space tree)</td></tr><tr><td><code>layout:portrait-bottom</code></td><td><kbd>cmd-b</kbd></td><td><code>layout.toggle:bar</code></td><td>macOS alias of the bar toggle. It is also Herdr's macOS default for the sidebar toggle, which these layouts have no node for, so the layout section re-points it</td></tr><tr><td><code>layout:portrait-bottom</code></td><td><kbd>ctrl-shift-y</kbd></td><td><code>layout.switch:portrait</code></td><td>Switch to the portrait layout (bar on top)</td></tr><tr><td><code>layout:portrait-bottom</code></td><td><kbd>ctrl-shift-j</kbd></td><td><code>bar-strip.attention</code></td><td>Open the Agents waiting list, with its search box</td></tr></tbody></table></div>
+<p><code>bar-strip.attention</code> is a command for the <code>bar-strip</code> mod. Herdr delivers mod commands only to a copy that is shown, so the key is bound inside the two layout sections and does nothing while the bar is hidden or another layout is showing. <code>bar-strip.jump</code> (what a plain click on the bell does) is not bound; bind it yourself the same way if you want a key for it.</p>
+<p>To rebind, change the key on the left in your own <code>keys.json</code>. If you rename a layout, rename its section (<code>layout:&lt;name&gt;</code>) too.</p>
+
+<h3 id="tmux">Optional: tmux-style chords</h3>
+<p>If you like a prefix, this set uses <kbd>ctrl-b</kbd> then a letter. It is not shipped because a bound <kbd>ctrl-b</kbd> prefix takes <kbd>ctrl-b</kbd> away from the programs in your terminals (readline's back-one-character, and tmux's own prefix). Chords are not described in Herdr's written reference; this form is what the author used on macOS with Herdr 0.1.12. After saving, look for <code>keys.error</code> in the Herdr home folder.</p>
+<pre><code>{
+  "layout:portrait": {
+    "ctrl-b a": "bar-strip.attention",
+    "ctrl-b b": "layout.toggle:bar",
+    "ctrl-b shift-b": "layout.switch:portrait-bottom"
+  },
+  "layout:portrait-bottom": {
+    "ctrl-b a": "bar-strip.attention",
+    "ctrl-b b": "layout.toggle:bar",
+    "ctrl-b shift-b": "layout.switch:portrait"
+  }
+}</code></pre>
+
+<h2 id="vault">Vault panel</h2>
+<p>Add-on, off by default. Both are needed: the <code>vault</code> mod installed in <code>mods/</code> (the strip looks for <code>mods/vault/main.js</code> and publishes the result as the shared key <code>mods.vault</code>), and a <code>vault</code> node in the layout's <code>panel-body</code> stack. With both, you get the Vault button, a Vault tab in the side panel, remembered per space, and note rows for the vault reader's panes in the tree and pane headers. With either missing, none of those appear and nothing errors.</p>
+<p>To add it, paste <code>snippets/vault-panel.json</code> into the <code>children</code> of <code>panel-body</code> in each layout you use (it is the same object in both).</p>
+
+<h2 id="renaming">Renaming</h2>
+<p>If you rename a layout or mod, see <a href="for-agents.html#rename">the rename checklist</a>.</p>
+</main>
+<footer class="site"><div class="inner">
+<p>Apache-2.0. Source and issues: <a href="https://github.com/miguelalexanderdiaz/herdr-portrait-layout">github.com/miguelalexanderdiaz/herdr-portrait-layout</a>. Written for humans and for agents: see <a href="for-agents.html">For agents</a> and <a href="llms.txt">llms.txt</a>.</p>
+</div></footer>
+</body>
+</html>

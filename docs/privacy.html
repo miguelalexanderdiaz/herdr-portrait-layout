@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Privacy - Portrait layout for Herdr</title>
+<meta name="description" content="Exactly what the portrait layout reads, runs, stores and writes. It uses no network.">
+<link rel="stylesheet" href="assets/site.css">
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="site"><div class="inner">
+<a class="brand" href="index.html">Portrait layout for Herdr</a>
+<nav class="site" aria-label="Documentation"><ul><li><a href="index.html">Overview</a></li><li><a href="install.html">Install</a></li><li><a href="usage.html">Usage</a></li><li><a href="configuration.html">Configuration</a></li><li><a href="platforms.html">Platforms</a></li><li><a href="privacy.html" aria-current="page">Privacy</a></li><li><a href="how-it-works.html">How it works</a></li><li><a href="troubleshooting.html">Troubleshooting</a></li><li><a href="for-agents.html">For agents</a></li></ul></nav>
+</div></header>
+<main id="main">
+<h1>Privacy and side effects</h1>
+<p class="lead">Nothing in this repository uses the network: no <code>fetch</code>, no socket, no telemetry. Nothing leaves your machine because of this layout. What follows is everything the mods read, run and write, so you can decide before installing.</p>
+
+<div class="scroll" role="region" aria-label="Privacy table" tabindex="0"><table>
+<thead><tr><th scope="col">Mod</th><th scope="col">Reads</th><th scope="col">Runs</th><th scope="col">Writes or stores</th><th scope="col">Where to check</th></tr></thead>
+<tbody>
+<tr><td><strong>bar-strip</strong></td><td>Agent list and status, layout tree, shared keys, whether an app update is ready. With the Vault gate: whether the file <code>mods/vault/main.js</code> exists in the Herdr home folder (existence only).</td><td>Nothing. Opens Herdr's own dialogs and runs Herdr commands (<code>agent.focus</code>, <code>layout.select</code>, <code>layout.show</code>, <code>layout.hide</code>, <code>mod.open</code>, <code>app.settings</code>).</td><td>Shared key <code>mods.vault</code> (a yes or no).</td><td><code>waiting</code>, <code>attention</code>, <code>picker</code>, <code>render</code></td></tr>
+<tr><td><strong>portrait-tree</strong></td><td>Spaces, tabs, panes, agents and their state, terminal labels (<code>editor.file</code>), shared keys <code>space.colors</code> and <code>vault.panes</code>.</td><td>Nothing.</td><td>Browser-style local storage of the mod: <code>folded</code>, <code>peeked</code> and <code>changed</code> (agent address and the time its state last changed; pruned of agents that are gone). Shared key <code>agents.since</code>. One small SVG per space name under <code>data/portrait-tree-spines/</code> in the Herdr home folder (the rotated name on a folded space; pruned of names that are gone).</td><td><code>track</code>, <code>reveal</code>, <code>spine</code>, <code>spineFile</code></td></tr>
+<tr><td><strong>portrait-tabs</strong></td><td>Spaces, tabs, panes, layout tree, window info.</td><td>Nothing.</td><td>Local storage <code>panels</code>: which side panel each space last had open.</td><td><code>syncPanel</code></td></tr>
+<tr><td><strong>portrait-pane</strong></td><td>The one pane it heads: program, folder, state, zoom.</td><td>Nothing.</td><td>Nothing.</td><td><code>render</code></td></tr>
+<tr><td><strong>portrait-files</strong></td><td>Folder listings of the focused pane's folder (500 entries per folder, 5,000 in all), the git state of that folder, and, on alt-click only, the text of one file (up to 400,000 characters shown).</td><td><code>sh</code> to list a folder (macOS, Linux, remote machines), <code>powershell</code> on a Windows local machine, <code>git rev-parse</code> and <code>git status</code> (read-only flags, no lock), <code>hc run</code> to start nvim, and, through nvim-float, <code>nvim</code> in a terminal Herdr shows.</td><td>A socket file for each nvim it starts, in <code>/tmp</code> on macOS and Linux. Labels on that terminal: <code>editor.file</code> (the full file path), <code>editor.socket</code> and <code>editor.space</code>; <code>hc ls</code> shows them.</td><td><code>directory</code>, <code>refresh</code>, <code>edit</code>, <code>show</code></td></tr>
+<tr><td><strong>nvim-float</strong></td><td>Terminal list and labels, spaces, panes.</td><td><code>sh</code> running <code>nvim --server &hellip; --remote-send</code>, <code>--remote</code> and <code>--remote-expr</code> against the socket of an nvim this layout started.</td><td>Nothing.</td><td><code>nvim</code>, <code>keptEditors</code></td></tr>
+<tr><td><strong>attention-picker (bundled)</strong></td><td>Agent list. While the list is open, the visible screen text of every agent that is blocked or done, read with <code>hc read</code>; only the last question or message line is kept and shown.</td><td><code>hc read</code> every 2 seconds while the list is open.</td><td>Shared key <code>attention.sort</code> (the sort order you picked).</td><td><code>readPreviews</code></td></tr>
+</tbody></table></div>
+
+<h2>What this means in practice</h2>
+<ul>
+<li><strong>Folders.</strong> The Files panel lists the folder of the pane you focus and reads one file's text only when you alt-click it. It does not read file contents otherwise.</li>
+<li><strong>Terminal text.</strong> Only the waiting list reads terminal screens, and only for agents that are blocked or done, and only while the list is open. It keeps one line.</li>
+<li><strong>A visible label.</strong> An nvim started from Files carries labels with the full file path and the socket path. Any program or person who runs <code>hc ls</code> on the same machine can see them.</li>
+<li><strong>Files written.</strong> Spine images under <code>data/portrait-tree-spines/</code> contain your space names and nothing else. nvim removes its socket in <code>/tmp</code> when it exits normally.</li>
+<li><strong>Agents.</strong> The programs you run in terminals do whatever they do. This layout does not add to it.</li>
+</ul>
+
+<h2>How to verify</h2>
+<ul>
+<li>Search the mods for network use: <code>rg -n "fetch|XMLHttpRequest|WebSocket" mods</code> prints nothing. (A search for <code>http</code> finds only the XML namespace string in SVG files and in one SVG template string.)</li>
+<li>List what is run: <code>rg -n "exec\(|hc\(" mods</code>.</li>
+<li>The repository contains scripts that scan every tracked file for home paths, e-mail addresses and tokens (see <a href="https://github.com/miguelalexanderdiaz/herdr-portrait-layout/blob/main/CONTRIBUTING.md">CONTRIBUTING.md</a>).</li>
+</ul>
+<p>For the shorter, structured statement Herdr asks for, see <a href="https://github.com/miguelalexanderdiaz/herdr-portrait-layout/blob/main/RECIPE.md">RECIPE.md</a>.</p>
+</main>
+<footer class="site"><div class="inner">
+<p>Apache-2.0. Source and issues: <a href="https://github.com/miguelalexanderdiaz/herdr-portrait-layout">github.com/miguelalexanderdiaz/herdr-portrait-layout</a>. Written for humans and for agents: see <a href="for-agents.html">For agents</a> and <a href="llms.txt">llms.txt</a>.</p>
+</div></footer>
+</body>
+</html>

@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Overview - Portrait layout for Herdr</title>
+<meta name="description" content="A Herdr layout for vertical (portrait) monitors: spaces as columns, a tab and pane tree, a side panel.">
+<link rel="stylesheet" href="assets/site.css">
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="site"><div class="inner">
+<a class="brand" href="index.html">Portrait layout for Herdr</a>
+<nav class="site" aria-label="Documentation"><ul><li><a href="index.html" aria-current="page">Overview</a></li><li><a href="install.html">Install</a></li><li><a href="usage.html">Usage</a></li><li><a href="configuration.html">Configuration</a></li><li><a href="platforms.html">Platforms</a></li><li><a href="privacy.html">Privacy</a></li><li><a href="how-it-works.html">How it works</a></li><li><a href="troubleshooting.html">Troubleshooting</a></li><li><a href="for-agents.html">For agents</a></li></ul></nav>
+</div></header>
+<main id="main">
+<h1>Portrait layout for Herdr</h1>
+<p class="lead">A <a href="https://herdr.dev">Herdr</a> layout for tall, vertical monitors. Your spaces sit side by side as columns in a strip at the top. Each column is a tree of tabs and panes with the state of every agent. The work area gets the rest of the screen, and a side panel brings Files and Changes when you want them.</p>
+<figure><img class="preview" src="assets/preview.png" alt="Illustration of the portrait layout: a strip of space columns on top, a tab bar, one large terminal area, and a status line at the bottom. The content is made up." width="540"><figcaption>An illustration with made-up content, not a screenshot of anyone's setup.</figcaption></figure>
+
+<h2>What you get</h2>
+<ul class="cards">
+<li><strong>Two layouts</strong>Portrait, with the strip on top, and portrait-bottom, with the strip between the work area and the status line. One key flips between them.</li>
+<li><strong>Space tree</strong>One column per space: its tabs, their panes, every agent with its state and how long it has been in it. Spaces fold into thin strips.</li>
+<li><strong>Bar strip</strong>Search, Add machine, Settings, a bell that says who needs you, and the Files, Changes and (optional) Vault buttons.</li>
+<li><strong>Side panel</strong>Files for the focused pane's folder with git marks; click a file to edit it in a floating nvim (macOS and Linux). Changes is Herdr's own.</li>
+</ul>
+
+<h2>Requirements</h2>
+<ul>
+<li>The Herdr desktop app, 0.1.12 or newer. The layout was built and used on 0.1.12.</li>
+<li><code>git</code> for the change marks in Files (optional), <code>nvim</code> for click-to-edit (optional; macOS and Linux).</li>
+<li>No network access, no account, no package to install. See <a href="privacy.html">Privacy</a> for everything it runs and writes.</li>
+<li>macOS, Linux or Windows. What works where is on <a href="platforms.html">Platforms</a>. It was developed and used on macOS; the other two follow from reading the code, not from a test run.</li>
+</ul>
+
+<h2>Install in one line</h2>
+<p>Tell the agent in your Herdr (or any coding agent that can read and write your Herdr home folder):</p>
+<pre><code>install https://github.com/miguelalexanderdiaz/herdr-portrait-layout</code></pre>
+<p>It follows Herdr's own protocol for shared layouts: it tells you what the mods run, never overwrites, renames on a clash, asks before changing your <code>keys.json</code>, checks each mod, then switches the layout. By hand, step by step, is on <a href="install.html">Install</a>.</p>
+
+<h2>Where next</h2>
+<ul>
+<li><a href="usage.html">Usage</a>: every part of the screen and what clicking it does.</li>
+<li><a href="configuration.html">Configuration</a>: theme, sizes, keys, the Vault panel, renaming.</li>
+<li><a href="how-it-works.html">How it works</a>: the layout tree, the mods, shared state, what is original and what is cloned.</li>
+<li><a href="troubleshooting.html">Troubleshooting</a> and <a href="for-agents.html">For agents</a>.</li>
+</ul>
+</main>
+<footer class="site"><div class="inner">
+<p>Apache-2.0. Source and issues: <a href="https://github.com/miguelalexanderdiaz/herdr-portrait-layout">github.com/miguelalexanderdiaz/herdr-portrait-layout</a>. Written for humans and for agents: see <a href="for-agents.html">For agents</a> and <a href="llms.txt">llms.txt</a>.</p>
+</div></footer>
+</body>
+</html>

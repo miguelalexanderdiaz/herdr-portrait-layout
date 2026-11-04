@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>How it works - Portrait layout for Herdr</title>
+<meta name="description" content="The layout tree, each mod's job, shared state, and what is original, cloned or bundled.">
+<link rel="stylesheet" href="assets/site.css">
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="site"><div class="inner">
+<a class="brand" href="index.html">Portrait layout for Herdr</a>
+<nav class="site" aria-label="Documentation"><ul><li><a href="index.html">Overview</a></li><li><a href="install.html">Install</a></li><li><a href="usage.html">Usage</a></li><li><a href="configuration.html">Configuration</a></li><li><a href="platforms.html">Platforms</a></li><li><a href="privacy.html">Privacy</a></li><li><a href="how-it-works.html" aria-current="page">How it works</a></li><li><a href="troubleshooting.html">Troubleshooting</a></li><li><a href="for-agents.html">For agents</a></li></ul></nav>
+</div></header>
+<main id="main">
+<h1>How it works</h1>
+<p class="lead">A Herdr layout is a JSON tree of regions. Mods are small JavaScript programs that draw into the regions with native GPUI. This repository is two layout files and the mods they use. The build brief is <a href="https://github.com/miguelalexanderdiaz/herdr-portrait-layout/blob/main/RECIPE.md">RECIPE.md</a>; this page is the map.</p>
+
+<h2 id="tree">The layout tree</h2>
+<pre><code>root (row)
+  left (column, resizable divider)
+    bar (column, 246 px high, chrome)   portrait: first child
+      bar-strip   26 px   mod bar-strip
+      tree                mod portrait-tree
+    work (column, fixed)
+      tabs        42 px   mod portrait-tabs   (drags the window)
+      work-body (row, padding 8, gap 8)
+        main              the active tab's panes, header mod portrait-pane
+    bar ...                             portrait-bottom: here, before status
+    status        28 px   shipped mod workspace-status
+  panel (column, 368 px, hidden)
+    panel-body (stack, active: files)
+      files               mod portrait-files
+      changes             shipped mod changes
+      vault               optional, from snippets/vault-panel.json</code></pre>
+<p>The ids <code>bar</code>, <code>panel</code>, <code>panel-body</code> and <code>vault</code> are looked up by the mods and by the toggle key, so they must not change.</p>
+
+<h2 id="mods">The mods</h2>
+<div class="scroll" role="region" aria-label="Mod table" tabindex="0"><table><thead><tr><th scope="col">Mod</th><th scope="col">Job</th><th scope="col">Talks to the others by</th></tr></thead><tbody><tr><td><code>bar-strip</code></td><td>Strip buttons, the bell, the waiting list opener, panel toggles.</td><td><code>layout.select</code>, <code>layout.show</code>, <code>layout.hide</code> on <code>panel-body</code> and <code>panel</code>; opens the <code>attention-picker</code> dialog; command <code>bar-strip.attention</code>.</td></tr><tr><td><code>portrait-tree</code></td><td>Space columns, tab and pane rows, folding, spine names.</td><td>Publishes the shared key <code>agents.since</code> (when each agent got its current state); reads <code>space.colors</code>, <code>vault.panes</code> and terminal labels <code>editor.file</code>.</td></tr><tr><td><code>portrait-tabs</code></td><td>Tab bar and per-space side panel memory.</td><td>Re-selects the panel tab when you switch spaces.</td></tr><tr><td><code>portrait-pane</code></td><td>Pane header.</td><td>-</td></tr><tr><td><code>portrait-files</code></td><td>Files panel, git marks, previews, starting nvim.</td><td><code>hc run</code> with labels; opens the <code>nvim-float</code> window.</td></tr><tr><td><code>nvim-float</code></td><td>Title bar and Keep menu of the floating nvim.</td><td><code>terminal.keep</code>, <code>pane.focus</code>, nvim's remote protocol over the socket.</td></tr><tr><td><code>attention-picker</code></td><td>The Agents waiting dialog.</td><td>Reads <code>agents.since</code>; keeps <code>attention.sort</code>.</td></tr></tbody></table></div>
+
+<h2 id="state">State and where it lives</h2>
+<ul>
+<li><strong>Shared keys</strong> (Herdr keeps them in <code>shared.json</code>): <code>agents.since</code>, <code>attention.sort</code>, <code>mods.vault</code>. Read from Herdr or other mods: <code>space.colors</code>, <code>workspace.panels</code>, <code>vault.panes</code>.</li>
+<li><strong>Mod storage</strong> (per mod, kept by Herdr): fold state and recent state changes in portrait-tree, the per-space panel in portrait-tabs.</li>
+<li><strong>Files</strong>: only <code>data/portrait-tree-spines/*.svg</code> in the Herdr home folder, and nvim sockets under <code>/tmp</code>. Runtime files never go inside a mod folder, because Herdr reloads a mod whenever one of its files changes.</li>
+</ul>
+
+<h2 id="spine">Why folded names are images</h2>
+<p>GPUI elements cannot be rotated, so a folded space's name is written once as a small SVG of rotated text, tinted with the current text colour, and drawn as an image. The first time a name is drawn it is written to disk and the strip redraws a moment later.</p>
+
+<h2 id="reload">Hot reload</h2>
+<p>Herdr reloads a mod when any of its files is saved and keeps the old version if the new one is broken (<code>herdr-app status</code> shows why). A mod copy keeps running while hidden, so timers are conditional: the Files panel refreshes only while open, the waiting list polls only while open, the tree redraws every 30 seconds so its durations stay current.</p>
+
+<h2 id="provenance">Original, cloned, bundled</h2>
+<div class="scroll" role="region" aria-label="Piece table" tabindex="0"><table><thead><tr><th scope="col">Piece</th><th scope="col">Kind</th><th scope="col">Origin</th></tr></thead><tbody><tr><td>layouts <code>portrait</code>, <code>portrait-bottom</code></td><td>Cloned</td><td>Started from Herdr's shipped <code>main</code> layout (0.1.12, <code>cloned_from</code> in the file), then changed heavily.</td></tr><tr><td><code>portrait-tree</code></td><td>Original</td><td>Written for this layout.</td></tr><tr><td><code>bar-strip</code></td><td>Original</td><td>Written for this layout.</td></tr><tr><td><code>nvim-float</code></td><td>Original</td><td>Written for this layout.</td></tr><tr><td><code>portrait-tabs</code></td><td>Cloned</td><td>From Herdr's shipped <code>tabs</code> mod, 0.1.12 (<code>cloned_from</code> in its mod.json), with panel memory and Vault gating added.</td></tr><tr><td><code>portrait-pane</code></td><td>Cloned</td><td>From Herdr's shipped <code>pane</code> mod, 0.1.12.</td></tr><tr><td><code>portrait-files</code></td><td>Cloned</td><td>From Herdr's shipped <code>files</code> mod, 0.1.12, with click-to-edit in nvim, git marks and caps added.</td></tr><tr><td><code>attention-picker</code></td><td>Bundled copy</td><td>Canonical source: the herdr-agents-waiting repository. This copy is synced by the maintainer; change it there, not here.</td></tr></tbody></table></div>
+<p>The licence is Apache-2.0 (<a href="https://github.com/miguelalexanderdiaz/herdr-portrait-layout/blob/main/LICENSE">LICENSE</a>); <a href="https://github.com/miguelalexanderdiaz/herdr-portrait-layout/blob/main/NOTICE">NOTICE</a> lists the cloned and bundled parts and the icons.</p>
+
+<h2 id="needs">What it needs from Herdr</h2>
+<div class="scroll" role="region" aria-label="Needs table" tabindex="0"><table><thead><tr><th scope="col">Needs</th><th scope="col">Used by</th><th scope="col">If it is gone</th></tr></thead><tbody><tr><td><code>workspace-status</code> (shipped mod)</td><td>Layout: the 28 px status line.</td><td>The status line is empty.</td></tr><tr><td><code>changes</code> (shipped mod)</td><td>Layout: the Changes tab of the side panel.</td><td>That tab is empty.</td></tr><tr><td><code>picker</code> (shipped overlay)</td><td>bar-strip: the Search button.</td><td>Search does nothing.</td></tr><tr><td><code>machine-add</code> (shipped overlay)</td><td>bar-strip: the Add machine button.</td><td>The button does nothing.</td></tr><tr><td><code>menu</code> and <code>new-menu</code> (shipped overlays)</td><td>portrait-tree and portrait-tabs: right-click menus and the + button.</td><td>Menus and + do nothing.</td></tr><tr><td>Theme colors (<code>chrome</code>, <code>canvas</code>, <code>raised</code>, <code>hover</code>, <code>selected</code>, <code>border</code>, <code>accent</code>, <code>working</code>, <code>blocked</code>, <code>done</code>, <code>idle</code>)</td><td>Everything. Any Herdr theme has them.</td><td>Not applicable: every theme defines them.</td></tr><tr><td><code>hc</code> (herdr-core) and <code>nvim</code> on the login shell's PATH</td><td>Click-to-edit in portrait-files, the waiting list's previews.</td><td>Files: &ldquo;Couldn't open nvim&rdquo;. The waiting list shows no question text.</td></tr></tbody></table></div>
+<p>Icons are carried inside each mod's folder, so a change to Herdr's own asset names does not break them. After a Herdr update, run <code>herdr-app check</code> on each mod again; the three cloned mods are copies of the 0.1.12 versions and are not updated by Herdr.</p>
+</main>
+<footer class="site"><div class="inner">
+<p>Apache-2.0. Source and issues: <a href="https://github.com/miguelalexanderdiaz/herdr-portrait-layout">github.com/miguelalexanderdiaz/herdr-portrait-layout</a>. Written for humans and for agents: see <a href="for-agents.html">For agents</a> and <a href="llms.txt">llms.txt</a>.</p>
+</div></footer>
+</body>
+</html>
