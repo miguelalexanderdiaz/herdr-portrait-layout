@@ -76,15 +76,10 @@ fails("a plain ctrl letter", "validate", (s) => s.json("keys.json", (k) => { k["
 fails("ctrl+alt", "validate", (s) => s.json("keys.json", (k) => { k["layout:portrait"]["ctrl-alt-x"] = "layout.toggle:bar"; }), /ctrl\+alt/);
 fails("a chord Herdr already binds", "validate", (s) => s.json("keys.json", (k) => { k["layout:portrait"]["alt-shift-h"] = "layout.toggle:bar"; }), /Herdr already binds/);
 fails("an unknown action", "validate", (s) => s.json("keys.json", (k) => { k["layout:portrait"]["ctrl-shift-u"] = "no.such.command"; }), /not a Herdr command/);
-fails("the chord of the standalone picker", "validate", (s) => s.json("keys.json", (k) => { k["layout:portrait"]["ctrl-shift-a"] = "mod.open:attention-picker"; }), /standalone attention-picker/);
 fails("a layout without its keys section", "validate", (s) => s.json("keys.json", (k) => { delete k["layout:portrait-bottom"]; }), /no "layout:portrait-bottom" section/);
 
 // ---- layouts
 fails("a theme pinned in a layout", "validate", (s) => s.json("layouts/portrait.json", (l) => { l.theme = { dark: "graphite" }; }), /pins the look/);
-fails("a vault node in a layout", "validate", (s) => s.json("layouts/portrait.json", (l) => {
-  const find = (node) => node.id === "panel-body" ? node : (node.children ?? []).map(find).find(Boolean);
-  find(l).children.push({ id: "vault", type: "block", content: { mod: "vault" } });
-}), /vault child belongs in snippets/);
 fails("a renamed layout file (preview and keys no longer match)", "validate", (s) => renameSync(s.file("layouts/portrait.json"), s.file("layouts/portrait-top.json")), /"preview" must be "layouts\/portrait-top\.svg"/);
 fails("portrait-bottom drifting from portrait", "validate", (s) => s.json("layouts/portrait-bottom.json", (l) => { l.background = "chrome"; }), /portrait-bottom differs/);
 fails("portrait-bottom with its keys in another order", "validate", (s) => s.json("layouts/portrait-bottom.json", (l) => { const bg = l.background; delete l.background; l.background = bg; }), /another order/);
@@ -109,7 +104,7 @@ fails("a bundled file that went missing", "validate", (s) => rmSync(s.file("mods
 fails("an installed CI file that differs from the template", "validate", (s) => s.write(".github/workflows/ci.yml", "name: other\n"), /ci\.yml differs from scripts\/ci\.workflow\.yml/);
 fails("a file the Herdr app writes into a mod folder", "validate", (s) => s.write("mods/bar-strip/gpui-kit.d.ts", "// written by the app\n"), /must not be committed/);
 fails("a mod that loads another mod's icon", "validate", (s) => appendFileSync(s.file("mods/nvim-float/main.js"), '\nconst leak = "mods/workspace-chrome/spinner.svg";\n'), /not in this repo/);
-fails("the Obsidian logo", "validate", (s) => s.write("mods/portrait-pane/obsidian.png", "x"), /Obsidian logo/);
+fails("a mod that loads an icon of a mod that is not shipped here", "validate", (s) => appendFileSync(s.file("mods/bar-strip/main.js"), '\nconst leak = "mods/some-addon/icons/book.svg";\n'), /not in this repo/);
 
 // ---- RECIPE
 fails("swapped RECIPE sections", "check-recipe", (s) => {
@@ -175,7 +170,7 @@ fails("llms.txt differing from its copy", "check-docs", (s) => appendFileSync(s.
 // ---- docs: keys table, privacy page, Pages address
 fails("a keys row in README that keys.json does not have", "check-docs", (s) => s.write("README.md", s.read("README.md").replace("| `layout.toggle:bar` | Show", "| `layout.toggle:nothing` | Show")), /README\.md: the keys table has a row "[^"]*layout\.toggle:nothing"/);
 fails("a keys row missing from docs/configuration.html", "check-docs", (s) => s.write("docs/configuration.html", s.read("docs/configuration.html").replace(/<tr><td><code>layout:portrait-bottom<\/code><\/td><td><kbd>cmd-b<\/kbd>.*?<\/tr>/, "")), /docs\/configuration\.html: the keys table needs exactly one row "layout:portrait-bottom \| cmd-b \| layout\.toggle:bar"/);
-fails("a 'Where to check' name that is not in any mod", "check-docs", (s) => s.edit("docs/privacy.html", "<code>probeVault</code>", "<code>noSuchFunction</code>"), /names `noSuchFunction`/);
+fails("a 'Where to check' name that is not in any mod", "check-docs", (s) => s.edit("docs/privacy.html", "<code>keyHint</code>", "<code>noSuchFunction</code>"), /names `noSuchFunction`/);
 fails("a mod missing from the privacy page", "check-docs", (s) => s.write("docs/privacy.html", s.read("docs/privacy.html").replaceAll("nvim-float", "nvim-flat")), /docs\/privacy\.html does not describe the mod nvim-float/);
 fails("a Pages address of some other owner", "check-docs", (s) => appendFileSync(s.file("README.md"), "\nSee https://zebra.github.io/elsewhere/ for more.\n"), /zebra\.github\.io\/elsewhere/);
 fails("a Pages address in a file that may not carry one", "check-docs", (s) => {

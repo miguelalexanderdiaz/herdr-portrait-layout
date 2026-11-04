@@ -21,14 +21,14 @@ Modified copies (all taken from Herdr 0.1.12):
   layouts/portrait.json            from the layout `main`
   layouts/portrait-bottom.json     from the layout `main`
       Changes: new node tree (a full-width bar of space columns above or below the work area, a tab strip, a hidden
-      right panel with Files and Changes); the sidebar, the Spaces and Agents lists and the Vault child removed; no theme
-      pinned; root `preview` field added.
+      right panel with Files and Changes); the sidebar and the Spaces and Agents lists removed; no theme pinned; root
+      `preview` field added.
   mods/portrait-tabs/             from the mod `tabs`
       Changes: the Files and Changes buttons moved to mods/bar-strip; the per-space memory of the right panel kept
-      here; the optional Vault panel allowed; icons copied into the mod; assets renamed to the new folder.
+      here; icons copied into the mod; assets renamed to the new folder.
   mods/portrait-pane/             from the mod `pane`
-      Changes: shows a note's name and folder for panes of the optional Vault reader; icons copied into the mod; assets
-      renamed to the new folder.
+      Changes: a mod's pane without a title is named after its mod; icons copied into the mod; assets renamed to the
+      new folder.
   mods/portrait-files/            from the mod `files`
       Changes: a click on a file opens it in nvim in a floating window (mods/nvim-float) instead of a preview, with
       the read-only preview kept for Alt-click and for Windows; a title was added to mod.json.
@@ -57,7 +57,6 @@ texts reproduced in section 3.
   chevron-left.svg                 mods/portrait-tree                                           -> workspace-chrome
   chevron-right.svg                mods/portrait-files, mods/portrait-tree                      -> files, workspace-chrome
   chevron-down.svg                 mods/portrait-files, mods/nvim-float                         -> files, workspace-chrome
-  note.svg                         mods/portrait-tree, mods/portrait-pane                       -> workspace-chrome
   file.svg                         mods/portrait-files, mods/bar-strip                          -> files
   folder.svg                       mods/portrait-files                                          -> files, workspace-chrome
   changes.svg                      mods/bar-strip  (the Changes button)                         -> changes
@@ -121,34 +120,26 @@ are also available under the MIT License:
   SOFTWARE.
 
 
-4. Bundled from another repository of the same author (Apache License 2.0)
------------------------------------------------------------------------
+4. The bundled waiting list (Apache License 2.0)
+-----------------------------------------------
 
   mods/attention-picker/           the "Agents waiting" dialog
 
-  A bundled, unmodified copy of the mod of the same name in the herdr-agents-waiting repository (Apache License 2.0,
-  same copyright holder), at the commit recorded in scripts/bundled.json, which also holds the SHA-256 of every file;
-  `node scripts/validate.mjs` fails if one differs. It is kept in sync from there; edit it there, not here. Its two
-  small pictures (the search glyph and the spinner) are that project's own drawings, made for it, and are not Herdr's
-  files: see that repository's NOTICE. If you already have that mod installed, keep yours.
-
-  mods/portrait-viewer/logic.mjs   part of it
-
-  The platform helpers (opening files, file stamps, finding Poppler, image headers, install hints) are copied
-  unchanged from mods/vault-reader/platform.js of the herdr-obsidian-vault repository (Apache License 2.0, same
-  copyright holder); the picture cache is a trimmed copy of that mod's assets-core.js (pictures and PDF pages only,
-  cached under data/portrait-viewer/cache). The rest of the viewer is original to this repository.
+  An original work of the same copyright holder under the Apache License 2.0, shipped as a frozen copy: the commit it
+  was taken at and the SHA-256 of every file are in scripts/bundled.json, and `node scripts/validate.mjs` fails if one
+  differs. Its two small pictures (the search glyph and the spinner) were drawn for it and are not Herdr's files. If
+  you already have a mod of that name installed, keep yours.
 
 
 5. Original to this repository (Apache License 2.0)
 ---------------------------------------------------
 
-Everything else (mods/portrait-tree, mods/bar-strip, mods/nvim-float, mods/portrait-viewer/main.js, the code changes listed above, RECIPE.md,
-keys.json, snippets/, scripts/, the preview, the layout thumbnails and the feature pictures in docs/assets/pictures/, which show invented content) is original work
+Everything else (mods/portrait-tree, mods/bar-strip, mods/nvim-float, mods/portrait-viewer, the code changes listed above, RECIPE.md,
+keys.json, scripts/, the preview, the layout thumbnails and the feature pictures in docs/assets/pictures/, which show invented content) is original work
 under the Apache License 2.0. That includes the two folding pictures `fold.svg` and `unfold.svg` in mods/portrait-tree,
 which were drawn for this project (they are not copies of any Herdr or Lucide file).
 
-Space and agent names, folders and notes that appear in the preview are made up.
+Space and agent names and folders that appear in the preview are made up.
 
 
 6. Fonts of the documentation site (SIL Open Font License 1.1)
@@ -186,7 +177,7 @@ runs in a pane, as Herdr does.
   claude, codex                    agent icons (LobeHub, MIT; the Claude Code and Codex marks of their owners)
   gemini, nvim                     brand icons (Simple Icons, CC0 1.0)
   shell                            Lucide's terminal glyph (ISC)
-  book-open                        Lucide's book-open glyph (ISC), as the optional Vault mod draws it
+  book-open                        Lucide's book-open glyph (ISC)
 
 The Lucide license is reproduced in section 3. The LobeHub license, also copied as LICENSE-LobeHub.txt (with
 LICENSE-Lucide.txt) next to the icons in scripts/picture-icons/ and next to the pictures in docs/assets/pictures/:
@@ -222,5 +213,3 @@ Simple Icons are dedicated to the public domain (CC0 1.0); no notice is required
 No theme is shipped. The layouts take the colors of whatever theme the person has chosen. The layouts use the fonts
 Herdr ships (Geist, JetBrains Mono); no font files are included for them (the documentation site's fonts are in
 section 6).
-
-The logo of Obsidian is not used or redistributed anywhere in this repository.

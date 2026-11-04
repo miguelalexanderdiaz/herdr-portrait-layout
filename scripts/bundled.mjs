@@ -1,6 +1,6 @@
 #!/usr/bin/env node
-// Writes the manifest scripts/bundled.json for the bundled copy mods/attention-picker. It fetches nothing: after syncing
-// the folder from the herdr-agents-waiting repository, review the diff of the folder and run
+// Writes the manifest scripts/bundled.json for the bundled copy mods/attention-picker. It fetches nothing: after taking
+// a new version of the folder, review its diff and run
 //
 //   node scripts/bundled.mjs <commit of the synced branch>
 //
@@ -16,15 +16,14 @@ const args = process.argv.slice(2);
 const print = args.includes("--print");
 const ref = args.find((a) => !a.startsWith("--")) ?? previous.ref;
 if (!/^[0-9a-f]{40}$/.test(ref ?? "")) {
-  console.error("usage: node scripts/bundled.mjs <40-character commit of herdr-agents-waiting that was synced>");
+  console.error("usage: node scripts/bundled.mjs <40-character commit the folder was taken from>");
   process.exit(2);
 }
 const files = {};
 // gpui-kit.d.ts and jsconfig.json are written into mod folders by the Herdr app (herdr-app check); they are not part of the copy.
 for (const name of readdirSync(abs(DIR)).sort().filter((n) => n !== "gpui-kit.d.ts" && n !== "jsconfig.json")) files[posix(`${DIR}/${name}`)] = sha256(`${DIR}/${name}`);
 const manifest = {
-  _about: "Hashes (SHA-256 of the text with LF line endings) of the bundled copy mods/attention-picker, synced from the repository named in `source` at `ref`. The copy is read-only here: change it there, sync it, then run `node scripts/bundled.mjs <ref>`. validate.mjs fails when a file differs, is missing or is new.",
-  source: previous.source ?? "herdr-agents-waiting",
+  _about: "Hashes (SHA-256 of the text with LF line endings) of the bundled copy mods/attention-picker, taken at commit `ref` of its source. The copy is read-only here: take a new version of the whole folder, then run `node scripts/bundled.mjs <ref>`. validate.mjs fails when a file differs, is missing or is new.",
   ref,
   files,
 };

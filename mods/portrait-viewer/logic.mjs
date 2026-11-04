@@ -1,10 +1,8 @@
 // Pure helpers of portrait-viewer (no gpui-kit, no herdr): `node --test` loads this file.
 //
-// The platform part (opening files, file stamps, finding Poppler, image headers, the
-// install hints) is copied unchanged from mods/vault-reader/platform.js of
-// herdr-obsidian-vault, which draws PDFs and pictures the same way; a mod folder must stand
-// alone, so it is a copy. The picture cache at the end is a trimmed copy of that mod's
-// assets-core.js: pictures and PDF pages only, cached under data/portrait-viewer/cache.
+// The platform part comes first (opening files, file stamps, image headers, finding Poppler
+// and the hint to install it), then the picture cache: pictures and PDF pages, drawn under
+// data/portrait-viewer/cache.
 
 // "macos" | "linux" | "windows" (as herdr's window().platform), from any spelling.
 export function normPlatform(p) {
@@ -56,8 +54,8 @@ export function openCommand(platform, target) {
   }
 }
 
-// Files that start a program when the system opens them. A note can link to any file of a vault
-// someone else shared; the reader opens documents, not programs.
+// Files that start a program when the system opens them. The viewer hands documents to the
+// system, never programs.
 const PROGRAM_EXT = /\.(app|command|tool|workflow|action|terminal|scpt|scptd|sh|bash|zsh|fish|csh|bat|cmd|com|exe|msi|msp|scr|pif|ps1|psm1|vbs|vbe|js|jse|wsf|wsh|lnk|url|reg|hta|jar|desktop|appimage|run|bin|pkg|dmg|deb|rpm|apk|py|pl|rb|php)$/i;
 export const canOpen = (file) => !PROGRAM_EXT.test(String(file ?? ""));
 
@@ -218,9 +216,7 @@ export function toolCandidates(platform, name, home) {
       const exe = `${name}.exe`;
       const list = [name, `${h}/scoop/shims/${exe}`, `${h}/AppData/Local/Microsoft/WinGet/Links/${exe}`, `C:/ProgramData/chocolatey/bin/${exe}`,
         `${h}/.volta/bin/${exe}`];
-      if (name === "node") list.push("C:/Program Files/nodejs/node.exe");
       if (name === "pdftoppm" || name === "pdfinfo") list.push(`${h}/scoop/apps/poppler/current/Library/bin/${exe}`, `C:/Program Files/poppler/Library/bin/${exe}`, `C:/Program Files/poppler/bin/${exe}`);
-      if (name === "rg") list.push(`C:/Program Files/ripgrep/${exe}`);
       return list;
     }
     default:
@@ -229,40 +225,14 @@ export function toolCandidates(platform, name, home) {
   }
 }
 
-// Node installed by a version manager: dirs under home whose bin/node may exist.
-export function nodeManagerDirs(platform, home) {
-  const h = normPath(home ?? "");
-  return normPlatform(platform) === "windows"
-    ? [`${h}/AppData/Roaming/nvm`, `${h}/AppData/Local/fnm_multishells`]
-    : [`${h}/.nvm/versions/node`, `${h}/.local/share/fnm/node-versions`, `${h}/.fnm/node-versions`, `${h}/.asdf/installs/nodejs`];
-}
-
-// Highest version folder name first: "v22.14.0" before "v20.11.1".
-export function newestFirst(names) {
-  const key = (n) => (String(n).match(/\d+/g) ?? []).slice(0, 3).map((x) => String(x).padStart(6, "0")).join(".");
-  return [...names].sort((a, b) => key(b).localeCompare(key(a)));
-}
-
 // → path to a working `name`, or null. exec(cmd, args) → { code, stdout } (rejects when it can't start).
-// readdir(dir) → names | rejects, optional: used for Node version managers.
-export async function findTool({ name, platform, home, exec, readdir, via = true }) {
+export async function findTool({ name, platform, home, exec, via = true }) {
   const p = normPlatform(platform);
   const probe = async (bin) => {
     const r = await exec(bin, versionArgs(name)).catch(() => null);
     return r?.code === 0;
   };
   for (const bin of toolCandidates(p, name, home)) if (await probe(bin)) return bin;
-  if (readdir && name === "node") {
-    for (const dir of nodeManagerDirs(p, home)) {
-      const names = await readdir(dir).catch(() => []);
-      for (const v of newestFirst(names)) {
-        const nested = p === "windows" ? `${dir}/${v}/node.exe` : `${dir}/${v}/bin/node`;
-        if (await probe(nested)) return nested;
-        const flat = `${dir}/${v}/installation/bin/node`;
-        if (p !== "windows" && await probe(flat)) return flat;
-      }
-    }
-  }
   if (via) {
     // The system's own lookup: where.exe on Windows; on macOS/Linux the person's login shell,
     // which has the PATH their terminal has (nvm, Homebrew, mise ...).
@@ -289,27 +259,17 @@ export function makeToolFinder(opts) {
   };
 }
 
-// Node 22.4 or newer: "v22.14.0" → true. render.mjs needs the global WebSocket, which Node 22 only has
-
 const HINTS = {
-  rg: { macos: "brew install ripgrep", linux: "install ripgrep with your package manager (for example: apt install ripgrep)", windows: "winget install BurntSushi.ripgrep.MSVC" },
   poppler: { macos: "brew install poppler", linux: "install poppler-utils with your package manager (for example: apt install poppler-utils)", windows: "scoop install poppler" },
-  node: { macos: "brew install node", linux: "install Node.js 22.4 or newer (nodejs.org, or your package manager)", windows: "winget install OpenJS.NodeJS" },
-  curl: { macos: "curl ships with macOS", linux: "install curl with your package manager (for example: apt install curl)", windows: "curl ships with Windows 10 and newer" },
-  browser: { macos: "install Google Chrome, Chromium, Brave or Microsoft Edge", linux: "install Chrome, Chromium, Brave or Microsoft Edge", windows: "Microsoft Edge is built into Windows; or install Chrome or Brave" },
-  obsidian: { macos: "install the Obsidian app (obsidian.md)", linux: "install the Obsidian app (obsidian.md)", windows: "install the Obsidian app (obsidian.md)" },
 };
 
-// → "<what> isn't installed: <hint>" for the UI. what: rg | poppler | node | curl | browser | obsidian.
+// → "<what> isn't installed: <hint>" for the UI. what: poppler.
 export function missingMessage(platform, what) {
-  const names = { rg: "ripgrep (rg)", poppler: "Poppler (pdftoppm, pdfinfo)", node: "Node.js 22.4 or newer", curl: "curl", browser: "A Chromium-based browser", obsidian: "The Obsidian app" };
+  const names = { poppler: "Poppler (pdftoppm, pdfinfo)" };
   const hint = HINTS[what]?.[normPlatform(platform)] ?? "";
-  const lead = what === "browser" || what === "obsidian" ? `${names[what]} wasn't found` : `${names[what] ?? what} isn't installed`;
+  const lead = `${names[what] ?? what} isn't installed`;
   return hint ? `${lead}: ${hint}` : lead;
 }
-
-// What the renderer (render/render.mjs) can fail with → one plain sentence, never a path or raw JSON.
-// err: { error: kind | message } from the renderer's JSON, or a thrown message.
 
 // ---- the picture cache ---------------------------------------------------------------
 // image() only loads files under the app's folder, so a picture is copied there first and a
@@ -371,7 +331,7 @@ export function createViewer(deps) {
   const platform = normPlatform(deps.platform);
   const now = deps.now ?? (() => Date.now());
   const abs = (rel) => `${appHome}/${rel}`;
-  const tool = makeToolFinder({ platform, home, exec, readdir: fs.readdir, now });
+  const tool = makeToolFinder({ platform, home, exec, now });
   let ready = false;
   const ensureDir = async () => {
     if (ready) return;
