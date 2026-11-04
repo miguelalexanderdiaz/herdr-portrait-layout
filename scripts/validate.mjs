@@ -1,0 +1,253 @@
+#!/usr/bin/env node
+// Structure checks for the layout and its mods. Run from anywhere: node scripts/validate.mjs
+//   - every JSON file parses
+//   - mod.json: only known fields, a main.js next to it, no editor files committed
+//   - layouts: node rules, unique ids, every `content.mod` resolvable, load-bearing ids present,
+//     no theme or font pinned, preview files exist, portrait-bottom = portrait with the left column reordered
+//   - snippets: still fit into the layouts
+//   - keys.json: known commands, valid sections, no duplicate chord, nothing Herdr already binds,
+//     nothing a terminal program needs, no ctrl-alt (AltGr)
+//   - mod sources: asset paths resolve inside the repo, `mod` names resolve, load-bearing names of RECIPE.md exist
+import { canonical, exists, json, layoutNames, modFolders, nodes, posix, read, reporter, repoFiles } from "./lib.mjs";
+
+const r = reporter("validate");
+const files = repoFiles();
+
+// ---- 1. JSON parses
+for (const f of files.filter((f) => f.endsWith(".json"))) {
+  try { JSON.parse(read(f)); } catch (e) { r.error(`${f}: invalid JSON (${e.message})`); }
+}
+
+// ---- 2. mods
+const MOD_KEYS = new Set(["place", "title", "overlay", "focusable", "size", "cloned_from"]);
+const PLACES = new Set(["right", "left", "top", "bottom", "none"]);
+const mods = modFolders();
+const external = json("scripts/shipped-mods.json");
+for (const m of mods) {
+  r.check(exists(`mods/${m}/main.js`), `mods/${m}: main.js is missing`);
+  if (!r.check(exists(`mods/${m}/mod.json`), `mods/${m}: mod.json is missing`)) continue;
+  const mj = json(`mods/${m}/mod.json`);
+  for (const k of Object.keys(mj)) r.check(MOD_KEYS.has(k), `mods/${m}/mod.json: unknown field "${k}" (known: ${[...MOD_KEYS].join(", ")})`);
+  r.check(PLACES.has(mj.place), `mods/${m}/mod.json: "place" must be one of ${[...PLACES].join(", ")}`);
+  r.check(typeof mj.title === "string" && mj.title.length > 0, `mods/${m}/mod.json: "title" is missing`);
+  if (mj.cloned_from) r.check(typeof mj.cloned_from.name === "string" && /^\d+\.\d+\.\d+/.test(mj.cloned_from.version ?? ""), `mods/${m}/mod.json: cloned_from needs {name, version}`);
+}
+for (const f of files) {
+  const base = f.split("/").pop();
+  r.check(base !== "gpui-kit.d.ts" && base !== "jsconfig.json", `${f}: written by the Herdr app into mod folders, must not be committed`);
+}
+
+// ---- 3. layouts
+const NODE_TYPES = new Set(["block", "row", "column", "stack"]);
+const FORBIDDEN_ROOT = ["theme", "colors", "font", "font_size", "ui_font"];
+const REQUIRED_IDS = ["root", "left", "bar", "bar-strip", "tree", "work", "tabs", "main", "status", "panel", "panel-body", "files", "changes"];
+const mine = new Set(mods);
+const shipped = new Set(external.shipped);
+const optional = new Set(external.optional);
+const names = layoutNames();
+const layouts = {};
+for (const n of names) {
+  const f = `layouts/${n}.json`;
+  const root = (layouts[n] = json(f));
+  const ids = new Set();
+  for (const { node, parent } of nodes(root)) {
+    r.check(typeof node.id === "string" && /^[a-z][a-z0-9-]*$/.test(node.id), `${f}: node without a clean id (${JSON.stringify(node.id)})`);
+    r.check(!ids.has(node.id), `${f}: duplicate id "${node.id}"`);
+    ids.add(node.id);
+    r.check(NODE_TYPES.has(node.type), `${f}: ${node.id} has unknown type "${node.type}"`);
+    if (node.size !== undefined) r.check(Number.isFinite(node.size.px) || Number.isFinite(node.size.weight), `${f}: ${node.id} size must be {px} or {weight}`);
+    if (node.type === "block") {
+      const c = node.content ?? {};
+      const kinds = ["mod", "terminal", "tab", "agent"].filter((k) => c[k] !== undefined);
+      r.check(kinds.length === 1, `${f}: block ${node.id} needs exactly one of content.mod/terminal/tab/agent`);
+      for (const mod of [c.mod, c.pane?.header?.content?.mod].filter(Boolean)) {
+        r.check(mine.has(mod) || shipped.has(mod), `${f}: ${node.id} uses mod "${mod}", which is neither in mods/ nor on the shipped list in scripts/shipped-mods.json`);
+      }
+    } else {
+      r.check(Array.isArray(node.children) && node.children.length > 0, `${f}: ${node.type} ${node.id} needs children`);
+    }
+    if (node.type === "stack" && node.active) r.check((node.children ?? []).some((c) => c.id === node.active), `${f}: stack ${node.id} active "${node.active}" is not a child`);
+  }
+  for (const k of FORBIDDEN_ROOT) r.check(root[k] === undefined, `${f}: root "${k}" pins the look; the layout must follow the person's settings (decision D5)`);
+  for (const id of REQUIRED_IDS) r.check(ids.has(id), `${f}: required id "${id}" is missing`);
+  r.check(!ids.has("vault"), `${f}: the vault child belongs in snippets/vault-panel.json, not in the layout (decision D6)`);
+  if (root.preview) r.check(exists(root.preview), `${f}: preview "${root.preview}" does not exist`);
+  else r.error(`${f}: root "preview" is missing`);
+  if (root.cloned_from) r.check(typeof root.cloned_from.name === "string" && root.cloned_from.version, `${f}: cloned_from needs {name, version}`);
+}
+// portrait-bottom must be portrait with the left column reordered, so the variants cannot drift.
+if (layouts.portrait && layouts["portrait-bottom"]) {
+  const norm = (l) => {
+    const c = structuredClone(l);
+    delete c.preview;
+    const left = c.children.find((n) => n.id === "left");
+    left.children.sort((a, b) => a.id.localeCompare(b.id));
+    return JSON.stringify(canonical(c));
+  };
+  r.check(norm(layouts.portrait) === norm(layouts["portrait-bottom"]), "layouts: portrait-bottom differs from portrait by more than the order of the left column's children");
+}
+
+// ---- 4. snippets
+if (exists("snippets/vault-panel.json")) {
+  const s = json("snippets/vault-panel.json");
+  r.check(s.id === "vault" && s.type === "block" && s.content?.mod === "vault", "snippets/vault-panel.json: must be the block {id: vault, content: {mod: vault}}");
+  r.check(optional.has(s.content?.mod), "snippets/vault-panel.json: its mod must be listed under 'optional' in scripts/shipped-mods.json");
+  for (const [n, l] of Object.entries(layouts)) {
+    const ids = new Set([...nodes(l)].map((x) => x.node.id));
+    r.check(!ids.has(s.id), `snippets/vault-panel.json: id "${s.id}" already exists in layouts/${n}.json`);
+    r.check(ids.has("panel-body"), `snippets/vault-panel.json: layouts/${n}.json has no stack "panel-body" to receive it`);
+  }
+} else r.error("snippets/vault-panel.json is missing");
+
+// ---- 5. keys.json
+const commands = json("scripts/commands.json").commands;
+const defaults = json("scripts/default-keys.json");
+const keysRaw = read("keys.json");
+const keys = JSON.parse(keysRaw);
+const RESERVED_NOTE = "programs rely on plain ctrl+letters (c d l r w a e u k z [ and the rest)";
+const MODS = ["ctrl", "shift", "alt", "cmd"];
+function parseToken(tok) {
+  const m = new Set();
+  let rest = tok;
+  for (;;) {
+    const hit = MODS.find((x) => rest.startsWith(x + "-") && rest.length > x.length + 1);
+    if (!hit) break;
+    m.add(hit);
+    rest = rest.slice(hit.length + 1);
+  }
+  return { mods: m, key: rest };
+}
+const normChord = (c) => c.split(" ").map((t) => { const p = parseToken(t); return [...MODS.filter((x) => p.mods.has(x)), p.key].join("-"); }).join(" ");
+// Chords the repo overrides on purpose inside layout sections; each needs its reason here.
+const OVERRIDES = { "cmd-b": "macOS default for layout.toggle:sidebar; the portrait layouts have no sidebar, so the layout section re-points it at the bar" };
+const defaultChords = new Set(Object.values({ ...defaults.linux_windows, ...defaults.macos }).flat().concat(Object.values(defaults.linux_windows).flat(), Object.values(defaults.macos).flat()).map(normChord));
+// Duplicate keys inside one section (JSON.parse keeps the last silently).
+function duplicates(raw) {
+  const out = [];
+  let depth = 0, section = null, i = 0, last = null;
+  const seen = {};
+  while (i < raw.length) {
+    const ch = raw[i];
+    if (ch === '"') {
+      let j = i + 1, s = "";
+      while (raw[j] !== '"') { s += raw[j] === "\\" ? raw[++j] : raw[j]; j++; }
+      i = j + 1;
+      let k = i; while (/\s/.test(raw[k])) k++;
+      if (raw[k] === ":") { if (depth === 1) section = s; else if (depth === 2) { const key = `${section}\0${s}`; if (seen[key]) out.push(`${section}: ${s}`); seen[key] = true; } }
+      last = s; continue;
+    }
+    if (ch === "{") depth++;
+    if (ch === "}") depth--;
+    i++;
+  }
+  return out;
+}
+for (const d of duplicates(keysRaw)) r.error(`keys.json: duplicate chord (${d})`);
+for (const [section, map] of Object.entries(keys)) {
+  const layoutSection = /^layout:(.+)$/.exec(section);
+  if (layoutSection) r.check(names.includes(layoutSection[1]), `keys.json: section "${section}" has no layouts/${layoutSection[1]}.json`);
+  else if (/^mod:(.+)$/.test(section)) r.check(mine.has(section.slice(4)), `keys.json: section "${section}" names a mod that is not in mods/`);
+  else r.check(section === "global" || section === "terminal", `keys.json: unknown section "${section}"`);
+  for (const [chord, action] of Object.entries(map)) {
+    const where = `keys.json ${section} "${chord}"`;
+    const tokens = chord.split(" ");
+    const parsed = tokens.map(parseToken);
+    r.check(parsed.every((p) => p.key.length > 0), `${where}: not a chord`);
+    for (const p of parsed) {
+      r.check(!(p.mods.has("ctrl") && p.mods.has("alt")), `${where}: ctrl+alt is AltGr on Windows and types characters`);
+      r.check(!(p.mods.has("alt") && !p.mods.has("ctrl") && !p.mods.has("cmd") && /^[a-z0-9]$/.test(p.key) && !p.mods.has("shift")), `${where}: option/alt plus a letter or digit types characters on many keyboards`);
+    }
+    const p0 = parsed[0];
+    r.check(!(p0.mods.size === 1 && p0.mods.has("ctrl") && p0.key.length === 1), `${where}: a plain ctrl+key is the terminal program's (${RESERVED_NOTE})`);
+    r.check(tokens.length === 1, `${where}: multi-key chords make their first key a prefix that is stolen from every terminal program`);
+    const n = normChord(chord);
+    if (defaultChords.has(n)) r.check(Boolean(OVERRIDES[n]) && Boolean(layoutSection), `${where}: Herdr already binds this chord (scripts/default-keys.json)`);
+    // action
+    const name = String(action).split(":")[0];
+    if (action === "terminal" || String(action).startsWith("send:")) continue;
+    if (commands[name]) continue;
+    const dot = name.indexOf(".");
+    if (dot > 0 && mine.has(name.slice(0, dot))) continue;
+    r.error(`${where}: action "${action}" is not a Herdr command (scripts/commands.json) nor <mod>.<command> of a mod in mods/`);
+  }
+}
+// bar-strip.attention only reaches a shown bar-strip: bind it in the layout sections, never global, and not on the
+// chord the standalone attention-picker repo uses for mod.open:attention-picker.
+for (const [section, map] of Object.entries(keys)) {
+  for (const [chord, action] of Object.entries(map)) {
+    if (String(action).startsWith("bar-strip.")) r.check(section.startsWith("layout:"), `keys.json ${section} "${chord}": ${action} is only delivered to a shown copy; bind it in a layout: section`);
+    if (normChord(chord) === "ctrl-shift-a") r.error(`keys.json ${section}: ctrl-shift-a is taken by the standalone attention-picker repo`);
+  }
+}
+for (const n of names) r.check(Boolean(keys[`layout:${n}`]), `keys.json: no "layout:${n}" section (the toggle and switch chords)`);
+
+// ---- 6. mod sources
+const OPTIONAL_ICON = new Set(external.tolerated_assets.optional_assets);
+const jsFiles = files.filter((f) => /^mods\/[^/]+\/.+\.(js|mjs)$/.test(f));
+const idRefs = new Map(); // layout ids that code looks up
+// Ids the code probes for but a layout may lack: the opt-in vault panel, and the sidebar of the cloned tabs mod.
+const OPTIONAL_IDS = new Set(["vault", "sidebar"]);
+for (const f of jsFiles) {
+  const mod = f.split("/")[1];
+  const src = read(f);
+  for (const m of src.matchAll(/[`"'](mods\/[^`"']+\.(?:svg|png|jpe?g|webp|gif)|mods\/[^`"']*\$\{[^`"']*)[`"']/g)) {
+    const p = m[1];
+    if (p.includes("${")) {
+      // template path: check the static prefix folder only
+      const folder = p.slice(0, p.indexOf("${"));
+      if (folder.startsWith("mods/")) r.check(exists(posix(folder).replace(/\/[^/]*$/, "")), `${f}: asset folder of "${p}" does not exist`);
+      continue;
+    }
+    if (!p.startsWith("mods/")) continue;
+    if (exists(p)) continue;
+    const tolerated = (external.tolerated_assets[mod] ?? []).includes(p) || OPTIONAL_ICON.has(p);
+    r.check(tolerated, `${f}: loads "${p}", which is not in this repo (vendor it into mods/${mod}/, see NOTICE)`);
+  }
+  for (const m of src.matchAll(/\bmod:\s*"([a-z0-9-]+)"/g)) {
+    const name = m[1];
+    r.check(mine.has(name) || shipped.has(name) || optional.has(name), `${f}: refers to mod "${name}", which is not in mods/ or scripts/shipped-mods.json`);
+  }
+  for (const m of src.matchAll(/"mod\.open",\s*\{\s*name:\s*"([a-z0-9-]+)"/g)) {
+    const name = m[1];
+    r.check(mine.has(name) || shipped.has(name) || optional.has(name), `${f}: opens mod "${name}", which is not in mods/ or scripts/shipped-mods.json`);
+  }
+  if (mod !== "attention-picker") {
+    for (const m of src.matchAll(/run\(\s*"layout\.(?:hide|show|toggle|resize)",\s*\{\s*id:\s*"([^"]+)"/g)) idRefs.set(m[1], f);
+    for (const m of src.matchAll(/stack:\s*"([^"]+)"/g)) idRefs.set(m[1], f);
+    for (const m of src.matchAll(/\bfind\(\s*\w+\s*,\s*"([^"]+)"\s*\)/g)) if (!OPTIONAL_IDS.has(m[1])) idRefs.set(m[1], f);
+  }
+}
+for (const [id, f] of idRefs) for (const [n, l] of Object.entries(layouts)) {
+  r.check([...nodes(l)].some((x) => x.node.id === id), `${f}: looks up layout id "${id}", which layouts/${n}.json does not have`);
+}
+
+// ---- 7. load-bearing names listed in RECIPE.md
+if (exists("RECIPE.md")) {
+  const recipe = read("RECIPE.md");
+  const sec = /###\s+Load-bearing names\s*\n([\s\S]*?)(?=\n#{1,3}\s|$)/.exec(recipe);
+  if (!sec) r.error('RECIPE.md: the "### Load-bearing names" list is missing (decision HC-1-9)');
+  else {
+    const allIds = new Set(Object.values(layouts).flatMap((l) => [...nodes(l)].map((x) => x.node.id)));
+    const allJs = jsFiles.map((f) => read(f)).join("\n");
+    const allKeys = JSON.stringify(keys);
+    let counted = 0;
+    for (const line of sec[1].split("\n")) {
+      const lm = /^\s*[-*]\s+\*\*([^*]+?):?\*\*\s*(.*)$/.exec(line);
+      if (!lm) continue;
+      const kind = lm[1].toLowerCase().trim();
+      const tokens = [...lm[2].matchAll(/`([^`]+)`/g)].map((x) => x[1]);
+      for (const t of tokens) {
+        counted++;
+        if (kind.startsWith("layout id")) r.check(allIds.has(t), `RECIPE.md load-bearing layout id "${t}" is not in any layout`);
+        else if (kind.startsWith("mod")) r.check(mine.has(t) || shipped.has(t) || optional.has(t), `RECIPE.md load-bearing mod "${t}" is not in mods/ or the external list`);
+        else if (kind.startsWith("key section")) r.check(Object.hasOwn(keys, t), `RECIPE.md load-bearing key section "${t}" is not in keys.json`);
+        else if (kind.startsWith("shared")) r.check(allJs.includes(`"${t}"`), `RECIPE.md load-bearing shared key "${t}" is not used by any mod`);
+        else if (kind.startsWith("command")) r.check(allKeys.includes(t) || allJs.includes(`"${t}"`), `RECIPE.md load-bearing command "${t}" is used by no key or mod`);
+        else r.error(`RECIPE.md load-bearing list: unknown kind "${kind}"`);
+      }
+    }
+    r.check(counted >= 10, "RECIPE.md: the load-bearing names list is nearly empty");
+  }
+}
+
+r.done();

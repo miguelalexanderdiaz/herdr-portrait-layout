@@ -1,0 +1,196 @@
+{
+  "_about": "Snapshot of `herdr-app commands` (Herdr 0.1.12): every command with its argument names. validate.mjs checks that keys.json actions use only these. Refresh with: herdr-app commands.",
+  "version": "0.1.12",
+  "commands": {
+    "space.new": [
+      "name",
+      "folder",
+      "tab",
+      "argv",
+      "task",
+      "machine"
+    ],
+    "space.close": [
+      "id",
+      "confirmed"
+    ],
+    "space.rename": [
+      "id",
+      "name"
+    ],
+    "space.move": [
+      "id",
+      "index"
+    ],
+    "tab.new": [
+      "name",
+      "space",
+      "folder",
+      "argv",
+      "task",
+      "mod",
+      "props"
+    ],
+    "tab.close": [
+      "id",
+      "confirmed"
+    ],
+    "tab.rename": [
+      "id",
+      "name"
+    ],
+    "tab.move": [
+      "id",
+      "index"
+    ],
+    "pane.split": [
+      "direction",
+      "pane",
+      "argv",
+      "mod",
+      "props"
+    ],
+    "pane.close": [
+      "pane"
+    ],
+    "terminal.open": [
+      "argv",
+      "folder",
+      "place",
+      "name"
+    ],
+    "terminal.keep": [
+      "terminal",
+      "place"
+    ],
+    "terminal.park": [
+      "terminal"
+    ],
+    "terminal.right_click": [
+      "to",
+      "terminal"
+    ],
+    "terminal.pin": [
+      "terminal",
+      "pinned"
+    ],
+    "terminal.kill": [
+      "terminal"
+    ],
+    "space.select": [
+      "index",
+      "id"
+    ],
+    "space.next": [],
+    "space.prev": [],
+    "tab.select": [
+      "index",
+      "id"
+    ],
+    "tab.settle": [
+      "id"
+    ],
+    "tab.unsettle": [
+      "id"
+    ],
+    "tab.next": [],
+    "tab.prev": [],
+    "pane.zoom": [
+      "pane"
+    ],
+    "pane.focus": [
+      "pane",
+      "terminal"
+    ],
+    "pane.go": [
+      "direction"
+    ],
+    "pane.swap": [
+      "direction"
+    ],
+    "terminal.peek": [
+      "terminal"
+    ],
+    "terminal.show": [
+      "terminal",
+      "pane"
+    ],
+    "terminal.copy": [],
+    "terminal.paste": [],
+    "terminal.paste_image": [],
+    "agent.focus": [
+      "terminal"
+    ],
+    "agent.next": [],
+    "agent.prev": [],
+    "layout.switch": [
+      "name"
+    ],
+    "layout.clone": [
+      "name",
+      "as"
+    ],
+    "mod.clone": [
+      "name",
+      "as"
+    ],
+    "layout.set": [
+      "layout"
+    ],
+    "layout.toggle": [
+      "id"
+    ],
+    "layout.show": [
+      "id"
+    ],
+    "layout.hide": [
+      "id"
+    ],
+    "layout.resize": [
+      "id",
+      "px",
+      "weight"
+    ],
+    "layout.select": [
+      "stack",
+      "child"
+    ],
+    "layout.reset": [
+      "name"
+    ],
+    "mod.open": [
+      "name"
+    ],
+    "overlay.close": [
+      "id"
+    ],
+    "app.help": [],
+    "app.welcome": [],
+    "app.whats_new": [],
+    "app.feedback": [
+      "message",
+      "from"
+    ],
+    "app.palette": [],
+    "app.settings": [
+      "section"
+    ],
+    "app.check_updates": [],
+    "app.update_core": [],
+    "app.reset": [],
+    "app.theme": [
+      "name"
+    ],
+    "app.zoom_in": [],
+    "app.zoom_out": [],
+    "app.zoom_reset": [],
+    "app.update": [],
+    "app.quit": [],
+    "app.hide": [],
+    "app.hide_others": [],
+    "app.show_all": [],
+    "window.close": [],
+    "window.minimize": [],
+    "window.maximize": []
+  }
+}
