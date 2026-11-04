@@ -177,7 +177,6 @@ runs in a pane, as Herdr does.
   claude, codex                    agent icons (LobeHub, MIT; the Claude Code and Codex marks of their owners)
   gemini, nvim                     brand icons (Simple Icons, CC0 1.0)
   shell                            Lucide's terminal glyph (ISC)
-  book-open                        Lucide's book-open glyph (ISC)
 
 The Lucide license is reproduced in section 3. The LobeHub license, also copied as LICENSE-LobeHub.txt (with
 LICENSE-Lucide.txt) next to the icons in scripts/picture-icons/ and next to the pictures in docs/assets/pictures/:

@@ -2,25 +2,21 @@
 
 <a href="https://miguelalexanderdiaz.github.io/herdr-portrait-layout/"><img src="docs/assets/docs-button.svg" alt="Read the documentation" width="196" height="44"></a>
 
-A [Herdr](https://herdr.dev) layout for tall, vertical monitors. Your spaces sit side by side as columns in a strip at the top, each a tree of its tabs and panes with the state of every agent. The work area gets the rest of the screen, and a side panel brings Files and Changes when you want them.
+A [Herdr](https://herdr.dev) layout for tall, vertical monitors. Your spaces sit side by side as columns on top, with every agent and its state, and the work area gets the rest of the screen.
 
-![Drawing of the portrait layout in Herdr's default graphite theme, with made-up content: the strip and three space columns (api, web, docs) with their tabs, panes, agents and state words, and a folded fourth (infra), on top; the tab bar; a Claude Code pane above a shell pane; the status line.](preview.png)
+<img src="docs/assets/preview.png" alt="Drawing of the portrait layout in Herdr's default graphite theme, with made-up content: the strip and three space columns (api, web, docs) with their tabs, panes, agents and state words, and a folded fourth (infra), on top; the tab bar; a Claude Code pane above a shell pane; the status line." width="360">
 
-*A drawing made from the layout's own parts and icons, with made-up content; not a screenshot of anyone's setup. Every picture is redrawn by `node scripts/make-preview.mjs`.*
-
-Docs for humans: the [documentation site](https://miguelalexanderdiaz.github.io/herdr-portrait-layout/) (GitHub Pages from `docs/`; the address is live once the repository is public and Pages is on; until then open `docs/index.html` from a clone). Docs for agents: [AGENTS.md](AGENTS.md) and [llms.txt](llms.txt). Herdr's build brief: [RECIPE.md](RECIPE.md).
+*A drawing made from the layout's own parts, with made-up content. Every picture is redrawn by `node scripts/make-preview.mjs`.* Docs: the [documentation site](https://miguelalexanderdiaz.github.io/herdr-portrait-layout/) (from `docs/`); for agents, [AGENTS.md](AGENTS.md) and [llms.txt](llms.txt); Herdr's build brief, [RECIPE.md](RECIPE.md).
 
 ## What you get
 
-| Part | What it is |
-|---|---|
-| Layouts `portrait`, `portrait-bottom` | Bar (strip plus space tree) on top, then tab bar, work area, status line. The second puts the bar between the work area and the status line. A side panel on the right is hidden until opened.<br><img src="docs/assets/pictures/two-layouts.svg" alt="Drawing of the two layouts side by side, each a whole window: portrait with the bar of space columns on top, portrait-bottom with the bar between the work area and the status line. The content is made up." width="520"> |
-| `portrait-tree` | One column per space: tabs, panes, every agent with its state and time in it (an agent without a pane gets a row under its tab). Spaces fold into thin strips and open by themselves when an agent in them gets focus.<br><img src="docs/assets/pictures/space-tree.svg" alt="Drawing of the space tree: the space api with its tabs server, tests and review; under them a Claude Code agent working for 4 minutes, a Codex agent that needs you, a Gemini agent that is done, an idle agent, a zsh pane and a Neovim pane with their folders; then a folded space, infra, as a thin strip with its name running down, and the plus for a new space. The content is made up." width="468"> |
-| `bar-strip` | Search, Add machine, Settings; a bell that says who needs you; Files, Changes and (optional) Vault buttons.<br><img src="docs/assets/pictures/bar-strip.svg" alt="Drawing of the strip: Search, Add machine and Settings on the left; on the right the bell reading 1 needs you, then Files, Changes and the optional Vault button. The content is made up." width="680"> |
-| `portrait-tabs`, `portrait-pane` | Tab bar and pane header, cloned from Herdr's shipped mods. They remember the side panel per space.<br><img src="docs/assets/pictures/tab-bar.svg" alt="Drawing of the tab bar and a pane header: the tabs server (with a spinner and a close button), tests (with a red dot) and Neovim, the plus; under it a Claude Code pane whose header shows its folder, a spinner and, while the pointer is over it, the split right, split down, zoom and close buttons. The content is made up." width="680"> |
-| `portrait-files`, `nvim-float`, `portrait-viewer` | Files for the focused pane's folder with git marks. Text opens in the editor you pick with the header's ▾ (nvim or another terminal editor in a floating window, VS Code, Zed, Sublime Text, the default app, or a read-only preview); pictures and PDFs open in a viewer window; other documents in the system's app. Right-click a file for *Open with*.<br><img src="docs/assets/pictures/side-panel.svg" alt="Drawing of the Files panel: the header with Files, the folder name and the editor picker reading nvim with a down arrow; a tree of folders and files with git marks, M for modified, A for added and a dot on folders with changes inside. The content is made up." width="368"><br><img src="docs/assets/pictures/floating-editor.svg" alt="Drawing of the floating editor: a window with a title bar showing the Neovim icon, the file query.ts, its folder, Keep with a down arrow and a close button, over nvim showing a short TypeScript file. The content is made up." width="680"><br><img src="docs/assets/pictures/viewer.svg" alt="Drawing of the viewer window: a bar with the file page-sizes.pdf, 2 pages, its folder, Open in Preview and a close button; under it the first page of the PDF. The content is made up." width="680"> |
-| `attention-picker` | The *Agents waiting* list (bundled copy of the herdr-agents-waiting mod).<br><img src="docs/assets/pictures/waiting-list.svg" alt="Drawing of the Agents waiting list: the title 1 agent needs you, the sort button and the keys; first the agent that needs you with its question, then working and idle agents under their space names, and a row for agents idle for over a day. The content is made up." width="640"> |
-| Vault panel (optional) | Works without the Obsidian mods. To add it, install `vault` and `vault-reader` from herdr-obsidian-vault and paste `snippets/vault-panel.json` into the `children` of the `panel-body` stack in each layout you use. The Vault button, tab and note rows appear only when the mod and the panel are both there. |
+- **Two layouts.** `portrait` has the bar on top; `portrait-bottom` puts it just above the status line. `ctrl-shift-y` flips between them.<br><img src="docs/assets/pictures/two-layouts.svg" alt="Drawing of the two layouts side by side, each a whole window: portrait with the bar of space columns on top, portrait-bottom with the bar between the work area and the status line. The content is made up." width="520">
+- **Space tree** (`portrait-tree`). One column per space with its tabs, panes and every agent, its state and how long it has been in it. Spaces fold into thin strips.<br><img src="docs/assets/pictures/space-tree.svg" alt="Drawing of the space tree: the space api with its tabs server, tests and review; under them a Claude Code agent working for 4 minutes, a Codex agent that needs you, a Gemini agent that is done, an idle agent, a zsh pane and a Neovim pane with their folders; then a folded space, infra, as a thin strip with its name running down, and the plus for a new space. The content is made up." width="468">
+- **Bar strip** (`bar-strip`). The bell lights up as soon as an agent needs you, and one click takes you to it.<br><img src="docs/assets/pictures/bar-strip.svg" alt="Drawing of the strip: Search, Add machine and Settings on the left; on the right the bell reading 1 needs you, then Files and Changes. The content is made up." width="680">
+- **Side panel** (`portrait-files`, `nvim-float`, `portrait-viewer`). Files shows the focused pane's folder with git marks, and a click opens a file in the editor you pick; pictures and PDFs open in a viewer.<br><img src="docs/assets/pictures/side-panel.svg" alt="Drawing of the Files panel: the header with Files, the folder name and the editor picker reading nvim with a down arrow; a tree of folders and files with git marks, M for modified, A for added and a dot on folders with changes inside. The content is made up." width="368">
+- **Tab bar and pane headers** (`portrait-tabs`, `portrait-pane`), and the *Agents waiting* list (`attention-picker`, `ctrl-shift-j`).
+
+Every part, and what clicking it does: [Usage](https://miguelalexanderdiaz.github.io/herdr-portrait-layout/usage.html).
 
 ## Requirements
 
@@ -51,8 +47,8 @@ irm https://raw.githubusercontent.com/miguelalexanderdiaz/herdr-portrait-layout/
 ```
 
 It lists what the mods reach (no network; the programs they run; what they read) and asks before
-writing anything. Then it copies the two layouts and the mods into your Herdr home, adds the Vault
-panel when you have the `vault` mod, keeps your `attention-picker` if you already have one, merges
+writing anything. Then it copies the two layouts and the mods into your Herdr home, keeps your
+`attention-picker` if you already have one, merges
 `keys.json` (asking before it replaces a key you use), runs `herdr-app check` on every mod and, the
 first time, switches to the `portrait` layout. Anything it replaces is backed up first under
 `community/herdr-portrait-layout/` in the Herdr home; running it again updates in place.
@@ -99,7 +95,7 @@ No theme is pinned: Settings decides, and every Herdr theme names the same colou
 
 Nothing here uses the network (`rg -n "fetch|XMLHttpRequest|WebSocket" mods` prints nothing). What each mod reads, runs and writes:
 
-- `bar-strip` reads agents, the layout tree and your key bindings, and whether `mods/vault/main.js` exists (existence only, every 60 seconds). It runs nothing. It writes the shared key `mods.vault`.
+- `bar-strip` reads agents, the layout tree and your key bindings. It runs nothing and stores nothing.
 - `portrait-tree` reads spaces, machines, tabs, panes and agents. It stores which spaces are folded, and when each agent's state last changed (an agent that is gone loses its entry after 7 days). It writes one small SVG per space name under `data/portrait-tree-spines/` in the Herdr home folder.
 - `portrait-tabs` stores which side panel each space last had open. `portrait-pane` reads its own pane and stores nothing.
 - `portrait-files` lists the focused pane's folder (500 entries per folder, 5,000 in all), runs `sh` or `powershell`, `git status` and your login shell once for its PATH, checks which editors are installed (`command -v`, and on macOS the apps folders), and starts the editor you picked or hands a file to the system's app (never a program); nothing runs while the panel is closed. It reads one file's text when you alt-click it or pick the preview. nvim sockets go to `/tmp`; an editor's terminal carries labels with the full file path, which `hc ls` shows. It stores your editor choice in the shared key `files.editor`.
@@ -115,7 +111,6 @@ The full table with the function that does each thing: [Privacy](https://miguela
 - **The waiting-list key does nothing.** Check `keys.error`, that the key is in the section of the shown layout, and that the mod is named `attention-picker`.
 - **A click opens the wrong thing or "Couldn't open nvim".** Pick the editor with the `▾` in the Files header; it lists only what is on your login shell's PATH (and on macOS in the apps folders). "Couldn't open" means `hc run` failed or the terminal did not appear within 10 seconds.
 - **A PDF shows only its first page.** Install Poppler (`brew install poppler`, `apt install poppler-utils`, `scoop install poppler`).
-- **No Vault button.** It needs the `vault` mod and the `vault` panel node, both.
 - **Columns cut off.** Each needs 290 px; use the arrow markers, swipe sideways, fold spaces, or widen the bar. A folded space is 34 px wide.
 
 More: [Troubleshooting](https://miguelalexanderdiaz.github.io/herdr-portrait-layout/troubleshooting.html).
@@ -135,6 +130,6 @@ By hand: switch to another layout (`ctrl-shift-l` cycles), delete `layouts/portr
 
 ## What is original, cloned, bundled
 
-`portrait-tree`, `bar-strip`, `nvim-float` and `portrait-viewer` are original (the viewer's PDF and picture code is copied from the herdr-obsidian-vault repository's reader). The two layouts and `portrait-tabs`, `portrait-pane`, `portrait-files` are clones of Herdr's shipped 0.1.12 layout and mods (`cloned_from`), changed. `attention-picker` is a bundled copy; its source is the herdr-agents-waiting repository, so change it there, not here. Small icons are carried inside each mod: Lucide icons (ISC; a few also MIT), art copied from Herdr's shipped mods (Apache-2.0), and two drawings made for this layout; [NOTICE](NOTICE) lists every file. What the layout needs from Herdr (its status line, Changes tab, search and menu overlays) is on [How it works](https://miguelalexanderdiaz.github.io/herdr-portrait-layout/how-it-works.html).
+`portrait-tree`, `bar-strip`, `nvim-float` and `portrait-viewer` are original. The two layouts and `portrait-tabs`, `portrait-pane`, `portrait-files` are clones of Herdr's shipped 0.1.12 layout and mods (`cloned_from`), changed. `attention-picker` is a bundled copy, kept unchanged and checked file by file against `scripts/bundled.json`. Small icons are carried inside each mod: Lucide icons (ISC; a few also MIT), art copied from Herdr's shipped mods (Apache-2.0), and two drawings made for this layout; [NOTICE](NOTICE) lists every file. What the layout needs from Herdr (its status line, Changes tab, search and menu overlays) is on [How it works](https://miguelalexanderdiaz.github.io/herdr-portrait-layout/how-it-works.html).
 
 [CONTRIBUTING.md](CONTRIBUTING.md), [CHANGELOG.md](CHANGELOG.md). Apache-2.0, see [LICENSE](LICENSE) and [NOTICE](NOTICE).

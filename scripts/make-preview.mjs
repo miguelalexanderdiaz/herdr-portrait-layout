@@ -2,7 +2,9 @@
 // Draws every picture of this repository from the parts the layout really uses, with made-up content:
 //   preview.png (1080x1920, rendered from scripts/preview-source.svg), its copy docs/assets/preview.png,
 //   the two Settings thumbnails (layouts/portrait.svg, layouts/portrait-bottom.svg, 320x200),
-//   and one picture per feature in docs/assets/pictures/ (used by docs/ and README.md).
+//   one picture per feature in docs/assets/pictures/ (used by docs/ and README.md), the overview as a vector
+//   (docs/assets/pictures/overview.svg, the home page's hero), and the home page's four feature pictures, written inline
+//   into docs/index.html between its <!-- picture:NAME --> markers so the page's CSS can move their parts (see HOME).
 //
 // Drawn from the real parts, not captured:
 //   - Geometry: layouts/portrait*.json (bar 246 px = strip 26 + tree, tabs 42, work-body padding 8 / gap 8, pane
@@ -10,7 +12,7 @@
 //     the mods' own drawing code (row heights, paddings, gaps, font sizes, colors by theme name, what each row shows
 //     and in which order). Each function below names the mod code it follows.
 //   - Icons: the mods' own SVG files (mods/*/*.svg), and, copied in scripts/picture-icons/, the Herdr program icons
-//     the made-up content uses (claude, codex, gemini, nvim, shell) and the Vault mod's book-open (NOTICE, section 7).
+//     the made-up content uses (claude, codex, gemini, nvim, shell) (NOTICE, section 7).
 //     They are inlined as <symbol>s: no <image>, no external reference.
 //   - Colors: Herdr's built-in "graphite" theme (the layouts pin no theme, so a new install shows graphite).
 //     EXACT: the theme colors in G below are what theme() returns on Herdr 0.1.12 with graphite (read through a mod);
@@ -106,7 +108,7 @@ const ICONS = {
   "chevron-right": "mods/portrait-files/chevron-right.svg", "chevron-down": "mods/portrait-files/chevron-down.svg",
   folder: "mods/portrait-files/folder.svg", close: "mods/portrait-tabs/close.svg",
   "split-right": "mods/portrait-pane/split-right.svg", "split-down": "mods/portrait-pane/split-down.svg", zoom: "mods/portrait-pane/zoom.svg",
-  "book-open": "scripts/picture-icons/book-open.svg", claude: "scripts/picture-icons/claude.svg", codex: "scripts/picture-icons/codex.svg",
+  claude: "scripts/picture-icons/claude.svg", codex: "scripts/picture-icons/codex.svg",
   gemini: "scripts/picture-icons/gemini.svg", nvim: "scripts/picture-icons/nvim.svg", shell: "scripts/picture-icons/shell.svg",
 };
 // A program from Herdr's program table: a one-color glyph tinted like text (tint), or a picture in its own colors.
@@ -128,7 +130,10 @@ function symbolOf(name) {
 }
 // Each document collects the symbols it uses.
 let used = new Set();
-const icon = (name, x, y, size, color) => { used.add(name); return `<use href="#i-${name}" x="${r2(x)}" y="${r2(y)}" width="${size}" height="${size}"${color ? ` color="${color.slice(0, 7)}"` : ""}${color?.length === 9 ? ` opacity="${+(parseInt(color.slice(7), 16) / 255).toFixed(3)}"` : ""}/>`; };
+// INLINE: drawing for docs/index.html, where a spinner sits in its own group so the page's CSS can turn it (spin(900)).
+let INLINE = false;
+const icon = (name, x, y, size, color) => { used.add(name); const u = useOf(name, x, y, size, color); return INLINE && name === "spinner" ? `<g class="spin">${u}</g>` : u; };
+const useOf = (name, x, y, size, color) => { return `<use href="#i-${name}" x="${r2(x)}" y="${r2(y)}" width="${size}" height="${size}"${color ? ` color="${color.slice(0, 7)}"` : ""}${color?.length === 9 ? ` opacity="${+(parseInt(color.slice(7), 16) / 255).toFixed(3)}"` : ""}/>`; };
 const programIcon = (p, x, y, size, tint) => icon(p.icon, x, y, size, p.tint ? tint : undefined);
 function svgDoc(w, h, body, { scale = 1 } = {}) {
   const defs = [...used].sort().map(symbolOf).join("");
@@ -177,7 +182,9 @@ const RANKED = ["blocked", "done", "working", "idle"];
 const tabStatus = (tab) => RANKED.find((st) => tab.rows.some((r) => r.status === st)) ?? null;
 
 // ---- bar strip (mods/bar-strip/main.js): h 26, px 8, gap 4, text 11.5; buttons h 20, px 6, gap 5, icon 13, rounded 5 -------
-function barStrip(x0, y0, w, { vault = false, lit = null, bell = "1 needs you" } = {}) {
+// barStripParts() returns its pieces (background and left buttons, right buttons, bell) so a picture can change one.
+const barStrip = (...a) => barStripParts(...a).join("");
+function barStripParts(x0, y0, w, { lit = null, bell = "1 needs you" } = {}) {
   let o = rect(x0, y0, w, 26, G.chrome) + hline(x0, y0 + 25, w);
   const cy = y0 + 12.5;
   const button = (x, ic, label, on = false) => {
@@ -186,17 +193,18 @@ function barStrip(x0, y0, w, { vault = false, lit = null, bell = "1 needs you" }
   };
   let x = x0 + 8;
   for (const [ic, label] of [["search", "Search"], ["server", "Add machine"], ["settings", "Settings"]]) { const b = button(x, ic, label); o += b.s; x += b.w + 4; }
-  // Right side, from the right edge: Vault, Changes, Files, then the bell.
-  const right = [["file", "Files", "files"], ["changes", "Changes", "changes"], ...(vault ? [["book-open", "Vault", "vault"]] : [])];
-  let rx = x0 + w - 8;
-  for (const [ic, label, id] of right.reverse()) { const bw = 6 + 13 + 5 + width(label, 11.5) + 6; rx -= bw; o += button(rx, ic, label, lit === id).s; rx -= 4; }
+  // Right side, from the right edge: Changes, Files, then the bell.
+  const right = [["file", "Files", "files"], ["changes", "Changes", "changes"]];
+  let rx = x0 + w - 8, r = "";
+  for (const [ic, label, id] of right.reverse()) { const bw = 6 + 13 + 5 + width(label, 11.5) + 6; rx -= bw; r += button(rx, ic, label, lit === id).s; rx -= 4; }
   const color = bell ? G.blocked : G.dim;
   const label = bell || "Needs you";
   const bw = 6 + 13 + 5 + width(label, 11.5) + 6;
   rx -= bw;
-  if (bell) o += rect(rx, cy - 10, bw, 20, alpha(color, 0.12), { r: 5 });
-  o += icon("bell", rx + 6, cy - 6.5, 13, color) + textMid(rx + 24, cy, label, { size: 11.5, fill: color });
-  return o;
+  let b = "";
+  if (bell) b += rect(rx, cy - 10, bw, 20, alpha(color, 0.12), { r: 5 }).replace("<rect ", INLINE ? '<rect class="chip" ' : "<rect ");
+  b += icon("bell", rx + 6, cy - 6.5, 13, color) + textMid(rx + 24, cy, label, { size: 11.5, fill: color });
+  return [o, r, b];
 }
 
 // ---- space tree (mods/portrait-tree/main.js) -------------------------------------------------------------------------------
@@ -279,26 +287,34 @@ function treeRow(x, y, w, row, prefix, wordy) {
 }
 
 // An open column: raised while it is the active space, a 1 px rule on its right; the list has px 4, py 4.
-function column(x, y, w, h, s, { wordy = w >= 320, rule = true } = {}) {
+// columnParts() returns its pieces (background, header, one per row) so a picture can show two states of one column.
+const column = (x, y, w, h, s, o) => clipped(x, y, w, h, columnParts(x, y, w, h, s, o).join(""));
+function columnParts(x, y, w, h, s, { wordy = w >= 320, rule = true } = {}) {
   let o = s.active ? rect(x, y, w, h, G.raised) : "";
   if (rule) o += vline(x + w - 1, y, h);
   const cw = rule ? w - 1 : w;
-  o += header(x, y, cw, s);
+  const parts = [o, header(x, y, cw, s)];
   let ry = y + 40 + 4;
   const lx = x + 4, lw = cw - 8;
   s.tabs.forEach((tab, ti) => {
     const lastTab = ti === s.tabs.length - 1;
-    o += tabRow(lx, ry, lw, s, tab, lastTab);
+    parts.push(tabRow(lx, ry, lw, s, tab, lastTab));
     ry += 24;
     tab.rows.forEach((row, ri) => {
       const prefix = (lastTab ? "   " : "│  ") + (ri === tab.rows.length - 1 ? "└─" : "├─");
-      o += treeRow(lx, ry, lw, row, prefix, wordy);
+      parts.push(treeRow(lx, ry, lw, row, prefix, wordy));
       ry += 26;
     });
   });
+  return parts;
+}
+function clipped(x, y, w, h, o) {
   const id = uid("col");
   return `<g><clipPath id="${id}"><rect x="${r2(x)}" y="${r2(y)}" width="${r2(w)}" height="${r2(h)}"/></clipPath><g clip-path="url(#${id})">${o}</g></g>`;
 }
+// Two states of one drawing, piece by piece: equal pieces once, a changed piece as its before (st-a, hidden on a still
+// page) and its after (st-b). The page's CSS swaps them; without it the after state shows.
+const swap = (A, B) => A.map((a, i) => (a === B[i] ? a : `<g class="st-a">${a}</g><g class="st-b">${B[i]}</g>`)).join("");
 
 // strip(): a folded space, 34 px (FOLDED_COL): the badge on the header line, one glyph per agent (pt 10, gap 7), then its
 // name running down the strip (the spine SVG: Geist 13 medium, rotated, muted).
@@ -445,24 +461,32 @@ function status(x, y, w) {
 // ---- the whole window ----------------------------------------------------------------------------------------------------------
 const W = 1080, H = 1920, BAR = 246, TABS = 42, STATUS = 28;
 const TABS_API = [{ name: "server", program: "claude", status: "working", active: true }, { name: "tests", program: "codex", status: "blocked" }];
-function windowBody(variant) {
+const HERO_H = 1288; // the bar, the tab bar and the first pane (to just under its prompt box)
+// The window in layers (canvas, bar, its divider, the rule over the status line, work area, status line), so the home
+// page can move the bar and the work area from one layout to the other.
+// A smaller window (w x h) gets the same parts: the columns share its width, and a terminal shows the last lines that
+// fit, as a terminal scrolled to its end does.
+function windowLayers(variant, { w = W, h = H, spaces = SPACES } = {}) {
   const top = variant === "top";
   // The left column: bar, work and status with a 1 px divider between them (layout "divider").
-  const workH = H - BAR - STATUS - 2;
-  const barY = top ? 0 : workH + 1, workY = top ? BAR + 1 : 0, statusY = H - STATUS;
-  let o = rect(0, 0, W, H, G.canvas);
-  o += barStrip(0, barY, W);
-  o += tree(0, barY + 26, W, BAR - 26, SPACES);
-  o += hline(0, top ? BAR : workH, W) + hline(0, statusY - 1, W);
-  o += tabBar(0, workY, W, TABS_API);
+  const workH = h - BAR - STATUS - 2;
+  const barY = top ? 0 : workH + 1, workY = top ? BAR + 1 : 0, statusY = h - STATUS;
+  const L = { canvas: rect(0, 0, w, h, G.canvas) };
+  L.bar = barStrip(0, barY, w) + tree(0, barY + 26, w, BAR - 26, spaces);
+  L.divider = hline(0, top ? BAR : workH, w);
+  L.statusRule = hline(0, statusY - 1, w);
+  let o = tabBar(0, workY, w, TABS_API);
   // work-body: padding 8, gap 8; the active tab split down into two panes.
-  const px = 8, py = workY + TABS + 8, pw = W - 16, total = workH - TABS - 16;
+  const px = 8, py = workY + TABS + 8, pw = w - 16, total = workH - TABS - 16;
   const h1 = Math.round((total - 8) * 0.62), h2 = total - 8 - h1;
-  o += pane(px, py, pw, h1, { id: `a-${variant}`, program: "claude", cwd: "~/code/api", status: "working", focus: true, lines: CLAUDE, after: claudePrompt });
-  o += pane(px, py + h1 + 8, pw, h2, { id: `b-${variant}`, program: "zsh", cwd: "~/code/api", lines: SHELL });
-  o += status(0, statusY, W);
-  return o;
+  const tail = (lines, room) => lines.slice(Math.max(0, lines.length - Math.floor(room / 18)));
+  o += pane(px, py, pw, h1, { id: `a-${variant}`, program: "claude", cwd: "~/code/api", status: "working", focus: true, lines: tail(CLAUDE, h1 - 30 - 12 - 64), after: claudePrompt });
+  o += pane(px, py + h1 + 8, pw, h2, { id: `b-${variant}`, program: "zsh", cwd: "~/code/api", lines: tail(SHELL, h2 - 30 - 12) });
+  L.work = o;
+  L.status = status(0, statusY, w);
+  return L;
 }
+const windowBody = (variant) => { const L = windowLayers(variant); return L.canvas + L.bar + L.divider + L.statusRule + L.work + L.status; };
 
 // ---- feature pictures -------------------------------------------------------------------------------------------------------------
 const PIC = {};
@@ -489,12 +513,22 @@ PIC["space-tree"] = () => {
   let o = rect(0, 0, w, h, G.chrome) + column(0, 0, 400, h, s) + strip(400, 0, h, SPACES[3]) + addColumn(434, 0, h);
   return svgDoc(w, h, o);
 };
-// Bar strip: every button, with the optional Vault one and the bell lit.
-PIC["bar-strip"] = () => svgDoc(680, 26, barStrip(0, 0, 680, { vault: true }));
+// Bar strip: every button, with the bell lit.
+PIC["bar-strip"] = () => svgDoc(680, 26, barStrip(0, 0, 680));
 // Side panel: the Files panel (mods/portrait-files: rounded 10, header 42 with "Files", the folder and the editor ▾;
 // rows h 28, pl 8 + 18 per level, chevron 12, icon 14, name 13, the git mark 11).
-PIC["side-panel"] = () => {
-  const w = 368, h = 430;
+const FILES = [
+  { name: ".github", dir: true }, { name: "docs", dir: true },
+  { name: "src", dir: true, open: true, mark: "•" },
+  { name: "items", dir: true, open: true, depth: 1, mark: "•" },
+  { name: "list.ts", depth: 2, mark: "M" }, { name: "page.test.ts", depth: 2, mark: "A" }, { name: "query.ts", depth: 2, mark: "M" },
+  { name: "utils", dir: true, depth: 1 }, { name: "server.ts", depth: 1 },
+  { name: ".gitignore" }, { name: "package.json", mark: "M" }, { name: "README.md" }, { name: "tsconfig.json" },
+];
+PIC["side-panel"] = () => svgDoc(368, 430, filesPanel(368, 430, FILES));
+// The side panel region, w x h at 0,0: its left divider and the Files box (a row with `appear` gets its mark in a group
+// of its own, class "mk", for the home page).
+function filesPanel(w, h, rows) {
   let o = rect(0, 0, w, h, G.canvas) + vline(0, 0, h);
   const x = 8, y = 8, fw = w - 16, fh = h - 16;
   o += `<clipPath id="files"><rect x="${x}" y="${y}" width="${fw}" height="${fh}" rx="10"/></clipPath>`;
@@ -505,14 +539,6 @@ PIC["side-panel"] = () => {
   const cx = x + fw - 14 - cw;
   f += textMid(cx + 6, cy, chip, { size: 11.5, fill: G.muted }) + icon("chevron-down", cx + 6 + width(chip, 11.5) + 3, cy - 5.5, 11, G.muted);
   f += text(cx - 8, cy + 12 * 0.36, "api", { size: 12, fill: G.dim, anchor: "end" });
-  const rows = [
-    { name: ".github", dir: true }, { name: "docs", dir: true },
-    { name: "src", dir: true, open: true, mark: "•" },
-    { name: "items", dir: true, open: true, depth: 1, mark: "•" },
-    { name: "list.ts", depth: 2, mark: "M" }, { name: "page.test.ts", depth: 2, mark: "A" }, { name: "query.ts", depth: 2, mark: "M" },
-    { name: "utils", dir: true, depth: 1 }, { name: "server.ts", depth: 1 },
-    { name: ".gitignore" }, { name: "package.json", mark: "M" }, { name: "README.md" }, { name: "tsconfig.json" },
-  ];
   rows.forEach((r, i) => {
     const ry = y + 42 + 6 + i * 28, rcy = ry + 14, rx = x + 6;
     let lx = rx + 8 + (r.depth ?? 0) * 18;
@@ -521,11 +547,11 @@ PIC["side-panel"] = () => {
     f += icon(r.dir ? "folder" : "file", lx, rcy - 7, 14, G.muted);
     lx += 14 + 7;
     f += textMid(lx, rcy, r.name, { size: 13 });
-    if (r.mark) f += text(rx + fw - 12 - 8, rcy + 11 * 0.36, r.mark, { size: 11, fill: r.mark === "A" ? G.ansi2 : r.mark === "D" ? G.ansi1 : G.blocked, anchor: "end" });
+    if (r.mark) { const m = text(rx + fw - 12 - 8, rcy + 11 * 0.36, r.mark, { size: 11, fill: r.mark === "A" ? G.ansi2 : r.mark === "D" ? G.ansi1 : G.blocked, anchor: "end" }); f += r.appear ? `<g class="mk">${m}</g>` : m; }
   });
   o += `<g clip-path="url(#files)">${f}</g>` + boxed(x, y, fw, fh, "none", G.border, 10);
-  return svgDoc(w, h, o);
-};
+  return o;
+}
 // Tab bar and pane header: the tabs of a space, and a pane's header as the pointer is over it (split, zoom, close).
 PIC["tab-bar"] = () => {
   const w = 680, h = 42 + 8 + 150;
@@ -664,6 +690,97 @@ PIC["viewer"] = () => {
   return svgDoc(w, h, o);
 };
 
+// ---- the home page's feature pictures (inline in docs/index.html) ------------------------------------------------------------
+// Each is drawn like the pictures above, as an inline <svg> whose ids carry a prefix (four of them share one page). Parts
+// the page moves have a class: st-a / st-b (a piece before and after a change, see swap()), spin (a spinner), mv (a group
+// moved by --d along y), slide (a group moved by --d along x), mk (a git mark that appears), chip (the bell's chip).
+// The CSS is in docs/assets/site.css,
+// "home page pictures"; docs/assets/motion.js starts and pauses it. With no CSS motion the after state shows.
+function inlineSvg(prefix, w, h, body, label) {
+  const defs = [...used].sort().map(symbolOf).join("");
+  used = new Set();
+  uidN = 0;
+  return `<svg class="pic-svg" width="${r2(w)}" height="${r2(h)}" viewBox="0 0 ${r2(w)} ${r2(h)}" role="img" aria-label="${esc(label).replace(/"/g, "&quot;")}">${defs ? `<defs>${defs}</defs>` : ""}${body}</svg>`
+    .replace(/\bid="([^"]+)"/g, `id="${prefix}-$1"`).replace(/href="#([^"]+)"/g, `href="#${prefix}-$1"`).replace(/url\(#([^)]+)\)/g, `url(#${prefix}-$1)`);
+}
+const HOME = {};
+// Two layouts: one window; the bar slides from the top to between the work area and the status line and back, as
+// ctrl-shift-y (keys.json) switches portrait and portrait-bottom. Still: portrait.
+HOME["two-layouts"] = {
+  prefix: "tl",
+  label: "Drawing of a Herdr window in the portrait layout: the bar with the strip and two space columns on top, the tab bar and two panes in the work area, the status line at the bottom; ctrl-shift-y switches to portrait-bottom, which moves the bar to just above the status line. The content is made up.",
+  draw() {
+    // A 720 x 900 window: two open columns (each at least MIN_COL 290) and two folded spaces, so the parts stay
+    // readable at the picture's size. The caption and the key are HTML under the picture (docs/index.html).
+    const w = 720, h = 900, workH = h - BAR - STATUS - 2;
+    const spaces = [SPACES[0], SPACES[1], { ...SPACES[2], folded: true, agents: ["idle"] }, SPACES[3]];
+    const L = windowLayers("top", { w, h, spaces });
+    const o = `<clipPath id="win"><rect width="${w}" height="${h}"/></clipPath><g clip-path="url(#win)">` + L.canvas + L.statusRule +
+      `<g class="mv" style="--d:${-(BAR + 1)}px">${L.work}</g><g class="mv" style="--d:${workH - BAR}px">${L.divider}</g><g class="mv" style="--d:${workH + 1}px">${L.bar}</g>` + L.status + `</g>`;
+    return [w, h, o];
+  },
+};
+// Space tree: the Codex agent goes from working (its spinner) to needing you (the red mark, the time from <1m); the
+// tab and the space header follow. Still: needs you.
+HOME["space-tree"] = {
+  prefix: "tr",
+  label: "Drawing of the space tree: the space api with its tabs server, tests and review and their agents and panes; the Codex agent in tests has just gone from working to needs you, with a red mark, and the tab and the space header show it too; a folded space, infra, as a thin strip. The content is made up.",
+  draw() {
+    const space = (codex) => ({ name: "api", mark: "ansi6", active: true, tabs: [
+      { name: "server", active: true, rows: [{ agent: "claude", title: "add pagination", status: "working", age: "4m", focused: true }, { program: "zsh", cwd: "~/code/api" }] },
+      { name: "tests", rows: [{ agent: "codex", title: "flaky page test", ...codex }, { program: "nvim", cwd: "~/code/api/src" }] },
+      { name: "review", rows: [{ agent: "gemini", title: "check the API docs", status: "done", age: "12m" }, { agent: "claude", title: "release notes", status: "idle", age: "1d" }] },
+    ] });
+    const w = 400 + 34 + 34, h = 300;
+    const A = columnParts(0, 0, 400, h, space({ status: "working", age: "6m" })), B = columnParts(0, 0, 400, h, space({ status: "blocked", age: "<1m" }));
+    const o = rect(0, 0, w, h, G.chrome) + clipped(0, 0, 400, h, swap(A, B)) + strip(400, 0, h, SPACES[3]) + addColumn(434, 0, h);
+    return [w, h, o];
+  },
+};
+// Bar strip: as the agent starts to need you, the bell's chip lights up and reads "1 needs you"; the tree under it shows
+// who. Still: lit.
+HOME["bar-strip"] = {
+  prefix: "bs",
+  label: "Drawing of the strip over the top of the space tree: Search, Add machine and Settings on the left; on the right the bell, lit, reading 1 needs you, then Files and Changes; under it the space api, where the Codex agent in tests needs you, and the space web. The content is made up.",
+  draw() {
+    const w = 520, h = 150, cw = (w - 34) / 2;
+    const api = (codex) => ({ name: "api", mark: "ansi6", active: true, tabs: [
+      { name: "tests", active: true, rows: [{ agent: "codex", title: "flaky page test", ...codex }, { program: "nvim", cwd: "~/code/api/src" }] },
+    ] });
+    const web = { name: "web", mark: "ansi3", tabs: [{ name: "ui", rows: [{ agent: "gemini", title: "dark mode toggle", status: "idle", age: "38m" }, { program: "zsh", cwd: "~/code/web" }] }] };
+    let o = rect(0, 0, w, h, G.chrome);
+    o += swap(barStripParts(0, 0, w, { bell: null }), barStripParts(0, 0, w, { bell: "1 needs you" }));
+    const A = columnParts(0, 26, cw, h - 26, api({ status: "working", age: "6m" })), B = columnParts(0, 26, cw, h - 26, api({ status: "blocked", age: "<1m" }));
+    o += clipped(0, 26, cw, h - 26, swap(A, B)) + column(cw, 26, cw, h - 26, web) + addColumn(w - 34, 26, h - 26);
+    return [w, h, o];
+  },
+};
+// Side panel: the Files panel slides in from the right (the work area makes room for it), then query.ts gets its git
+// mark. Still: open, with the mark.
+HOME["side-panel"] = {
+  prefix: "sp",
+  label: "Drawing of the work area with a shell pane and, on its right, the Files panel for the pane's folder api: a tree of folders and files with git marks, M for modified, A for added and a dot on folders with changes inside. The content is made up.",
+  draw() {
+    const w = 560, h = 430, pw = 368, px = w - pw;
+    let o = rect(0, 0, w, h, G.canvas);
+    // The pane at its closed-panel width; when the panel is in, its right edge is the one drawn with the panel.
+    // Short lines: with the panel in, the pane is 176 px wide (18 columns of text), and no line may be cut mid-word.
+    const pane1 = { program: "zsh", cwd: "~/code/api", focus: true, lines: [
+      [["api ", G.ansi4], ["❯ ", G.ansi2], ["npm test", G.terminal]], "",
+      [["PASS ", G.ansi2], ["list.ts", G.terminal]], [["PASS ", G.ansi2], ["query.ts", G.terminal]], [["FAIL ", G.ansi1], ["page.test.ts", G.terminal]],
+      [["  expected 25", G.ansi1]], "", [["Tests: ", G.terminal], ["1 failed", G.ansi1]], "", [["api ", G.ansi4], ["❯ ", G.ansi2]],
+    ] };
+    o += pane(8, 8, w - 16, h - 16, pane1);
+    // What slides in: the pane's right edge (10 px of a pane clipped), the 8 px work-body padding, the panel.
+    const edge = px - 8, id = uid("edge");
+    let g = rect(edge - 10, 0, 10, h, G.canvas) + `<clipPath id="${id}"><rect x="${edge - 10}" y="0" width="10" height="${h}"/></clipPath><g clip-path="url(#${id})">${pane(edge - 200, 8, 200, h - 16, { ...pane1, lines: [] })}</g>`;
+    g += rect(edge, 0, 8, h, G.canvas);
+    g += `<g transform="translate(${px} 0)">${filesPanel(pw, h, FILES.map((r) => (r.name === "query.ts" ? { ...r, appear: true } : r)))}</g>`;
+    o += `<g class="slide" style="--d:${w - edge + 10}px">${g}</g>`;
+    return [w, h, o];
+  },
+};
+
 // ---- Settings thumbnails: the same window at 1/9.6 scale, upright in the middle of a 320x200 card ----------------------------------
 const CARD_W = 320, CARD_H = 200;
 function thumb(variant) {
@@ -677,7 +794,24 @@ writeFileSync(abs("layouts/portrait-bottom.svg"), thumb("bottom"));
 writeFileSync(abs("scripts/preview-source.svg"), svgDoc(W, H, windowBody("top")));
 mkdirSync(abs("docs/assets/pictures"), { recursive: true });
 for (const [name, draw] of Object.entries(PIC)) writeFileSync(abs(`docs/assets/pictures/${name}.svg`), draw());
-console.log(`wrote layouts/portrait.svg, layouts/portrait-bottom.svg, scripts/preview-source.svg and ${Object.keys(PIC).length} pictures in docs/assets/pictures/`);
+// The home page's hero: the top of the overview as a vector (sharp at any size): the bar, the tab bar and the whole
+// Claude Code pane, so the columns stay readable beside the text.
+writeFileSync(abs("docs/assets/pictures/overview.svg"), svgDoc(W, HERO_H, windowBody("top")));
+// The home page's pictures go between <!-- picture:NAME --> and <!-- /picture:NAME --> in docs/index.html.
+{
+  let page = readFileSync(abs("docs/index.html"), "utf8");
+  INLINE = true;
+  for (const [name, pic] of Object.entries(HOME)) {
+    const [w, h, body] = pic.draw();
+    const svg = inlineSvg(pic.prefix, w, h, body, pic.label);
+    const re = new RegExp(`(<!-- picture:${name} -->)[\\s\\S]*?(<!-- /picture:${name} -->)`);
+    if (!re.test(page)) throw new Error(`docs/index.html has no <!-- picture:${name} --> ... <!-- /picture:${name} --> markers`);
+    page = page.replace(re, (_, a, b) => a + svg + b);
+  }
+  INLINE = false;
+  writeFileSync(abs("docs/index.html"), page);
+}
+console.log(`wrote layouts/portrait.svg, layouts/portrait-bottom.svg, scripts/preview-source.svg, ${Object.keys(PIC).length + 1} pictures in docs/assets/pictures/ and ${Object.keys(HOME).length} in docs/index.html`);
 
 if (!process.argv.includes("--svg-only")) {
   try {

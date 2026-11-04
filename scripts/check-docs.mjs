@@ -9,6 +9,8 @@
 //   - every `identifier` in a "Where to check" cell of the privacy page exists in mods/, and every mod folder is named in
 //     README.md and docs/privacy.html
 //   - each HTML page has <html lang>, a <title>, exactly one <h1>, an alt on every image, ids that are unique
+//   - pages run no inline script; the only scripts are the site's own files in docs/assets/ (<script src="assets/x.js">),
+//     and those may not reach the network, load code, or store anything (the site stays static and offline)
 //   - docs/.nojekyll exists; llms.txt and docs/llms.txt are byte-identical; docs/assets/preview.png is a copy of preview.png
 //   - no home path or e-mail address (the privacy scan covers this too, here it is per page)
 import { readFileSync } from "node:fs";
@@ -127,7 +129,12 @@ for (const f of HTML) {
     const src = /\ssrc\s*=\s*["']([^"']+)["']/i.exec(m[0]);
     if (src) r.check(!/^(https?:)?\/\//i.test(src[1]), `${f}: an image is loaded from outside the site`);
   }
-  r.check(!/<script\b/i.test(html), `${f}: pages must not load or run scripts`);
+  for (const m of html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi)) {
+    const src = /\ssrc\s*=\s*["']([^"']+)["']/i.exec(m[1])?.[1];
+    r.check(Boolean(src) && !m[2].trim(), `${f}: an inline <script>; a page may only load the site's own scripts with <script src="assets/...">`);
+    if (src) r.check(/^assets\/[\w.-]+\.js$/.test(src) && exists(`docs/${src}`), `${f}: <script src="${src}"> must be an existing file in docs/assets/`);
+  }
+  r.check((html.match(/<script\b/gi) ?? []).length === (html.match(/<script\b[^>]*>[\s\S]*?<\/script>/gi) ?? []).length, `${f}: a <script> is not closed`);
   const ids = [...html.matchAll(/\sid\s*=\s*["']([^"']+)["']/g)].map((m) => m[1]);
   const dup = ids.filter((id, i) => ids.indexOf(id) !== i);
   r.check(dup.length === 0, `${f}: duplicate ids ${[...new Set(dup)].join(", ")}`);
@@ -138,6 +145,13 @@ for (const f of HTML) {
   }
   r.check(/\.skip\b|class=["'][^"']*\bskip\b|skip to/i.test(html), `${f}: no "skip to content" link`);
 }
+// ---- the site's scripts: no network, no loading code, no storage, no addresses
+for (const f of files.filter((f) => /^docs\/.+\.m?js$/.test(f))) {
+  const js = read(f);
+  const bad = /\b(fetch|XMLHttpRequest|WebSocket|EventSource|sendBeacon|importScripts|eval|Function|localStorage|sessionStorage|indexedDB|document\.cookie|Worker)\b\s*[.(]|\bimport\s*[(\s{*"']|\bnew\s+(Function|Worker|WebSocket|EventSource|XMLHttpRequest|Image)\b|\.src\s*=|https?:\/\//.exec(js);
+  r.check(!bad, `${f}: uses ${bad?.[0]}; the site's scripts may not reach the network, load code or store anything`);
+}
+
 // ---- the stylesheet must not import or load from outside
 for (const f of files.filter((f) => /^docs\/.+\.css$/.test(f))) {
   const css = read(f);
