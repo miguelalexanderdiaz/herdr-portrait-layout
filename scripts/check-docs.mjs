@@ -3,7 +3,7 @@
 //   - every relative link and #anchor in the Markdown files and in docs/*.html resolves
 //   - external hosts are github.com and herdr.dev only; pages load nothing from outside (no CDN, font host, script)
 //   - each HTML page has <html lang>, a <title>, exactly one <h1>, an alt on every image, ids that are unique
-//   - docs/.nojekyll exists; llms.txt and docs/llms.txt are byte-identical
+//   - docs/.nojekyll exists; llms.txt and docs/llms.txt are byte-identical; docs/assets/preview.png is a copy of preview.png
 //   - no home path or e-mail address (the privacy scan covers this too, here it is per page)
 import { readFileSync } from "node:fs";
 import { dirname, posix as path } from "node:path";
@@ -23,6 +23,10 @@ r.check(exists("docs/.nojekyll"), "docs/.nojekyll is missing (Pages would run Je
 r.check(exists("llms.txt") && exists("docs/llms.txt"), "llms.txt and docs/llms.txt must both exist");
 if (exists("llms.txt") && exists("docs/llms.txt")) {
   r.check(readFileSync(abs("llms.txt")).equals(readFileSync(abs("docs/llms.txt"))), "llms.txt and docs/llms.txt differ (they must be byte-identical)");
+}
+
+if (exists("docs/assets/preview.png") && exists("preview.png")) {
+  r.check(readFileSync(abs("docs/assets/preview.png")).equals(readFileSync(abs("preview.png"))), "docs/assets/preview.png is not a copy of preview.png (copy it again after node scripts/make-preview.mjs)");
 }
 
 // ---- anchors
