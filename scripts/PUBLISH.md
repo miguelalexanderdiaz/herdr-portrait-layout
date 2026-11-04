@@ -8,17 +8,13 @@ Nothing here is part of the Pages site.
 
 ## Step 0, before any further pull request is merged
 
-0. [ ] **author** The history already holds one commit with a personal address: the web merge of the first pull
-   request (`node scripts/privacy-scan.mjs --commits` names it: `commit <sha>: the author address is not a GitHub noreply
-   address`). An agent cannot fix history (no rewrite rule), so:
-   1. On GitHub: Settings, Emails: tick **Keep my email addresses private** and **Block command line pushes that expose
-      my email**. Do this **before merging the round-2 pull requests or any later one**, and in the merge dialog choose
-      the noreply address, otherwise every web merge adds another such commit.
-   2. Decide before the repository goes public (once it is public the address in that commit is permanent): either
-      rewrite `main` yourself, or publish from a fresh first commit (`git checkout --orphan clean`, commit, push to a
-      new repository or force-push by hand). Agents do neither.
-   3. `npm run check:history` must print `ok` and `git log --format='%ae%n%ce' | sort -u` must list only noreply
-      addresses.
+0. [x] **author** Done on 2026-11-04. The first pull request's web merge had put a personal address in the history.
+   `main` was rewritten, and the repository was recreated so GitHub no longer serves the old commit. The author now
+   commits with a public address, which is also the GitHub primary email, so web merges use it too. To keep it that way:
+   1. GitHub, Settings, Emails: the primary email is the address you want public. If you want no address at all, tick
+      **Keep my email addresses private** instead (web merges then use the noreply address).
+   2. `npm run check:history` must print `ok`; `git log --format='%ae%n%ce' | sort -u` must list only noreply addresses
+      and the address allowed in `scripts/privacy-scan.mjs`.
 
 ## Before publishing
 
