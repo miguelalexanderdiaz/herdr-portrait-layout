@@ -21,7 +21,7 @@ const gmail = ["someone", "gmail.com"].join("@");
 before(() => {
   try {
     base = mkdtempSync(join(tmpdir(), "portrait-checks-"));
-    cpSync(ROOT, join(base, "t"), { recursive: true, filter: (src) => ![".git", "node_modules", ".wt"].includes(basename(src)) });
+    cpSync(ROOT, join(base, "t"), { recursive: true, filter: (src) => ![".git", "node_modules", ".wt", "gpui-kit.d.ts", "jsconfig.json"].includes(basename(src)) });
   } catch (e) { skip = `no usable temp folder (${e.code ?? e.message})`; }
 });
 after(() => { if (base) rmSync(base, { recursive: true, force: true }); });
@@ -93,6 +93,14 @@ fails("a JSON file without a final newline", "validate", (s) => { const t = s.re
 fails("an unknown mod.json field", "validate", (s) => s.json("mods/bar-strip/mod.json", (m) => { m.colour = "red"; }), /unknown field "colour"/);
 
 // ---- icons, NOTICE, bundled copy, CI
+test("validate ignores the two files Herdr writes into a mod folder when it checks the bundled copy", (t) => {
+  if (skip) return t.skip(skip);
+  const s = scratch();
+  // not tracked in a checkout (.gitignore), so only the bundled-copy listing could trip over them
+  s.write("mods/attention-picker/jsconfig.json", "{}\n");
+  const r = s.run("validate");
+  assert.doesNotMatch(r.out, /not in scripts\/bundled\.json/);
+});
 fails("an icon NOTICE does not account for", "validate", (s) => s.write("mods/bar-strip/zzz-new.svg", '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M1 1"/></svg>\n'), /does not account for the icon zzz-new\.svg/);
 fails("a NOTICE line about an icon that is gone", "validate", (s) => appendFileSync(s.file("NOTICE"), "\n  ghost-icon.svg                   mods/nowhere\n"), /lists ghost-icon\.svg/);
 fails("an edited bundled file", "validate", (s) => appendFileSync(s.file("mods/attention-picker/main.js"), "\n// local edit\n"), /mods\/attention-picker\/main\.js: differs from scripts\/bundled\.json/);

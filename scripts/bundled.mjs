@@ -20,7 +20,8 @@ if (!/^[0-9a-f]{40}$/.test(ref ?? "")) {
   process.exit(2);
 }
 const files = {};
-for (const name of readdirSync(abs(DIR)).sort()) files[posix(`${DIR}/${name}`)] = sha256(`${DIR}/${name}`);
+// gpui-kit.d.ts and jsconfig.json are written into mod folders by the Herdr app (herdr-app check); they are not part of the copy.
+for (const name of readdirSync(abs(DIR)).sort().filter((n) => n !== "gpui-kit.d.ts" && n !== "jsconfig.json")) files[posix(`${DIR}/${name}`)] = sha256(`${DIR}/${name}`);
 const manifest = {
   _about: "Hashes (SHA-256 of the text with LF line endings) of the bundled copy mods/attention-picker, synced from the repository named in `source` at `ref`. The copy is read-only here: change it there, sync it, then run `node scripts/bundled.mjs <ref>`. validate.mjs fails when a file differs, is missing or is new.",
   source: previous.source ?? "herdr-agents-waiting",

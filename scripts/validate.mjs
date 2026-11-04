@@ -301,7 +301,8 @@ if (r.check(exists("scripts/bundled.json"), "scripts/bundled.json is missing (ha
   const b = json("scripts/bundled.json");
   r.check(/^[0-9a-f]{40}$/.test(b.ref ?? ""), "scripts/bundled.json: `ref` must be the 40-character commit of the repository it was synced from");
   const want = b.files ?? {};
-  const have = readdirSync(abs("mods/attention-picker")).map((n) => `mods/attention-picker/${n}`);
+  // The two files Herdr itself writes into mod folders are not part of the copy (section 2 refuses them when tracked).
+  const have = readdirSync(abs("mods/attention-picker")).filter((n) => n !== "gpui-kit.d.ts" && n !== "jsconfig.json").map((n) => `mods/attention-picker/${n}`);
   for (const f of have) {
     if (!want[f]) r.error(`${f}: not in scripts/bundled.json (a new file of the sync, or a stray file): sync from ${b.source}, then run node scripts/bundled.mjs <commit>`);
     else r.check(sha256(f) === want[f], `${f}: differs from scripts/bundled.json. The copy is read-only here: change it in ${b.source}, sync it, then run node scripts/bundled.mjs <commit>`);
