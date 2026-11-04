@@ -4,7 +4,11 @@
 //   Watch out, Done when, in that order. Beyond the format this checks that the recipe really describes this repo:
 //   every layout file and mod folder is named, every key of keys.json and every size of the layouts is quoted,
 //   the disclosure block (network, programs, reads, writes) is there, NOTICE exists, and no personal path appears.
-import { exists, json, layoutNames, modFolders, nodes, read, reporter } from "./lib.mjs";
+// It also compares the disclosure with the code of every mod (the bundled attention-picker too): every name imported
+// from "herdr", every module imported besides, every literal run("x.y") command and every program started with exec()
+// or hc() must be named in "Built from", and no mod may use fetch, WebSocket, XMLHttpRequest, EventSource or sendBeacon
+// while RECIPE says "Network: none". This is the only mechanical link between what Herdr's installer warns about and the code.
+import { exists, json, layoutNames, modFolders, nodes, read, reporter, repoFiles } from "./lib.mjs";
 
 const r = reporter("check-recipe");
 if (!r.check(exists("RECIPE.md"), "RECIPE.md is missing")) r.done();
@@ -76,6 +80,33 @@ for (const term of ["Network:", "Runs programs:", "Reads outside its folder:", "
 const watch = section("Watch out");
 r.check(/Load-bearing names/.test(watch), 'Watch out must contain "### Load-bearing names"');
 r.check(/macOS/.test(watch) && /Linux/.test(watch) && /Windows/.test(watch), "Watch out must say what differs on macOS, Linux and Windows");
+
+// ---- the disclosure matches the code
+{
+  const fnBlock = /\*\*Functions and commands used:\*\*([\s\S]*?)\n\n/.exec(built)?.[1] ?? "";
+  const progBlock = /\*\*Runs programs:\*\*([\s\S]*?)(?=\n- \*\*|\n\n)/.exec(built)?.[1] ?? "";
+  r.check(fnBlock.length > 0, 'Built from needs the paragraph "**Functions and commands used:**"');
+  r.check(progBlock.length > 0, 'Built from needs the line "- **Runs programs:**"');
+  const sources = repoFiles().filter((f) => /^mods\/[^/]+\/[^/]+\.(js|mjs)$/.test(f));
+  const named = (block, name) => new RegExp(`(^|[^\\w.-])${name.replace(/[.*+?^${}()|[\]\\/]/g, "\\$&")}([^\\w-]|$)`).test(block);
+  const imported = new Map(), commands = new Map(), programs = new Map(), modules = new Map();
+  const note = (map, key, f) => { if (!map.has(key)) map.set(key, f); };
+  for (const f of sources) {
+    const src = read(f).replace(/^\s*\/\/.*$/gm, "");
+    for (const m of src.matchAll(/import\s*\{([^}]*)\}\s*from\s*["']herdr["']/g)) for (const part of m[1].split(",")) { const n = part.trim().split(/\s+as\s+/)[0]; if (n) note(imported, n, f); }
+    for (const m of src.matchAll(/import\s[^;]*?from\s*["']([^."'][^"']*)["']/g)) if (!["herdr", "gpui-kit", "gpui-base"].includes(m[1])) note(modules, m[1], f);
+    for (const m of src.matchAll(/\brun\(\s*["']([a-z][\w]*\.[\w.]+)["']/g)) note(commands, m[1], f);
+    for (const m of src.matchAll(/\bexec\(\s*["']([^"']+)["']/g)) note(programs, m[1], f);
+    if (/\bhc\(/.test(src)) note(programs, "hc", f);
+    if (/["']nvim["']/.test(src)) note(programs, "nvim", f);
+    for (const m of src.matchAll(/\b(fetch\s*\(|WebSocket|XMLHttpRequest|EventSource|sendBeacon)/g)) r.error(`${f}: uses ${m[1].replace(/\s*\($/, "")}, but RECIPE.md says "Network: none"`);
+  }
+  for (const [n, f] of imported) r.check(named(fnBlock, n), `${f} imports "${n}" from "herdr", which "Functions and commands used" does not name`);
+  for (const [n, f] of modules) r.check(named(fnBlock, n), `${f} imports the module "${n}", which "Functions and commands used" does not name`);
+  for (const [n, f] of commands) r.check(named(fnBlock, n), `${f} runs the command ${n}, which "Functions and commands used" does not name`);
+  for (const [n, f] of programs) r.check(named(progBlock, n), `${f} starts the program "${n}", which "Runs programs" does not name`);
+  r.check(imported.size >= 15 && commands.size >= 10, "check-recipe could not read the mods' imports and commands (pattern out of date)");
+}
 
 // ---- done-when: concrete checks
 const done = section("Done when");

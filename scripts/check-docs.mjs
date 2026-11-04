@@ -1,13 +1,19 @@
 #!/usr/bin/env node
 // Checks the human and agent documentation (README.md, CONTRIBUTING.md, AGENTS.md, CHANGELOG.md, llms.txt, docs/):
 //   - every relative link and #anchor in the Markdown files and in docs/*.html resolves
-//   - external hosts are github.com and herdr.dev only; pages load nothing from outside (no CDN, font host, script)
+//   - external hosts are github.com and herdr.dev only; pages load nothing from outside (no CDN, font host, script).
+//     One exception: the repository's own GitHub Pages address, https://<owner>.github.io/<repo>/..., in the files that
+//     tell people where the rendered pages are (README, AGENTS.md, llms.txt, docs/llms.txt, docs/404.html). The owner and
+//     name are not written here: they must match a github.com/<owner>/<repo> link of the same files.
+//   - the keys table of README.md and docs/configuration.html equals keys.json row for row (no missing, extra or doubled row)
+//   - every `identifier` in a "Where to check" cell of the privacy page exists in mods/, and every mod folder is named in
+//     README.md and docs/privacy.html
 //   - each HTML page has <html lang>, a <title>, exactly one <h1>, an alt on every image, ids that are unique
 //   - docs/.nojekyll exists; llms.txt and docs/llms.txt are byte-identical; docs/assets/preview.png is a copy of preview.png
 //   - no home path or e-mail address (the privacy scan covers this too, here it is per page)
 import { readFileSync } from "node:fs";
 import { dirname, posix as path } from "node:path";
-import { abs, exists, read, reporter, repoFiles } from "./lib.mjs";
+import { abs, exists, json, modFolders, read, reporter, repoFiles } from "./lib.mjs";
 
 const r = reporter("check-docs");
 const files = repoFiles();
@@ -15,6 +21,18 @@ const MD = ["README.md", "CONTRIBUTING.md", "AGENTS.md", "CHANGELOG.md", "RECIPE
 const HTML = files.filter((f) => /^docs\/.+\.html$/.test(f));
 const TXT = ["llms.txt", "docs/llms.txt"].filter(exists);
 const ALLOWED_HOSTS = new Set(["github.com", "www.github.com", "herdr.dev", "www.herdr.dev"]);
+// Files that may point at the repository's own Pages address (they say where the rendered site lives).
+const PAGES_FILES = new Set(["README.md", "AGENTS.md", "llms.txt", "docs/llms.txt", "docs/404.html"]);
+const repoLinks = new Set(); // "owner/repo" of every github.com link in the Pages files, lower case
+for (const f of PAGES_FILES) if (exists(f)) for (const m of read(f).matchAll(/github\.com\/([\w.-]+)\/([\w.-]+)/gi)) repoLinks.add(`${m[1]}/${m[2]}`.toLowerCase().replace(/\.git$/, ""));
+// Is https://<host><path> an allowed address in `from`? github.com and herdr.dev always; <owner>.github.io/<repo> in the Pages files only.
+function hostAllowed(from, host, path = "") {
+  if (ALLOWED_HOSTS.has(host.toLowerCase())) return true;
+  const m = /^([a-z0-9-]+)\.github\.io$/i.exec(host);
+  if (!m || !PAGES_FILES.has(from)) return false;
+  const repo = /^\/([\w.-]+)/.exec(path)?.[1];
+  return Boolean(repo) && repoLinks.has(`${m[1]}/${repo}`.toLowerCase());
+}
 
 if (!r.check(exists("README.md"), "README.md is missing")) r.done();
 r.check(HTML.length > 0, "docs/ has no pages");
@@ -73,7 +91,7 @@ function checkLink(from, target, label) {
   }
   if (/^(https?:)?\/\//i.test(t)) {
     const u = new URL(t.startsWith("//") ? `https:${t}` : t);
-    r.check(ALLOWED_HOSTS.has(u.hostname), `${from}: ${label} points to ${u.hostname}; only github.com and herdr.dev are allowed`);
+    r.check(hostAllowed(from, u.hostname, u.pathname), `${from}: ${label} points to ${u.hostname}${u.pathname.split("/").slice(0, 2).join("/")}; only github.com, herdr.dev and this repository's own Pages address (in ${[...PAGES_FILES].join(", ")}) are allowed`);
     return;
   }
   if (t.startsWith("/")) { r.error(`${from}: ${label} "${t}" is root-relative; Pages serves the site under /<repo>/, use a relative link`); return; }
@@ -125,12 +143,43 @@ for (const f of files.filter((f) => /^docs\/.+\.css$/.test(f))) {
 // ---- every file: external hosts and personal data
 for (const f of [...MD, ...HTML, ...TXT]) {
   const text = read(f).replace(/xmlns(?::\w+)?\s*=\s*["'][^"']*["']/g, "");
-  for (const m of text.matchAll(/\bhttps?:\/\/([A-Za-z0-9.-]+)/g)) {
-    r.check(ALLOWED_HOSTS.has(m[1].toLowerCase()), `${f}: mentions ${m[1]}; only github.com and herdr.dev are allowed`);
+  for (const m of text.matchAll(/\bhttps?:\/\/([A-Za-z0-9.-]+)(\/[\w.-]*)?/g)) {
+    r.check(hostAllowed(f, m[1], m[2] ?? ""), `${f}: mentions ${m[1]}${m[2] ?? ""}; only github.com, herdr.dev and this repository's own Pages address (in ${[...PAGES_FILES].join(", ")}) are allowed`);
   }
   if (f !== "scripts/PUBLISH.md") {
     r.check(!/\/Users\/(?!<)[^/\s]+|\/home\/(?!<)[^/\s]+|[A-Za-z]:\\Users\\(?!<)[^\\\s]+/.test(text), `${f}: contains a home path`);
     r.check(!/[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+\.[A-Za-z]{2,}/.test(text.replace(/noreply@anthropic\.com/g, "")), `${f}: contains an e-mail address`);
+  }
+}
+
+// ---- the keys table equals keys.json
+{
+  const want = [];
+  for (const [section, map] of Object.entries(json("keys.json"))) for (const [key, action] of Object.entries(map)) want.push(`${section} | ${key} | ${action}`);
+  const rowsOf = {
+    "README.md": () => [...read("README.md").matchAll(/^\|\s*`([^`|]+)`\s*\|\s*`([^`|]+)`\s*\|\s*`([^`|]+)`\s*\|/gm)].map((m) => `${m[1]} | ${m[2]} | ${m[3]}`).filter((x) => /^(layout:|global|terminal|mod:)/.test(x)),
+    "docs/configuration.html": () => [...read("docs/configuration.html").matchAll(/<tr><td><code>([^<]+)<\/code><\/td><td><kbd>([^<]+)<\/kbd><\/td><td><code>([^<]+)<\/code><\/td>/g)].map((m) => `${m[1]} | ${m[2]} | ${m[3]}`),
+  };
+  for (const [file, rows] of Object.entries(rowsOf)) {
+    if (!exists(file)) continue;
+    const have = rows();
+    for (const row of want) r.check(have.filter((x) => x === row).length === 1, `${file}: the keys table needs exactly one row "${row}" (as in keys.json)`);
+    for (const row of have) r.check(want.includes(row), `${file}: the keys table has a row "${row}" that keys.json does not have`);
+  }
+}
+
+// ---- the privacy page names what exists
+if (exists("docs/privacy.html")) {
+  const privacy = read("docs/privacy.html");
+  const sources = repoFiles().filter((f) => /^mods\/[^/]+\/[^/]+\.(js|mjs)$/.test(f)).map((f) => read(f)).join("\n");
+  const idents = new Set();
+  for (const dd of privacy.matchAll(/<dt>Where to check<\/dt>\s*<dd>([\s\S]*?)<\/dd>/g)) for (const m of dd[1].matchAll(/<code>([^<]+)<\/code>/g)) idents.add(m[1].trim());
+  r.check(idents.size >= 10, 'docs/privacy.html: found fewer than 10 identifiers in "Where to check" cells (markup changed?)');
+  for (const id of idents) r.check(new RegExp(`(^|[^\\w$])${id.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}([^\\w$]|$)`).test(sources), `docs/privacy.html: "Where to check" names \`${id}\`, which is not in any mod source`);
+  const readme = read("README.md");
+  for (const m of modFolders()) {
+    r.check(readme.includes(`\`${m}\``), `README.md does not name the mod \`${m}\``);
+    r.check(privacy.includes(m), `docs/privacy.html does not describe the mod ${m}`);
   }
 }
 

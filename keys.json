@@ -3,12 +3,12 @@
     "ctrl-shift-g": "layout.toggle:bar",
     "cmd-b": "layout.toggle:bar",
     "ctrl-shift-y": "layout.switch:portrait-bottom",
-    "ctrl-shift-j": "bar-strip.attention"
+    "ctrl-shift-j": "mod.open:attention-picker"
   },
   "layout:portrait-bottom": {
     "ctrl-shift-g": "layout.toggle:bar",
     "cmd-b": "layout.toggle:bar",
     "ctrl-shift-y": "layout.switch:portrait",
-    "ctrl-shift-j": "bar-strip.attention"
+    "ctrl-shift-j": "mod.open:attention-picker"
   }
 }
