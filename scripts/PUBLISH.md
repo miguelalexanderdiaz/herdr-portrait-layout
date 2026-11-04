@@ -12,7 +12,7 @@ Nothing here is part of the Pages site.
    same terms, comma separated, as the repository secret `PRIVACY_DENYLIST` so CI checks them too.
 2. [ ] Run the whole suite from the repository root; each must exit 0:
    ```sh
-   node --test tests/
+   node --test
    node scripts/validate.mjs
    node scripts/check-recipe.mjs
    node scripts/check-assets.mjs

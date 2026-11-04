@@ -119,9 +119,10 @@ the times move.
 
 **The tab strip**
 - Click a tab: select. Double-click: rename. Drag onto another: reorder. Right-click: the shipped `menu`. The active
-  tab's `x`: `tab.close`. `+`: the shipped `new-menu`. The wheel over the strip: previous or next tab.
+  tab's `x`: `tab.close`. `+`: the shipped `new-menu`. The wheel over the strip: previous or next tab (see below).
 - The window buttons (Linux and Windows) run `window.minimize`, `window.maximize` and `window.close`; Windows uses
   vector icons (with a restore icon when maximized), Linux plain glyphs.
+- The wheel moves one tab per 40px of scrolling, at most three per event.
 
 **The pane header**
 - Click: focus the pane. Hover: four 14px buttons appear: split right, split down, zoom (unzoom while zoomed), close
@@ -130,9 +131,12 @@ the times move.
 **The Files panel**
 - Shows the focused pane's folder (on its machine when the space lives on another), loaded lazily: a folder's contents
   load when it is opened. Rows are 28px with a chevron, folder or file icon and the name; git changes show a letter
-  mark. Limits: 500 entries per folder, 5,000 in all; previews stop at 400,000 characters.
-- Click a folder: expand or collapse. Click a file: open it in **nvim** in a floating window over the app (see
-  Watch out for where it works). Alt-click: a read-only, syntax-highlighted preview in the panel, with a back arrow.
+  mark (`A` new, `M`, `D`, `U` conflict) and a closed folder shows a dot, in the color of its worst child. Limits: 500
+  entries per folder (folders listed first), 5,000 in all; previews stop at 400,000 characters.
+- The panel does nothing while it is closed: no listing, no `git`, no folder watching; opening it refreshes once.
+- Click a folder: expand or collapse. Click a file: open it in **nvim** in a floating window over the app, one editor
+  per click even on a double click (see Watch out for where it works). Alt-click: a read-only, syntax-highlighted
+  preview in the panel, with a back arrow.
 - The floating window's title bar shows the program's icon, the file's name and its folder and has two buttons:
   *Keep*, a menu with "New tab" (the nvim becomes a tab of the space, `terminal.keep`) and, for every nvim tab already
   kept in the space, "Add to <tab>" (the file opens there as a buffer, that tab is focused and the float quits); and
@@ -210,9 +214,12 @@ the `vault` node; without both, nothing about the Vault is drawn and nothing is 
 `machine-add`, `menu`, `new-menu`. No other shipped file is read: the icons are copied into the mods that use them (see
 `NOTICE`).
 
-**Shared state:** writes `agents.since` (agent address to the time of its last state change); reads `workspace.panels`
-(which panel tabs the person has enabled, default `["files", "changes"]`), `space.colors` (space id to a color name or
-`#rrggbb`), `vault.panes` (pane id to `{ vault, file, id }`, only for Vault note rows) and the vault mod's presence.
+**Shared state:** writes `agents.since` (agent address to the time of its last state change) and `mods.vault` (a boolean:
+`bar-strip` looks for `<app home>/mods/vault/main.js` at start and every 60 seconds); reads `workspace.panels` (which
+panel tabs the person has enabled, default `["files", "changes"]`), `space.colors` (space id to a color name or
+`#rrggbb`), `layout` (the shown layout's name) and `vault.panes` (pane id to `{ vault, file, id }`, only for Vault note
+rows). Each mod also keeps its own `localStorage`: `folded`, `peeked`, `changed` (`portrait-tree`) and `panels`
+(`portrait-tabs`); corrupt or foreign values fall back to empty, and ids of spaces and agents that are gone are dropped.
 
 **Functions and commands used:** `spaces, agents, panes, terminals, focused, run, shared, setShared, setAgentOrder,
 theme, settings, layout, updates, window, home, appHome, props, nextCommand, openOverlay, closeOverlay, notify,
@@ -223,17 +230,20 @@ exec, hc, readTextFile, watchFolder`; commands `agent.focus`, `layout.show`, `la
 
 **What it reaches outside itself (read this before installing):**
 - **Network:** none. No mod calls `fetch` or opens a socket to another host.
-- **Runs programs:** `git` (`rev-parse`, `status`, read-only, for the Files marks); `sh` (lists a folder and launches
-  nvim on macOS and Linux and on remote POSIX machines); `powershell` (lists a folder on Windows); `nvim` (the Files
-  click); `hc` (`hc run` to start the nvim terminal, `hc read` in `attention-picker` to read the last lines of a
-  blocked or finished agent's terminal every 2 seconds while its list is open).
+- **Runs programs:** `git` (`rev-parse`, `status`, read-only, for the Files marks, only while the panel is open); `sh`
+  (lists a folder; launches nvim on macOS and Linux and on remote POSIX machines; asks the person's login shell for its
+  `PATH` once with `printenv PATH`); `powershell` (lists a folder on Windows); `nvim` (the Files click); `hc` (`hc run` to
+  start the nvim terminal; `hc read` in `attention-picker` only, to read the last lines of a blocked or finished agent's
+  terminal every 2 seconds while its list is open).
 - **Reads outside its folder:** the folders shown in the Files panel and the file you click (through `exec` and
-  `readTextFile`, on the folder's own machine); terminal text through `hc read`; the shared values above; the
-  app's own list of spaces, tabs, panes, terminals and agents (names, folders, titles).
+  `readTextFile`, on the folder's own machine); whether `<app home>/mods/vault/main.js` exists (existence only); terminal
+  text through `hc read` (`attention-picker` only); the shared values above; the app's own list of spaces, tabs, panes,
+  terminals and agents (names, folders, titles). The nvim terminal is labeled with `editor.file=<full path>`,
+  `editor.socket=<socket path>` and `editor.space=<id>`, which any other mod can read.
 - **Writes outside its folder:** one small SVG per space name under `<app home>/data/portrait-tree-spines/` (the
   rotated name of a folded space; the folder is not inside the mod because Herdr reloads a mod when its files
-  change); a unix socket `/tmp/herdr-nvim-<id>.sock` per nvim started from the panel (macOS and Linux); the mods'
-  `localStorage` (folded spaces, remembered panels, state times). Nothing is written into the person's projects:
+  change; stale ones of removed spaces are deleted); a unix socket `/tmp/herdr-nvim-<id>.sock` per nvim started from the
+  panel (macOS and Linux; nvim itself creates it); the mods' `localStorage` (folded spaces, remembered panels, state times). Nothing is written into the person's projects:
   the nvims write only what the person saves.
 
 **Art:** icons are small SVGs inside the mod that uses them (provenance and licenses in `NOTICE`); the preview and thumbnails
@@ -249,10 +259,13 @@ are drawn by `scripts/make-preview.mjs`.
 - **The Vault is opt-in** (see Built from). A build that always draws the Vault button without the mod installed shows
   a button that opens a panel for a missing mod.
 - **Editing in nvim works on macOS and Linux and on remote POSIX machines; on Windows a click opens the read-only preview**
-  (with a one-time notice that nvim editing is not available there). nvim must be installed on the machine of the
-  folder; it is started through `sh` with the PATH of the person's login shell, so Homebrew and similar installs work,
-  and a missing nvim shows a toast "Couldn't open nvim" rather than doing nothing. The socket stays under `/tmp`
-  because macOS temp folders can exceed the 104-byte limit of a unix socket path.
+  (with a one-time notice per session that nvim editing is not available there). nvim must be installed on the machine of
+  the folder; the `PATH` of the person's login shell is read once (`printenv PATH`, which also works in fish) and the
+  launch runs in plain `sh`, so Homebrew and similar installs are found. If nvim is not on that `PATH` a toast says "nvim
+  not found on PATH" and the read-only preview opens instead. A click that cannot start nvim in 10 seconds ends the
+  terminal it started and says so. The socket stays under `/tmp` because macOS temp folders can exceed the 104-byte
+  limit of a unix socket path.
+- **Herdr's script engine has no `Intl`.** `new Intl.Collator()` fails `herdr-app check`; sort with `localeCompare`.
 - **Keys:** `cmd-b` is macOS only. Elsewhere use `ctrl-shift-g`. The chords are `ctrl-shift` letters because no
   plain `ctrl` letter is free (programs use them) and `ctrl-alt` is AltGr on Windows. A terminal program that wants
   `ctrl-shift-g`, `-y` or `-j` loses them while one of the two layouts shows; rebind in `keys.json`. Chords with a
@@ -277,7 +290,7 @@ Other pieces look these up by name. A build or a rename that drops one breaks so
 - **Layout ids:** `root`, `left`, `bar`, `bar-strip`, `tree`, `work`, `tabs`, `work-body`, `main`, `status`, `panel`, `panel-body`, `files`, `changes`
 - **Mods:** `portrait-tree`, `bar-strip`, `portrait-tabs`, `portrait-pane`, `portrait-files`, `nvim-float`, `attention-picker`, `workspace-status`, `changes`, `picker`, `machine-add`, `menu`, `new-menu`
 - **Key sections:** `layout:portrait`, `layout:portrait-bottom`
-- **Shared keys:** `agents.since`, `workspace.panels`, `space.colors`
+- **Shared keys:** `agents.since`, `workspace.panels`, `space.colors`, `mods.vault`
 - **Commands:** `bar-strip.attention`, `layout.toggle`, `layout.switch`, `layout.select`, `layout.show`, `layout.hide`, `agent.focus`
 
 ## Done when
@@ -295,8 +308,9 @@ Other pieces look these up by name. A build or a rename that drops one breaks so
 - [ ] Pressing `ctrl-shift-y` switches to `portrait-bottom` and back; `ctrl-shift-g` hides and shows the bar; `ctrl-shift-j` (or a
   shift-click on the bell) opens the Agents waiting list with a search box.
 - [ ] The Files button opens a 368px panel with the focused folder's tree; closing it and switching space restores that space's
-  choice. On macOS or Linux with nvim installed a click on a file opens it in a floating window whose Keep menu offers "New tab".
-  On Windows the click shows a read-only preview.
-- [ ] Idle, no mod writes anything but `<app home>/data/portrait-tree-spines/*.svg`, the nvim sockets and its own
+  choice; while it is closed no `git` or `sh` process runs. On macOS or Linux with nvim installed a click on a file opens it in
+  a floating window whose Keep menu offers "New tab". On Windows, or without nvim on the `PATH`, the click shows a read-only
+  preview and says why.
+- [ ] No mod writes anything but `<app home>/data/portrait-tree-spines/*.svg`, the nvim sockets and its own
   `localStorage`; no mod reaches the network; `git status` of the person's projects is unchanged after browsing them.
 - [ ] After adding `snippets/vault-panel.json` with the vault mods installed, the strip shows a *Vault* button that opens that panel.

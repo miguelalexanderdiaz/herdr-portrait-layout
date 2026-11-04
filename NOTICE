@@ -51,8 +51,11 @@ are only used by name; they come with the person's Herdr and are never copied in
 2. Icons from Lucide (ISC License; some also MIT)
 --------------------------------------------------
 
-The following icons are Lucide icons (https://lucide.dev), as shipped in Herdr's own mods, and are used under the
-Lucide license reproduced below. Each file keeps its path data; only its folder changed.
+Which icons are Lucide. Herdr's own mods ship Lucide icons (Herdr 0.1.12 carries the Lucide license in its icon folder) and
+this repository copies some of them into the mod folders that use them. Evidence per file: `settings.svg`, `plus.svg`,
+`chevron-right.svg`, `chevron-down.svg` and `folder.svg` carry the `lucide` class marker; `bell.svg`, `chevron-left.svg`,
+`file.svg` and `note.svg` (Lucide's file-text) have exactly the geometry of the Lucide icon of that name. All of them are
+used under the Lucide license reproduced below. Only the folder changed.
 
   bell.svg                         mods/bar-strip
   plus.svg                         mods/portrait-tree  (also derived from Feather)
@@ -62,8 +65,9 @@ Lucide license reproduced below. Each file keeps its path data; only its folder 
   chevron-right.svg                mods/portrait-files, mods/portrait-tree  (also derived from Feather)
   file.svg                         mods/portrait-files, mods/bar-strip
   folder.svg                       mods/portrait-files
-  fold.svg, unfold.svg             mods/portrait-tree  (Lucide-style, after Lucide's fold-horizontal and unfold-horizontal)
   note.svg                         mods/portrait-tree, mods/portrait-pane  (Lucide's file-text, replacing a note logo)
+  fold.svg, unfold.svg             mods/portrait-tree  (drawn in the Lucide style; the original file was not recorded,
+                                   so Lucide's license is applied to them as a precaution)
 
 Lucide license (https://github.com/lucide-icons/lucide/blob/main/LICENSE):
 
