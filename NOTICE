@@ -151,10 +151,32 @@ which were drawn for this project (they are not copies of any Herdr or Lucide fi
 Space and agent names, folders and notes that appear in the preview are made up.
 
 
-6. Not included
+6. Fonts of the documentation site (SIL Open Font License 1.1)
+-------------------------------------------------------------
+
+The pages in docs/ (the GitHub Pages site) carry their own fonts, so they load nothing from a font host. The files are
+the Latin subsets in WOFF2 of the variable fonts, as published by the Fontsource project (npm packages
+@fontsource-variable/fraunces 5.3.0, @fontsource-variable/source-serif-4 5.3.0, @fontsource-variable/jetbrains-mono
+5.3.1). Fontsource subset and converted them; they are not otherwise changed. They are used by docs/assets/site.css
+and docs/404.html only; the layouts and mods do not use them.
+
+  docs/assets/fonts/fraunces-latin-wght-normal.woff2          Fraunces, Copyright 2018 The Fraunces Project Authors
+                                                              (https://github.com/undercasetype/Fraunces)
+  docs/assets/fonts/source-serif-4-latin-wght-normal.woff2    Source Serif 4, Copyright 2014 - 2023 Adobe, with
+  docs/assets/fonts/source-serif-4-latin-wght-italic.woff2    Reserved Font Name 'Source' (https://github.com/adobe-fonts/source-serif)
+  docs/assets/fonts/jetbrains-mono-latin-wght-normal.woff2    JetBrains Mono, Copyright 2020 The JetBrains Mono Project
+                                                              Authors (https://github.com/JetBrains/JetBrainsMono)
+
+Each is licensed under the SIL Open Font License, Version 1.1. The full license text of each font, with its copyright
+line, travels next to the files: docs/assets/fonts/OFL-Fraunces.txt, OFL-SourceSerif4.txt and OFL-JetBrainsMono.txt
+(copied from each font's own repository). The fonts are not covered by this repository's Apache License.
+
+
+7. Not included
 ---------------
 
-No theme is shipped. The layouts take the colors of whatever theme the person has chosen. Fonts are the ones Herdr
-ships (Geist, JetBrains Mono); no font files are included.
+No theme is shipped. The layouts take the colors of whatever theme the person has chosen. The layouts use the fonts
+Herdr ships (Geist, JetBrains Mono); no font files are included for them (the documentation site's fonts are in
+section 6).
 
 The logo of Obsidian is not used or redistributed anywhere in this repository.
