@@ -44,7 +44,7 @@ Run from the repository root before you push. `npm test` and `npm run check` are
 | Docs: links, no external hosts, keys table, llms.txt copy | `node scripts/check-docs.mjs` |
 | Commit history carries no personal address | `npm run check:history` (see [scripts/PUBLISH.md](scripts/PUBLISH.md), step 0) |
 
-The CI definition is [scripts/ci.workflow.yml](scripts/ci.workflow.yml): it runs the tests and `npm run check` on Ubuntu, Windows and macOS. It is not active until the maintainer copies it to `.github/workflows/ci.yml` with a login that has the workflow scope ([scripts/PUBLISH.md](scripts/PUBLISH.md), step 6); pull requests must not add files under `.github/workflows/`. `herdr-app check` cannot see runtime behaviour, so the manual checklist below still matters.
+The CI definition is [scripts/ci.workflow.yml](scripts/ci.workflow.yml): it runs the tests and `npm run check` on Ubuntu, Windows and macOS. It is installed as `.github/workflows/ci.yml`, and the two must stay byte-equal (`validate` compares them). `main` only takes pull requests whose checks all pass. `herdr-app check` cannot see runtime behaviour, so the manual checklist below still matters.
 
 Two suites guard the docs against the code: `scripts/check-docs.mjs` (every key of `keys.json` has a row in the README and in the Configuration page, the names in the "Where to check" cells exist in `mods/`, every mod is named in the README and the Privacy page) and `tests/docs-claims.test.mjs` (the numbers in the text, such as `290 px`, `34 px`, `40 px` and `7 days`, equal the constants in the code). Keep each number next to its unit as plain text, one `<td>` per key, and no line breaks inside a table cell, so those checks can read them.
 
@@ -57,7 +57,7 @@ Two suites guard the docs against the code: `scripts/check-docs.mjs` (every key 
 3. `herdr-app check` for every mod (above).
 4. Herdr replaces its shipped mods whole and never updates a clone. Compare each clone with the shipped mod of the same name in the Herdr home folder (read-only): `portrait-tabs` with `tabs`, `portrait-pane` with `pane`, `portrait-files` with `files`, and the layouts with the shipped `main`. Port what you want; keep `cloned_from` and the NOTICE entry true.
 5. Refresh the three snapshots in `scripts/` by hand (there is no network tool): `default-keys.json` is the `defaults/keys*.json` files of the Herdr release (github.com/herdrdev/herdr-app, folder `defaults/`); `commands.json` is the output of `herdr-app commands` (command names with their argument names); `shipped-mods.json` is the list of mod folders under `<app home>/mods/` that Herdr ships (today `workspace-status`, `changes`, `picker`, `machine-add`, `menu`, `new-menu`). Keep each file's `_about` and version fields true, then `npm run check`: a new Herdr default chord that clashes with a key in `keys.json`, or a command that no longer exists, fails `validate`.
-6. Update "built and used on" in README, `docs/` and CHANGELOG only after you used it on that version.
+6. Update "built and used on" in README and `docs/` only after you used it on that version, and say so in the pull request title (`docs: built and used on Herdr ...`).
 
 ### When attention-picker is re-synced
 
@@ -96,6 +96,10 @@ Put it in `mods/<name>/` with a `main.js` and `mod.json`; carry its own icons; a
 ## Commits
 
 A clear subject, a body that says why, and no personal data. One logical change per commit. Commit with a GitHub noreply address (the author's own commits use their public blog address, which the check allows); a personal address in the history is what `npm run check:history` is there to catch.
+
+The pull request title becomes the commit on `main` (pull requests are squash-merged) and the line in the changelog, so write it as a [Conventional Commit](https://github.com/conventional-commits/conventionalcommits.org): `feat: ...` for something new, `fix: ...` for a bug fix, `docs: ...` for documentation (all three are listed in the changelog); `ci:`, `test:`, `refactor:`, `build:`, `chore:` or `style:` for the rest, which the changelog leaves out. An optional scope goes in parentheses (`fix(privacy): ...`) and a `!` before the colon marks a breaking change. The `conventional title` check enforces it.
+
+Do not edit `CHANGELOG.md` by hand: after each merge, [release-please](https://github.com/googleapis/release-please) (`.github/workflows/release.yml`) updates one release pull request with the next version and its changelog lines. Merging that pull request tags `vX.Y.Z` and publishes the GitHub release.
 
 ## Publishing
 

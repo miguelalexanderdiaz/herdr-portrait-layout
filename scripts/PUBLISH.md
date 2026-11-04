@@ -107,8 +107,8 @@ Nothing here is part of the Pages site.
     `README.md`, `AGENTS.md` and `llms.txt` once: they are dead until Pages is on.
 12. [ ] **author** Confirm the license: `gh api repos/<owner>/<repo>/license --jq .license.spdx_id` should print
     `Apache-2.0`.
-13. [ ] **author** Tag the release: `git tag v0.1.0 && git push origin v0.1.0`, then create the GitHub release from the
-    changelog's section.
+13. [ ] **author** Merge the release pull request that release-please keeps open (`.github/workflows/release.yml`): it
+    tags `vX.Y.Z` and publishes the GitHub release with the changelog's section.
 14. [ ] Ask a fresh agent, with an empty app home, to add the layout from `https://herdr.dev/layouts/<owner>/<repo>` and
     run the steps of `AGENTS.md`; fix whatever it tripped on in `RECIPE.md`. Look at the card on herdr.dev: the preview
     is tall (1080 by 1920) and the gallery may crop it; if it does, make a 1600 by 900 variant.
