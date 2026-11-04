@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="color-scheme" content="light dark">
+<meta name="color-scheme" content="dark">
 <title>How it works - Portrait layout for Herdr</title>
 <meta name="description" content="The layout tree, each mod's job, shared state, and what is original, cloned or bundled.">
 <link rel="stylesheet" href="assets/site.css">
@@ -22,7 +22,7 @@
 <p class="lead">A Herdr layout is a JSON tree of regions. Mods are small JavaScript programs that draw into the regions with native GPUI. This repository is two layout files and the mods they use. The build brief is <a href="https://github.com/miguelalexanderdiaz/herdr-portrait-layout/blob/main/RECIPE.md">RECIPE.md</a>; this page is the map.</p>
 
 <h2 id="tree">The layout tree</h2>
-<pre><code>root (row)
+<pre tabindex="0"><code>root (row)
   left (column, resizable divider)
     bar (column, 246 px high, chrome)   portrait: first child
       bar-strip   26 px   mod bar-strip

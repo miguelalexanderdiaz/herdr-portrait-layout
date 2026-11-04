@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="color-scheme" content="light dark">
+<meta name="color-scheme" content="dark">
 <title>Install - Portrait layout for Herdr</title>
 <meta name="description" content="Install the portrait layout with a Herdr agent or by hand on macOS, Linux and Windows, and remove it again.">
 <link rel="stylesheet" href="assets/site.css">
@@ -23,9 +23,9 @@
 
 <h2 id="one-command">One command</h2>
 <p>macOS and Linux:</p>
-<pre><code>curl -fsSL https://raw.githubusercontent.com/miguelalexanderdiaz/herdr-portrait-layout/main/install/install.sh | sh</code></pre>
+<pre tabindex="0"><code>curl -fsSL https://raw.githubusercontent.com/miguelalexanderdiaz/herdr-portrait-layout/main/install/install.sh | sh</code></pre>
 <p>Windows (PowerShell):</p>
-<pre><code>irm https://raw.githubusercontent.com/miguelalexanderdiaz/herdr-portrait-layout/main/install/install.ps1 | iex</code></pre>
+<pre tabindex="0"><code>irm https://raw.githubusercontent.com/miguelalexanderdiaz/herdr-portrait-layout/main/install/install.ps1 | iex</code></pre>
 <p>It first lists what the mods reach (no network; the programs they run; what they read, as on <a href="privacy.html">Privacy</a>) and asks before writing anything. Then it:</p>
 <ol>
 <li>copies the two layouts and the mods into your Herdr home, and adds the Vault panel when the <code>vault</code> mod is installed;</li>
@@ -38,7 +38,7 @@
 
 <h2 id="agent">With an agent</h2>
 <p>In a terminal agent inside Herdr (or any agent that can edit your Herdr home folder), say:</p>
-<pre><code>install https://github.com/miguelalexanderdiaz/herdr-portrait-layout</code></pre>
+<pre tabindex="0"><code>install https://github.com/miguelalexanderdiaz/herdr-portrait-layout</code></pre>
 <p>A good agent will (this is the protocol Herdr's own reference gives for layouts other people made):</p>
 <ol>
 <li>Read <code>RECIPE.md</code>, <code>AGENTS.md</code> and every file before writing anything, and tell you that the mods run programs and read folders (the short list is on <a href="privacy.html">Privacy</a>) and use no network.</li>
@@ -53,7 +53,7 @@
 <p>You need a clone of the repository and the path of your Herdr home folder. <code>herdr-app --help</code> prints it on its last line. On macOS it is <code>~/.config/herdr-app</code>, and Herdr's reference uses that path throughout, so expect the same on Linux; <code>HERDR_APP_HOME</code> overrides it. On Windows the default is not confirmed here, so use what <code>herdr-app --help</code> prints.</p>
 <h3>macOS and Linux</h3>
 <p>To try it without touching your own setup, run it in a scratch Herdr home first (<code>HERDR_APP_HOME=&lt;empty folder&gt;</code>).</p>
-<pre><code>git clone https://github.com/miguelalexanderdiaz/herdr-portrait-layout.git
+<pre tabindex="0"><code>git clone https://github.com/miguelalexanderdiaz/herdr-portrait-layout.git
 cd herdr-portrait-layout
 
 # The Herdr home folder (herdr-app --help prints it on the last line).
@@ -73,7 +73,7 @@ done
 for m in mods/*; do herdr-app check "$H/mods/${m#mods/}"; done   # check every mod you now have
 herdr-app do layout.switch --name portrait                          # switch to the layout</code></pre>
 <h3>Windows (PowerShell)</h3>
-<pre><code>git clone https://github.com/miguelalexanderdiaz/herdr-portrait-layout.git
+<pre tabindex="0"><code>git clone https://github.com/miguelalexanderdiaz/herdr-portrait-layout.git
 cd herdr-portrait-layout
 
 # The Herdr home folder. If herdr-app --help prints another folder, set $H to it.

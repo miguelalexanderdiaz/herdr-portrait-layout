@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="color-scheme" content="light dark">
+<meta name="color-scheme" content="dark">
 <title>Configuration - Portrait layout for Herdr</title>
 <meta name="description" content="Theme, sizes, keys, the optional Vault panel and optional tmux-style keys for the portrait layout.">
 <link rel="stylesheet" href="assets/site.css">
@@ -50,7 +50,7 @@
 
 <h3 id="tmux">Optional: tmux-style chords</h3>
 <p>If you like a prefix, this set uses <kbd>ctrl-b</kbd> then a letter. It is not shipped because a bound <kbd>ctrl-b</kbd> prefix takes <kbd>ctrl-b</kbd> away from the programs in your terminals (readline's back-one-character, and tmux's own prefix). Chords are not described in Herdr's written reference; this form is what the author used on macOS with Herdr 0.1.12. After saving, look for <code>keys.error</code> in the Herdr home folder.</p>
-<pre><code>{
+<pre tabindex="0"><code>{
   "layout:portrait": {
     "ctrl-b a": "mod.open:attention-picker",
     "ctrl-b b": "layout.toggle:bar",

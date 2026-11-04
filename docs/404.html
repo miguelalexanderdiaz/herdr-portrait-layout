@@ -3,23 +3,27 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="color-scheme" content="light dark">
+<meta name="color-scheme" content="dark">
 <title>Page not found - Portrait layout for Herdr</title>
 <meta name="description" content="This page does not exist.">
 <!-- GitHub Pages serves this file for a missing path at any depth, so relative links and the shared
      stylesheet could point to the wrong place. This page therefore carries its own small style and
      uses the full address of the site. -->
 <style>
-:root { --bg: #ffffff; --fg: #1b1d22; --muted: #4a5060; --accent: #0b5fd6; --line: #d5d8e0; color-scheme: light dark; }
-@media (prefers-color-scheme: dark) { :root { --bg: #121418; --fg: #e8eaee; --muted: #a9afbd; --accent: #7db0ff; --line: #333845; } }
+@font-face { font-family: "Fraunces"; src: url("https://miguelalexanderdiaz.github.io/herdr-portrait-layout/assets/fonts/fraunces-latin-full-normal.woff2") format("woff2"); font-weight: 100 900; font-display: swap; }
+@font-face { font-family: "Source Serif 4"; src: url("https://miguelalexanderdiaz.github.io/herdr-portrait-layout/assets/fonts/source-serif-4-latin-wght-normal.woff2") format("woff2"); font-weight: 200 900; font-display: swap; }
+:root { --bg: #181616; --fg: #c5c9c5; --muted: #9e9b93; --link: #8ba4b0; --link-hover: #8ea4a2; --orange: #b6927b; --line: #393836; color-scheme: dark; }
 *, *::before, *::after { box-sizing: border-box; }
-body { margin: 0; background: var(--bg); color: var(--fg); font: 1rem/1.6 system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif; }
-main { max-width: 46rem; margin-inline: auto; padding: 2rem 16px 3rem; }
-h1 { font-size: 2rem; line-height: 1.2; margin: 0 0 0.75rem; }
-a { color: var(--accent); text-underline-offset: 0.18em; }
-a.skip { position: absolute; left: 16px; top: -4rem; background: var(--accent); color: var(--bg); padding: 0.5rem 0.9rem; border-radius: 0 0 6px 6px; }
+html { background: var(--bg); }
+body { margin: 0; background: var(--bg); color: var(--fg); font: 17px/1.68 "Source Serif 4", "Iowan Old Style", Georgia, serif; font-feature-settings: "ss01", "onum" on, "liga" on, "kern" on; }
+::selection { background: rgba(139, 164, 176, 0.3); color: var(--fg); }
+main { max-width: 46rem; margin-inline: auto; padding: 3rem 16px 3.5rem; }
+h1 { font-family: "Fraunces", "Source Serif 4", Georgia, serif; font-weight: 400; font-variation-settings: "opsz" 144, "SOFT" 80; font-size: clamp(28px, 3.2vw, 44px); line-height: 1.12; letter-spacing: -0.015em; margin: 0 0 1rem; }
+a { color: var(--link); text-decoration-color: rgba(139, 164, 176, 0.35); text-decoration-thickness: 1px; text-underline-offset: 3px; }
+a:hover { color: var(--link-hover); text-decoration-color: var(--link-hover); }
+a.skip { position: absolute; left: 16px; top: -4rem; background: var(--orange); color: var(--bg); padding: 0.5rem 0.9rem; font-size: 14px; font-weight: 600; text-decoration: none; }
 a.skip:focus { top: 0; }
-a:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+a:focus-visible { outline: 3px solid var(--orange); outline-offset: 2px; }
 p.small { color: var(--muted); font-size: 0.9rem; border-top: 1px solid var(--line); padding-top: 1rem; margin-top: 2rem; }
 </style>
 </head>
