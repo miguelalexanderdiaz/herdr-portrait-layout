@@ -1,0 +1,76 @@
+# CI definition for this repository. It lives here, not in .github/workflows/, because the token that agents push with has
+# no `workflow` scope. The owner installs it once with a workflow-scoped login (scripts/PUBLISH.md, "CI"):
+#   mkdir -p .github/workflows && cp scripts/ci.workflow.yml .github/workflows/ci.yml
+# After that `node scripts/validate.mjs` fails whenever the installed copy differs from this file.
+#
+# What runs: node tests, JSON/layout/keys validation, RECIPE and docs checks, the asset checks and the privacy scan,
+# on Ubuntu, Windows and macOS (Node 20 and 22; Ubuntu also on Node 18, the oldest version the scripts promise).
+# No secrets, no network after checkout and setup-node, nothing is published or written back.
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    name: ${{ matrix.os }} / node ${{ matrix.node }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        node: ["20", "22"]
+        include:
+          - os: ubuntu-latest
+            node: "18"
+    env:
+      # Optional: a comma separated list of names/employers/hosts that must never appear (see scripts/PUBLISH.md).
+      PRIVACY_DENYLIST: ${{ secrets.PRIVACY_DENYLIST }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: ${{ matrix.node }}
+      - name: Tests
+        run: npm test
+      - name: Validate, RECIPE, assets, docs, privacy (one summary)
+        run: npm run check
+      - name: Thumbnails and preview source are what the generator writes
+        if: matrix.os == 'ubuntu-latest' && matrix.node == '22'
+        run: |
+          node scripts/make-preview.mjs --svg-only
+          git diff --exit-code -- layouts scripts/preview-source.svg
+
+  history:
+    # The commit history is what gets published: author and committer addresses must be GitHub noreply addresses and no
+    # message may carry personal data. A pull request is checked from its base up to its own head commit.
+    name: commit history
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      PRIVACY_DENYLIST: ${{ secrets.PRIVACY_DENYLIST }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "22"
+      - name: Scan the commits
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: node scripts/privacy-scan.mjs --commits ${BASE_SHA}
