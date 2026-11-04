@@ -6,7 +6,7 @@ Thanks for helping. This repository is a Herdr layout and its mods; there is not
 
 - **No personal data.** No real names (except the LICENSE copyright line), no usernames, no absolute home-folder paths of any system (write `~` or `<home>`), no e-mail addresses, no host names, nothing from a real project, window or terminal. Examples are invented ("api", "web", "docs").
 - **Say what runs.** Any new `exec`, `hc` call, file read outside the mod's folder, or file written must be added to the privacy text ([docs/privacy.html](docs/privacy.html), README, and the disclosure in [RECIPE.md](RECIPE.md)) in the same change. No mod may use the network without a very good reason and a loud note.
-- **Work on every system.** Keys, paths and shell commands must have a plan for macOS, Linux and Windows. If something is one system only, say so in [docs/platforms.html](docs/platforms.html).
+- **Work on every system.** Keys, paths and shell commands must have a plan for macOS, Linux and Windows. If something is one system only, say so where a person would look for it (Usage, Configuration or Troubleshooting) and in the README's platform table.
 - **Do not claim what was not tested.**
 
 ## Setup
@@ -47,6 +47,71 @@ Run from the repository root before you push. `npm test` and `npm run check` are
 The CI definition is [scripts/ci.workflow.yml](scripts/ci.workflow.yml): it runs the tests and `npm run check` on Ubuntu, Windows and macOS. It is installed as `.github/workflows/ci.yml`, and the two must stay byte-equal (`validate` compares them). `main` only takes pull requests whose checks all pass. `herdr-app check` cannot see runtime behaviour, so the manual checklist below still matters.
 
 Two suites guard the docs against the code: `scripts/check-docs.mjs` (every key of `keys.json` has a row in the README and in the Configuration page, the names in the "Where to check" cells exist in `mods/`, every mod is named in the README and the Privacy page) and `tests/docs-claims.test.mjs` (the numbers in the text, such as `290 px`, `34 px`, `40 px` and `7 days`, equal the constants in the code). Keep each number next to its unit as plain text, one `<td>` per key, and no line breaks inside a table cell, so those checks can read them.
+
+## How it works
+
+A Herdr layout is a JSON tree of regions; mods are small JavaScript programs that draw into the regions with GPUI. This repository is two layout files and the mods they use. The build brief is [RECIPE.md](RECIPE.md).
+
+### The layout tree
+
+```text
+root (row)
+  left (column, resizable divider)
+    bar (column, 246 px high, chrome)   portrait: first child
+      bar-strip   26 px   mod bar-strip
+      tree                mod portrait-tree
+    work (column, fixed)
+      tabs        42 px   mod portrait-tabs   (drags the window)
+      work-body (row, padding 8, gap 8)
+        main              the active tab's panes, header mod portrait-pane
+    bar ...                             portrait-bottom: here, before status
+    status        28 px   shipped mod workspace-status
+  panel (column, 368 px, hidden)
+    panel-body (stack, active: files)
+      files               mod portrait-files
+      changes             shipped mod changes
+```
+
+The mods look up `panel`, `panel-body`, `files` and `changes` by id; `bar` is named only by the key `layout.toggle:bar`.
+
+### How the mods talk
+
+| Mod | Job | Talks to the others by |
+|---|---|---|
+| `bar-strip` | Strip buttons, the bell, panel toggles | `layout.select`/`show`/`hide` on `panel-body` and `panel`; opens `attention-picker` with `openOverlay` (prop `search`); commands `bar-strip.attention`, `bar-strip.jump` |
+| `portrait-tree` | Space columns, rows, folding, spine names | publishes `agents.since`; reads `space.colors` and the label `editor.file` |
+| `portrait-tabs` | Tab bar, per-space side panel memory | re-selects the panel tab when you switch spaces |
+| `portrait-pane` | Pane header | - |
+| `portrait-files` | Files panel, git marks, opening files | `hc run` with labels; opens `nvim-float`, `portrait-viewer` and its Open with popups; shared `files.editor`, `files.request` |
+| `nvim-float` | Title bar and Keep menu of a floating editor | `terminal.keep`, `pane.focus`, nvim's remote protocol over the socket |
+| `portrait-viewer` | Picture and PDF window | opened by `portrait-files` with the path |
+| `attention-picker` | The Agents waiting dialog | reads `agents.since` (or keeps its own first-seen times) and `space.colors`; keeps `attention.sort` |
+
+State: shared keys live in Herdr's `shared.json`; mod storage is per mod; files go only to `data/portrait-tree-spines/` and `data/portrait-viewer/cache/` in the Herdr home and nvim sockets to `/tmp`. Runtime files never go inside a mod folder, because Herdr reloads a mod whenever one of its files changes.
+
+### Design notes
+
+- **Folded names are images.** GPUI cannot rotate an element, so a folded space's name is written once as a small SVG of rotated text and drawn as an image; the strip redraws when the file exists.
+- **Timers are conditional.** A hidden mod keeps running, so the Files panel refreshes only while open (a busy folder at most every 1.5 seconds, three folders watched, a 10-second timer for the rest), the waiting list polls only while open, and the tree redraws every 30 seconds only while there are agents.
+- **The nvim socket is in `/tmp`** because unix-socket paths are limited to about 104 bytes, which the per-user temporary folder on macOS plus a long home path can exceed.
+- **nvim starts through the login shell** so it finds the PATH of your terminals; the PATH is read once with `printenv PATH` (bash, zsh and fish).
+- **Paths shown with `~`** use Herdr's `home()`, so Linux and Windows home folders shorten too.
+- **Window buttons.** The layouts do not set `"titlebar": "none"`. `portrait-tabs` draws window buttons only when Herdr reports `window().buttons`, so on Linux and Windows the system's title bar keeps them.
+- **Keys.** Herdr's key spelling; no `ctrl-alt-` combinations, because Windows treats them as AltGr. `cmd-` keys are macOS only.
+- **Files on Windows.** PowerShell lists a local Windows folder (`directory()`); terminal editors need `sh`, so Windows offers the default app (`rundll32`) and the preview. A remote POSIX machine runs its own commands.
+
+### What it needs from Herdr
+
+| Needs | Used by | If it is gone |
+|---|---|---|
+| `workspace-status` (shipped mod) | the 28 px status line | the status line is empty |
+| `changes` (shipped mod) | the Changes tab of the side panel | that tab is empty |
+| `picker`, `machine-add` (shipped overlays) | bar-strip: Search, Add machine | the button does nothing |
+| `menu`, `new-menu` (shipped overlays) | portrait-tree and portrait-tabs: right-click menus and + | menus and + do nothing |
+| Theme colours (`foreground`, `background`, `muted`, `dim`, `chrome`, `raised`, `hover`, `selected`, `border`, `accent`, `working`, `blocked`, `done`, `idle`, `ansi1` to `ansi6`) | everything except the six fixed space marks | every theme defines them |
+| `hc` and `nvim` on the login shell's PATH | click-to-edit, the waiting list's previews | Files falls back to the read-only preview; no question text |
+
+Icons are carried inside each mod's folder, so a change to Herdr's asset names does not break them. The three cloned mods are copies of the 0.1.12 versions and are not updated by Herdr (see Maintenance).
 
 ## Maintenance
 

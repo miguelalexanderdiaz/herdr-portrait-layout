@@ -30,7 +30,7 @@ The Herdr desktop app, 0.1.12 or newer (built and used on 0.1.12). `git` (change
 | Pictures and PDFs in the viewer | Works | Not run, expected to work | Not run, expected to work |
 | Keys | `cmd-` and `ctrl-shift-` | `ctrl-shift-` | `ctrl-shift-` |
 
-Developed and used on macOS only. Linux and Windows are described from the code, not from a test run; no CI run has been reported yet. The layouts keep the system title bar, so no window buttons are drawn on Linux and Windows. Details, and the code that decides each row: [Platforms](https://miguelalexanderdiaz.github.io/herdr-portrait-layout/platforms.html).
+Built and used on macOS; Linux and Windows should work but have not been run. The layouts keep the system title bar, so on Linux and Windows the window buttons are the system's own.
 
 ## Install
 
@@ -115,6 +115,6 @@ Windows, and removing it by hand: [Install](https://miguelalexanderdiaz.github.i
 
 ## What is original, cloned, bundled
 
-`portrait-tree`, `bar-strip`, `nvim-float` and `portrait-viewer` are original. The two layouts and `portrait-tabs`, `portrait-pane`, `portrait-files` are clones of Herdr's shipped 0.1.12 layout and mods (`cloned_from`), changed. `attention-picker` is a bundled copy, kept unchanged and checked file by file against `scripts/bundled.json`. Small icons are carried inside each mod: Lucide icons (ISC; a few also MIT), art copied from Herdr's shipped mods (Apache-2.0), and two drawings made for this layout; [NOTICE](NOTICE) lists every file. What the layout needs from Herdr (its status line, Changes tab, search and menu overlays) is on [How it works](https://miguelalexanderdiaz.github.io/herdr-portrait-layout/how-it-works.html).
+`portrait-tree`, `bar-strip`, `nvim-float` and `portrait-viewer` are original. The two layouts and `portrait-tabs`, `portrait-pane`, `portrait-files` are clones of Herdr's shipped 0.1.12 layout and mods (`cloned_from`), changed. `attention-picker` is a bundled copy, kept unchanged and checked file by file against `scripts/bundled.json`. Small icons are carried inside each mod: Lucide icons (ISC; a few also MIT), art copied from Herdr's shipped mods (Apache-2.0), and two drawings made for this layout; [NOTICE](NOTICE) lists every file. What the layout needs from Herdr (its status line, Changes tab, search and menu overlays) is in [CONTRIBUTING.md](CONTRIBUTING.md#how-it-works).
 
 [CONTRIBUTING.md](CONTRIBUTING.md), [CHANGELOG.md](CHANGELOG.md). Apache-2.0, see [LICENSE](LICENSE) and [NOTICE](NOTICE).
