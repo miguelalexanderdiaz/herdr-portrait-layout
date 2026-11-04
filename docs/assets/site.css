@@ -394,7 +394,155 @@ dl dd { margin: 0.25rem 0 0; padding-left: 1rem; border-left: 1px solid var(--ru
 footer.site { border-top: 1px solid var(--rule); padding: 1.3rem 16px 2.4rem; color: var(--fg-dim); font-size: var(--fs-small); }
 footer.site p { margin: 0; }
 
+/* ---- the home page: a hero, four features with moving pictures, the install line */
+main.home { max-width: var(--body-width); padding: 0 28px 4rem; }
+body:has(main.home) footer.site .inner { max-width: var(--body-width); }
+.home h2 { border-top: 0; padding-top: 0; margin: 0 0 0.6rem; }
+
+.hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 36rem);
+  gap: 64px;
+  align-items: center;
+  padding: 48px 0 56px;
+}
+.hero h1 { font-size: clamp(36px, 4.6vw, 60px); margin: 0 0 1.4rem; max-width: 12ch; }
+.hero .lead { max-width: 30rem; margin-bottom: 2rem; }
+.hero-pic { margin: 0; }
+.hero-pic img { display: block; width: 100%; height: auto; border: 1px solid var(--rule); box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35); }
+
+/* Buttons: orange fill, and a ghost one with a rule border. */
+.actions { display: flex; flex-wrap: wrap; gap: 12px; margin: 0; }
+.button {
+  display: inline-block;
+  padding: 0.6rem 1.25rem;
+  border: 1px solid var(--d-orange);
+  border-radius: var(--r-card);
+  background: var(--d-orange);
+  color: var(--bg);
+  font-family: var(--f-display);
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 1.3;
+  text-decoration: none;
+  transition: background-color var(--dur-fast) var(--ease), border-color var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease), transform var(--dur-fast) var(--ease);
+}
+.button:hover { background: var(--d-red); border-color: var(--d-red); color: var(--bg); transform: translateY(-1px); }
+.button.ghost { background: transparent; border-color: var(--rule); color: var(--fg); }
+.button.ghost:hover { border-color: var(--d-orange); color: var(--d-orange); transform: none; }
+
+/* Features: picture and text side by side, the picture on alternate sides. */
+.features { border-top: 1px solid var(--rule); }
+.feature {
+  display: grid;
+  grid-template-columns: minmax(0, 6fr) minmax(0, 5fr);
+  gap: 64px;
+  align-items: center;
+  padding: 44px 0;
+  border-bottom: 1px solid var(--rule);
+}
+.feature:nth-child(even) { grid-template-columns: minmax(0, 5fr) minmax(0, 6fr); }
+.feature:nth-child(even) .shot { order: 2; }
+.feature-text { max-width: 26rem; }
+.feature-text p { margin: 0 0 0.9rem; }
+.feature-text p.more { margin: 0; font-size: var(--fs-small); }
+.shot { margin: 0; }
+.pic-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  border: 1px solid var(--rule);
+  font-feature-settings: normal;
+  font-variant-ligatures: none;
+}
+.pic-svg .u { font-family: Geist, "Helvetica Neue", Helvetica, Arial, sans-serif; }
+.pic-svg .m { font-family: "JetBrains Mono", Menlo, Consolas, "DejaVu Sans Mono", monospace; white-space: pre; }
+
+/* The install line: a code cell with a copy button (shown by assets/motion.js), and the facts. */
+.install { padding: 56px 0 0; max-width: 46rem; }
+.install p { margin-bottom: 0.7rem; }
+.cell {
+  display: flex;
+  align-items: stretch;
+  margin: 0 0 1rem;
+  background: var(--bg-raised);
+  border: 1px solid var(--rule);
+  border-left: 2px solid var(--d-orange);
+}
+.cell pre { flex: 1 1 auto; min-width: 0; margin: 0; border: 0; font-size: 14px; }
+.copy {
+  flex: none;
+  padding: 0 1rem;
+  border: 0;
+  border-left: 1px solid var(--rule);
+  border-radius: 0;
+  background: transparent;
+  color: var(--fg);
+  font-family: var(--f-mono);
+  font-size: 12px;
+  cursor: pointer;
+  transition: color var(--dur-fast) var(--ease);
+}
+.copy[hidden] { display: none; }
+.copy:hover { color: var(--d-orange); }
+.facts { color: var(--fg-dim); font-size: var(--fs-small); }
+
+/* ---- home page pictures. Still (no script, or reduced motion): the after state, what the feature shows. With
+   motion.js a picture gets "play" the first time half of it is on screen (its parts start moving) and "run" while it
+   stays there (they pause when it leaves). One 8 s cycle each: the change, then a long rest. */
+.pic-svg .st-a, .pic-svg .lbl-b, .pic-svg .key-hi { opacity: 0; }
+.pic-svg .spin { transform-box: fill-box; transform-origin: center; }
+
+@media (prefers-reduced-motion: no-preference) {
+  .shot.play .spin { animation: spin 900ms linear infinite; }
+  .shot.play .st-a, .shot.play .st-b, .shot.play .mv, .shot.play .slide, .shot.play .mk, .shot.play .chip,
+  .shot.play .lbl-a, .shot.play .lbl-b, .shot.play .key, .shot.play .key-hi {
+    animation-duration: 8s;
+    animation-timing-function: var(--ease);
+    animation-iteration-count: infinite;
+  }
+  .shot.play :is(.spin, .st-a, .st-b, .mv, .slide, .mk, .chip, .lbl-a, .lbl-b, .key, .key-hi) { animation-play-state: paused; }
+  .shot.play.run :is(.spin, .st-a, .st-b, .mv, .slide, .mk, .chip, .lbl-a, .lbl-b, .key, .key-hi) { animation-play-state: running; }
+
+  /* Two layouts: the key, then the bar goes down and the work area up; back after a rest. */
+  [data-motion="layouts"].play .mv { animation-name: flip; }
+  [data-motion="layouts"].play .lbl-a { animation-name: label-a; }
+  [data-motion="layouts"].play .lbl-b { animation-name: label-b; }
+  [data-motion="layouts"].play .key { animation-name: key-press; }
+  [data-motion="layouts"].play .key-hi { animation-name: key-lit; }
+  /* Space tree and bar strip: working, then needs you; back to working after a rest. */
+  [data-motion="tree"].play .st-a, [data-motion="bell"].play .st-a { animation-name: before; }
+  [data-motion="tree"].play .st-b, [data-motion="bell"].play .st-b { animation-name: after; }
+  [data-motion="bell"].play .chip { animation-name: chip; }
+  /* Side panel: it slides in, the git mark appears; it slides out after a rest. */
+  [data-motion="panel"].play .slide { animation-name: slide; }
+  [data-motion="panel"].play .mk { animation-name: mark; }
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes flip { 0%, 16% { transform: none; } 26%, 62% { transform: translateY(var(--d)); } 72%, 100% { transform: none; } }
+@keyframes label-a { 0%, 17% { opacity: 1; } 20%, 63% { opacity: 0; } 66%, 100% { opacity: 1; } }
+@keyframes label-b { 0%, 17% { opacity: 0; } 20%, 63% { opacity: 1; } 66%, 100% { opacity: 0; } }
+@keyframes key-press { 0%, 13% { transform: none; } 14%, 17% { transform: translateY(1px); } 19%, 59% { transform: none; } 60%, 63% { transform: translateY(1px); } 65%, 100% { transform: none; } }
+@keyframes key-lit { 0%, 13% { opacity: 0; } 14%, 17% { opacity: 1; } 21%, 59% { opacity: 0; } 60%, 63% { opacity: 1; } 67%, 100% { opacity: 0; } }
+/* A state changes at once, as in Herdr; only the bell's chip eases in. */
+@keyframes before { 0%, 30% { opacity: 1; } 30.6%, 88% { opacity: 0; } 88.6%, 100% { opacity: 1; } }
+@keyframes after { 0%, 30% { opacity: 0; } 30.6%, 88% { opacity: 1; } 88.6%, 100% { opacity: 0; } }
+@keyframes chip { 0%, 30% { fill-opacity: 0; } 36% { fill-opacity: 0.32; } 48%, 100% { fill-opacity: 0.12; } }
+@keyframes slide { 0%, 12% { transform: translateX(var(--d)); } 24%, 82% { transform: none; } 94%, 100% { transform: translateX(var(--d)); } }
+@keyframes mark { 0%, 27% { opacity: 0; } 31%, 82% { opacity: 1; } 86%, 100% { opacity: 0; } }
+
+@media (max-width: 56rem) {
+  .hero, .feature, .feature:nth-child(even) { grid-template-columns: minmax(0, 1fr); gap: 28px; }
+  .feature:nth-child(even) .shot { order: 0; }
+  .hero { padding: 36px 0 48px; }
+  .hero-pic { max-width: 36rem; }
+  .feature { padding: 32px 0; }
+  .feature-text { max-width: none; }
+}
+
 @media (max-width: 40rem) {
+  main.home { padding: 0 16px 3rem; }
+  .cell pre { font-size: 12.5px; }
   header.site .inner { padding: 0 16px; flex-direction: column; align-items: flex-start; justify-content: center; }
   .brand { padding: 1rem 0 0.6rem; }
   nav.site { padding-bottom: 0.9rem; }
