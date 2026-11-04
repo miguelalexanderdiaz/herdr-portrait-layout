@@ -1,0 +1,15 @@
+{
+  "global": {
+    "ctrl-b a": "bar-strip.attention"
+  },
+  "layout:portrait": {
+    "ctrl-b shift-b": "layout.switch:portrait-bottom",
+    "ctrl-b b": "layout.toggle:bar",
+    "cmd-b": "layout.toggle:bar"
+  },
+  "layout:portrait-bottom": {
+    "ctrl-b shift-b": "layout.switch:portrait",
+    "ctrl-b b": "layout.toggle:bar",
+    "cmd-b": "layout.toggle:bar"
+  }
+}
