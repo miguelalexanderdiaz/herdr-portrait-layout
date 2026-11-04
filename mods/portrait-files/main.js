@@ -1,10 +1,15 @@
 // A lazy file browser for the focused pane's folder, with bounded read-only previews.
 // Portrait copy: clicking a file opens it in nvim, in a floating window
 // (mods/nvim-float: Keep ▾ → new tab or add to a kept nvim; ✕ or :q closes it);
-// alt-click keeps the read-only preview in the panel.
+// alt-click keeps the read-only preview in the panel. On Windows (no nvim launch) every
+// click shows the read-only preview.
+//
+// Work happens only while the panel is on screen (filesVisible): no timer refresh, git
+// status or folder watch while it is closed.
 import { View, div, svg } from "gpui-kit";
 import { v_flex, h_flex, Editor, EditorState } from "gpui-base";
-import { spaces, panes, focused, exec, readTextFile, watchFolder, theme, settings, window, hc, run, notify, terminals, openOverlay } from "herdr";
+import { spaces, panes, focused, exec, readTextFile, watchFolder, theme, settings, window, hc, run, notify, terminals, openOverlay, layout, home } from "herdr";
+import { filesVisible, watchable, createGate, freeName, markOf, parseStatus, bubble, arrange, loginPath, nvimArgv, nvimFound, platformMode } from "./logic.mjs";
 
 function location() {
   const space = spaces().find(s => s.active), f = focused();
@@ -25,7 +30,8 @@ async function directory(path, on) {
     const result = JSON.parse(r.stdout || "[]");
     return Array.isArray(result) ? result : [result];
   }
-  const script = 'n=0; for p in "$1"/* "$1"/.[!.]* "$1"/..?*; do [ -e "$p" ] || [ -L "$p" ] || continue; name=${p##*/}; [ "$name" = .git ] && continue; if [ -d "$p" ]; then kind=d; else kind=f; fi; printf "%s\\0%s\\0" "$kind" "$name"; n=$((n+1)); [ "$n" -gt 500 ] && break; done; test -d "$1"';
+  // Folders in the first pass, files in the second: the 501-entry cap (a memory guard) can't drop a folder for files.
+  const script = 'n=0; for want in d f; do for p in "$1"/* "$1"/.[!.]* "$1"/..?*; do [ -e "$p" ] || [ -L "$p" ] || continue; name=${p##*/}; [ "$name" = .git ] && continue; if [ -d "$p" ]; then kind=d; else kind=f; fi; [ "$kind" = "$want" ] || continue; printf "%s\\0%s\\0" "$kind" "$name"; n=$((n+1)); [ "$n" -gt 500 ] && break 2; done; done; test -d "$1"';
   const r = await exec("sh", ["-c", script, "files", path], { on });
   if (r.code !== 0) throw new Error(r.stderr || "Cannot list this folder");
   const fields = r.stdout.split("\0"), out = [];
@@ -37,17 +43,29 @@ export default class Files extends View {
   init(_props, cx) {
     this.saved = new Map();
     this.entries = new Map(); this.folders = new Set(); this.pending = new Set(); this.marks = {};
-    this.refresh(cx);
-    cx.timer.every(10000, cx => this.refresh(cx));
+    this.watching = new Set(); // roots with a watch loop running (one per root)
+    this.gate = createGate();
+    this.wasVisible = false;
+    // Slow safety net; it does nothing while the panel is closed.
+    cx.timer.every(10000, cx => { this.peekWhenReady(); if (this.visible()) this.refresh(cx); });
+  }
+
+  visible() {
+    return filesVisible(layout());
   }
 
   watch(root, cx) {
-    if (this.on || this.watched === root) return;
-    this.watched = root;
-    const context = this.context;
+    if (this.on || this.watching.has(root) || !watchable(root, home())) return;
+    this.watching.add(root);
     cx.spawn(async cx => {
-      try { while (this.context === context) { await watchFolder(root); if (this.current(context)) this.refresh(cx); } }
-      catch { if (this.context === context) this.watched = null; }
+      try {
+        // Ends when the folder is no longer the shown one or the panel is closed; the next refresh starts it again.
+        while (this.root === root && !this.on && this.visible()) {
+          await watchFolder(root);
+          if (this.root === root && this.visible()) this.refresh(cx);
+        }
+      } catch {}
+      this.watching.delete(root);
     });
   }
 
@@ -60,8 +78,9 @@ export default class Files extends View {
     const entries = await directory(path ? `${root}/${path}` : root, on);
     if (!this.current(context) || (path && !this.folders.has(path))) return;
     const used = [...this.entries.entries()].filter(([p]) => p !== path).reduce((n, [, e]) => n + e.length, 0);
-    this.entries.set(path, entries.slice(0, Math.max(0, Math.min(PER_FOLDER, TOTAL - used))).sort((a, b) => Number(b.dir) - Number(a.dir) || a.name.localeCompare(b.name)));
-    if (entries.length > PER_FOLDER || used + entries.length > TOTAL) this.limited = true;
+    const { list, limited } = arrange(entries, PER_FOLDER, TOTAL - used);
+    this.entries.set(path, list);
+    if (limited) this.limited = true;
   }
 
   refresh(cx) {
@@ -70,11 +89,11 @@ export default class Files extends View {
       if (this.context) this.saved.set(this.context.key, { folders: this.folders, file: this.file });
       const saved = this.saved.get(next);
       this.context = { key: next, cwd, on }; this.root = cwd; this.on = on; this.entries = new Map(); this.folders = new Set(saved?.folders);
-      this.pending = new Set(); this.marks = {}; this.show(null); this.watched = null; this.error = null; this.limited = false;
+      this.pending = new Set(); this.marks = {}; this.show(null); this.error = null; this.limited = false;
       this.loading = false;
       if (saved?.file) this.show(saved.file, cx);
     }
-    if (!cwd || this.loading) return;
+    if (!cwd || this.loading || !this.visible()) return;
     const context = this.context;
     this.loading = true;
     this.limited = false;
@@ -84,15 +103,14 @@ export default class Files extends View {
           if (!this.current(context)) return;
           await this.loadFolder(path, context);
         }
-        const top = await exec("git", ["rev-parse", "--show-toplevel"], { cwd, on }).catch(() => null);
-        const marks = {};
+        // `git status` runs for the shown folder only (the pathspec), and its paths are made relative to it
+        // (show-prefix), so a monorepo, a symlinked folder or a Windows drive letter can't make marks miss.
+        const top = await exec("git", ["rev-parse", "--show-prefix"], { cwd, on }).catch(() => null);
+        let marks = {};
         if (top?.code === 0) {
           // Writes nothing under .git (index lock, fsmonitor cookie): the folder watch would refresh again.
-          const status = await exec("git", ["--no-optional-locks", "-c", "core.fsmonitor=false", "status", "--porcelain=v1", "-z", "--no-renames", "--untracked-files=all"], { cwd, on }).catch(() => null);
-          if (status?.code === 0) for (const entry of status.stdout.split("\0").filter(Boolean).slice(0, TOTAL)) {
-            const xy = entry.slice(0, 2);
-            marks[`${top.stdout.trim()}/${entry.slice(3)}`] = xy === "??" || xy.includes("A") ? "A" : xy.includes("U") ? "U" : xy.includes("D") ? "D" : "M";
-          }
+          const status = await exec("git", ["--no-optional-locks", "-c", "core.fsmonitor=false", "status", "--porcelain=v1", "-z", "--no-renames", "--untracked-files=all", "--", "."], { cwd, on }).catch(() => null);
+          if (status?.code === 0) marks = bubble(parseStatus(status.stdout, top.stdout.trim(), TOTAL));
         }
         if (!this.current(context)) return;
         this.marks = marks; this.error = null; this.watch(cwd, cx);
@@ -122,47 +140,57 @@ export default class Files extends View {
     cx.notify();
   }
 
-  // nvim on the file, in a terminal of its own on the folder's machine, peeked
-  // over the tab. Started through the login shell so nvim is on PATH. The app
-  // learns of a new terminal a moment after hc starts it, so the peek waits
-  // for it in render() (which reruns when the terminal list changes).
+  // nvim on the file, in a terminal of its own on the folder's machine, shown in a
+  // floating window (nvim-float's title bar above it). It runs in plain sh with the login
+  // shell's PATH (the app's own PATH lacks Homebrew); see logic.mjs (nvimArgv). The app
+  // learns of a new terminal a moment after hc starts it, so the window waits for it in
+  // peekWhenReady() (render() and a timer call it). One click opens one editor: the gate
+  // stays shut until the window is up or gave up. Windows has no nvim launch: it previews.
   async edit(path, cx) {
     const root = this.root, on = this.on;
-    if (!root) return;
+    if (!root || !this.gate.enter()) return;
     const file = `${root}/${path}`;
-    // Through the login shell, so nvim is on PATH (the app's own PATH lacks Homebrew).
-    const viaShell = (script, ...rest) => ["sh", "-c", `exec "\${SHELL:-sh}" -lc '${script}' "$@"`, "sh", ...rest];
     try {
+      if (platformMode(window()?.platform, on) === "preview") {
+        this.gate.leave();
+        if (!this.toldPreview) {
+          this.toldPreview = true;
+          notify({ title: "Showing a read-only preview", body: "Editing in nvim needs macOS or Linux (or a remote machine).", level: "info" });
+        }
+        this.show(path, cx); cx.notify();
+        return;
+      }
+      if (!(await nvimFound(exec, on))) {
+        this.gate.leave();
+        notify({ title: "nvim not found on PATH", body: "Showing a read-only preview instead.", level: "warning" });
+        this.show(path, cx); cx.notify();
+        return;
+      }
       // Every file gets a new nvim, in a floating window (mods/nvim-float). Named "nvim" (then nvim-2, ...:
-      // hc names are unique among live terminals), so "↗ keep" makes a tab called
-      // nvim. It listens on a socket (label editor.socket) so its window can hand
-      // its file to a kept nvim and close it, and sets its title to the current file, which the space tree shows.
-      const taken = new Set(terminals().map((t) => t.name).filter(Boolean));
-      let name = "nvim";
-      for (let n = 2; taken.has(name); n++) name = `nvim-${n}`;
+      // hc names are unique among live terminals), so "Keep" makes a tab called nvim. It listens on
+      // a socket (label editor.socket) so its window can hand its file to a kept nvim and close it,
+      // and sets its title to the current file, which the space tree shows.
+      const name = freeName(terminals().map((t) => t.name).filter(Boolean));
       const socket = `/tmp/herdr-nvim-${Date.now().toString(36)}.sock`;
+      const space = spaces().find((s) => s.active)?.id;
       const args = ["run", "--bg", "--json", "--no-parent", "--rm", "--name", name,
         "--label", `editor.file=${file}`, "--label", `editor.socket=${socket}`,
-        "--label", `editor.space=${spaces().find((s) => s.active)?.id ?? ""}`, "--cwd", root];
+        "--label", `editor.space=${space ?? ""}`, "--cwd", root];
       if (on) args.push("--on", on);
-      args.push("--", ...viaShell('exec nvim --listen "$0" -c "set title titlestring=%t" -- "$1"', socket, file));
+      args.push("--", ...nvimArgv(await loginPath(exec, on), 'exec nvim --listen "$1" -c "set title titlestring=%t" -- "$2"', socket, file));
       const r = await hc(args);
       const out = JSON.parse(r.stdout || "{}"), terminal = out.address ?? out.terminal;
       if (r.code !== 0 || !terminal) throw new Error(r.stderr || r.stdout || "hc run failed");
       this.peekFor = { terminal: on && !terminal.includes("/") ? `${on}/${terminal}` : terminal, since: Date.now(),
-        socket, file, on, space: spaces().find((s) => s.active)?.id };
+        socket, file, on, space };
       cx.notify();
     } catch (err) {
+      this.gate.leave();
       notify({ title: "Couldn't open nvim", body: String(err?.message ?? err), level: "error" });
     }
   }
 
-
-
-
-
-
-  // Peek the nvim terminal once the app lists it; give up after 10 s.
+  // Show the nvim terminal's window once the app lists it; give up after 10 s (and end that terminal).
   peekWhenReady() {
     const want = this.peekFor;
     if (!want) return;
@@ -170,7 +198,8 @@ export default class Files extends View {
     const seen = terminals().some((t) => (t.address === want.terminal || t.address === bare) && t.state === "live");
     if (seen) {
       this.peekFor = null;
-      // A window: nvim-float's title bar (name, Keep ▾, ✕) above the terminal.
+      this.gate.leave();
+      // A window: nvim-float's title bar (name, Keep, close) above the terminal.
       // It closes by itself when nvim ends.
       openOverlay({ kind: "window", width: 0.9, height: 0.85, layout: { type: "column", children: [
         { type: "block", size: { px: 34 }, content: { mod: "nvim-float", props: {
@@ -180,6 +209,8 @@ export default class Files extends View {
     }
     else if (Date.now() - want.since > 10000) {
       this.peekFor = null;
+      this.gate.leave();
+      try { run("terminal.kill", { terminal: want.terminal }); } catch {}
       notify({ title: "Couldn't open nvim", body: `${want.terminal} didn't show up`, level: "error" });
     }
   }
@@ -208,13 +239,14 @@ export default class Files extends View {
     if (out.length >= TOTAL || depth > 40) return out;
     for (const entry of this.entries.get(prefix) ?? []) {
       if (out.length >= TOTAL) break;
-      const path = prefix ? `${prefix}/${entry.name}` : entry.name, open = this.folders.has(path), mark = this.marks[`${this.root}/${path}`];
+      const path = prefix ? `${prefix}/${entry.name}` : entry.name, open = this.folders.has(path), mark = this.marks[path];
       out.push(h_flex().id(`file-${path}`).h(28).flex_none().pl(8 + depth * 18).pr(8).gap(7).items_center().rounded(7).cursor_pointer().hover(s => s.bg(t.hover))
         .on_click((e, cx) => entry.dir ? this.toggle(path, cx) : e.modifiers?.alt ? this.show(path, cx) : cx.spawn(async (cx) => this.edit(path, cx)))
         .child(entry.dir ? svg(`mods/portrait-files/chevron-${open ? "down" : "right"}.svg`).size(12).flex_none().text_color(t.dim) : div().w(12).flex_none())
         .child(svg(`mods/portrait-files/${entry.dir ? "folder" : "file"}.svg`).size(14).flex_none().text_color(t.muted))
         .child(div().flex_1().min_w(0).truncate().child(entry.name))
-        .when(Boolean(mark), el => el.child(div().text_size(11).text_color(mark === "A" ? t.ansi2 : mark === "D" || mark === "U" ? t.ansi1 : t.blocked).child(mark))));
+        // A folder shows a dot when something inside changed; a file shows its letter.
+        .when(Boolean(mark), el => el.child(div().text_size(11).text_color(mark === "A" ? t.ansi2 : mark === "D" || mark === "U" ? t.ansi1 : t.blocked).child(entry.dir ? "\u2022" : mark))));
       if (entry.dir && open) this.rows(path, depth + 1, out, t);
     }
     return out;
@@ -222,7 +254,10 @@ export default class Files extends View {
 
   render(cx) {
     this.peekWhenReady();
-    if (key() !== this.context?.key) this.refresh(cx);
+    // Opening the panel loads it; a folder change while it is open does too.
+    const visible = this.visible();
+    if (key() !== this.context?.key || (visible && !this.wasVisible)) this.refresh(cx);
+    this.wasVisible = visible;
     const t = theme();
     return v_flex().id("files").size_full().min_h(0).rounded(10).overflow_hidden().bg(t.background).border_1().border_color(t.border).text_color(t.foreground).text_size(13)
       .child(h_flex().h(42).flex_none().px(14).gap(8).items_center().border_b(1).border_color(t.border)

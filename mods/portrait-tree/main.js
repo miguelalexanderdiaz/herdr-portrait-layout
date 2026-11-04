@@ -7,38 +7,18 @@ import { View, div, svg, image } from "gpui-kit";
 import { v_flex, h_flex } from "gpui-base";
 import { spaces, agents, panes, run, theme, shared, setShared, openOverlay, setAgentOrder, settings, home, terminals, appHome } from "herdr";
 import * as fs from "fs/promises";
+import {
+  inkOn, mix, clean, duration, nameOf, dedupeNames, tilde, basename, dirname, noteParts,
+  safeStorage, readJson, writeJson, isStringArray, isChangedMap, pruneIds, pruneChanged,
+  SPINE_H, createSpineStore, MIN_COL, FOLDED_COL, MARKER, WHEEL_STEP, planColumns, wheelSteps,
+} from "./logic.mjs";
 
 // Same avatar colors as the shipped spaces list.
 const MARK = { ansi6: "#22a99a", ansi3: "#e3814f", ansi4: "#5b8def", ansi5: "#8b7cf6", ansi2: "#3fae6a", ansi1: "#d9649a" };
 const RANK = { blocked: 4, done: 3, working: 2, idle: 1 };
 const WORD = { blocked: "needs you", done: "done", working: "working", idle: "idle" };
-const MIN_COL = 290;
-const FOLDED_COL = 34;
-// The ‹ › markers at either end when some columns are off-screen.
-const MARKER = 28;
-// Wheel/trackpad distance that moves the row by one column.
-const WHEEL_STEP = 40;
 // Below this a row drops the state word and keeps only its glyph.
 const WORDY_COL = 320;
-
-// Colors mixed in sRGB: the title's rule is the space's color, softened toward the
-// column background while another space is the active one.
-const rgb = (hex) => { const n = parseInt(/^#?([0-9a-f]{6})/i.exec(hex ?? "")?.[1] ?? "808080", 16); return [(n >> 16) & 255, (n >> 8) & 255, n & 255]; };
-const hex = (c) => "#" + c.map((v) => Math.round(Math.max(0, Math.min(255, v))).toString(16).padStart(2, "0")).join("");
-// Text on the space's letter badge: white or near-black, whichever contrasts more.
-const lumOf = (h) => { const l = (v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; }; const [r, g, b] = rgb(h); return 0.2126 * l(r) + 0.7152 * l(g) + 0.0722 * l(b); };
-const inkOn = (h) => (1.05 / (lumOf(h) + 0.05) >= (lumOf(h) + 0.05) / (0.007 + 0.05) ? "#ffffff" : "#141414");
-const mix = (a, b, k) => hex(rgb(a).map((v, i) => v + (rgb(b)[i] - v) * k));
-
-const clean = (s) => (s ?? "").replace(/^[^\p{L}\p{N}]+/u, "").trim();
-
-function duration(ms) {
-  const m = Math.floor(ms / 60000);
-  if (m < 1) return "<1m";
-  if (m < 60) return `${m}m`;
-  const h = Math.floor(m / 60);
-  return h < 24 ? `${h}h` : `${Math.floor(h / 24)}d`;
-}
 
 // The agent's logo from the app's program table (Claude, Hermes, OpenCode, ...):
 // a one-color glyph tinted like text, or a full-color picture.
@@ -47,48 +27,30 @@ function icon(p, size, color) {
   return p.tint ? svg(p.icon).size(size).flex_none().text_color(color) : image(p.icon).w(size).h(size).flex_none();
 }
 
-// An agent's own name: its title (a Claude session's name), else a named tab, else its program.
-function nameOf(a) {
-  const title = clean(a.title);
-  const telling = title && !/^[~/]|^[A-Za-z]:\\/.test(title) && !title.includes("@") && title !== a.program?.name;
-  if (telling) return title;
-  if (a.tab_name && !/^\d+$/.test(a.tab_name)) return a.tab_name;
-  return a.program?.name || a.app || "agent";
-}
-
 // A folded space's name runs down its strip like a book spine. Elements can't
 // rotate, so each name is written once as an SVG of rotated text (tinted through
-// currentColor) under data/portrait-tree-spines/, named by a hash of the name.
-// Not inside this mod's folder: Herdr reloads a mod whenever its files change.
-const SPINE_H = 600;
-const spineFile = (name) => {
-  let h = 5381;
-  for (const ch of name) h = ((h * 33) ^ ch.codePointAt(0)) >>> 0;
-  return `data/portrait-tree-spines/${h.toString(36)}.svg`;
-};
-const xml = (str) => str.replace(/[<>&"']/g, (c) => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;", '"': "&quot;", "'": "&#39;" })[c]);
-const spineSvg = (name) => `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="${SPINE_H}" viewBox="0 0 16 ${SPINE_H}">
-  <text x="0" y="-4" transform="rotate(90)" font-family="Geist, Helvetica Neue, Helvetica, sans-serif" font-size="13" font-weight="500" fill="currentColor">${xml(name)}</text>
-</svg>
-`;
+// currentColor) under data/portrait-tree-spines/, named by a hash of the name
+// (logic.mjs: createSpineStore). Not inside this mod's folder: Herdr reloads a mod
+// whenever its files change.
 
 export default class PortraitTree extends View {
   init(_props, cx) {
-    this.folded = new Set(JSON.parse(localStorage.getItem("folded") ?? "[]"));
-    this.peeked = new Set(JSON.parse(localStorage.getItem("peeked") ?? "[]")); // opened by reveal()
+    this.store = safeStorage(() => localStorage);
+    this.folded = new Set(readJson(this.store, "folded", [], isStringArray));
+    this.peeked = new Set(readJson(this.store, "peeked", [], isStringArray)); // opened by reveal()
     // Each agent's last state and when it changed; done and idle count as one.
-    this.changed = JSON.parse(localStorage.getItem("changed") ?? "{}");
+    this.changed = readJson(this.store, "changed", {}, isChangedMap);
     this.width = 0;
     this.pressed = null; // header index being dragged
     this.tabPressed = null; // { id, space } of the tab row being dragged
     this.start = 0; // first column on screen, when they don't all fit
     this.lastStart = 0;
     this.lastActive = null; // follow the active space onto the screen when it changes
-    this.wheel = 0;
-    this.spines = new Set(); // spine files known to exist
-    this.writing = new Set();
+    this.wheelState = null;
+    this.spines = createSpineStore({ fs, root: appHome });
     this.hovered = null; // strip under the pointer: shows ←|→ instead of its badge
-    cx.timer.every(30000, (cx) => cx.notify());
+    // The durations ("12m") age by themselves; with no agent there is nothing to redraw.
+    cx.timer.every(30000, (cx) => { if (this.hasAgents) cx.notify(); });
   }
 
   track(list, now) {
@@ -99,7 +61,13 @@ export default class PortraitTree extends View {
       this.changed[a.address] = { s, at: now };
       dirty = true;
     }
-    if (dirty) localStorage.setItem("changed", JSON.stringify(this.changed));
+    // Dead agents' entries go once a week old (never against an empty list: the app may not have listed yet).
+    if (now - (this.prunedAt ?? 0) > 60000) {
+      this.prunedAt = now;
+      const kept = pruneChanged(this.changed, list.map((a) => a.address), now);
+      if (kept !== this.changed) { this.changed = kept; dirty = true; }
+    }
+    if (dirty) writeJson(this.store, "changed", this.changed);
     // Other mods (the waiting list) read when each live agent got its state.
     const who = list.map((a) => a.address).join(" ");
     if (dirty || who !== this.published) {
@@ -134,12 +102,18 @@ export default class PortraitTree extends View {
       if (sp.some((s) => s.id === id)) this.folded.add(id);
       dirty = true;
     }
+    // Spaces that no longer exist (not while the list is empty).
+    const live = sp.map((s) => s.id);
+    for (const set of [this.folded, this.peeked]) {
+      const kept = pruneIds(set, live);
+      if (kept.length !== set.size) { for (const id of [...set]) if (!kept.includes(id)) set.delete(id); dirty = true; }
+    }
     if (dirty) this.saveFolds();
   }
 
   saveFolds() {
-    localStorage.setItem("folded", JSON.stringify([...this.folded]));
-    localStorage.setItem("peeked", JSON.stringify([...this.peeked]));
+    writeJson(this.store, "folded", [...this.folded]);
+    writeJson(this.store, "peeked", [...this.peeked]);
   }
 
   fold(id, cx) {
@@ -150,7 +124,7 @@ export default class PortraitTree extends View {
   }
 
   glyph(t, status) {
-    if (status === "working") return svg("mods/workspace-chrome/spinner.svg").size(12).flex_none().text_color(t.working).spin(900);
+    if (status === "working") return svg("mods/portrait-tree/spinner.svg").size(12).flex_none().text_color(t.working).spin(900);
     if (status === "blocked") return div().size(14).flex_none().rounded(4).bg(t.blocked + "26").text_size(10.5).font_bold().text_color(t.blocked).flex().items_center().justify_center().child("!");
     if (status === "done") return div().size(7).mx(3).flex_none().rounded(4).bg(t.done);
     return div().size(7).mx(3).flex_none().rounded(4).border(1.5).border_color(t.idle ?? t.dim);
@@ -177,8 +151,7 @@ export default class PortraitTree extends View {
     openOverlay({ mod: "new-menu", kind: "popup", width: 250, height: 512 });
   }
 
-  header(t, s, i, mine, color) {
-    const sp = spaces();
+  header(t, s, i, mine, color, sp) {
     const target = this.pressed !== null && this.pressed !== i && (sp[this.pressed]?.machine ?? null) === (s.machine ?? null);
     return h_flex().id(`head-${s.id}`).relative().h(40).flex_none().px(10).gap(8).items_center()
       .border_b(1).border_color(t.border).cursor_pointer()
@@ -213,14 +186,14 @@ export default class PortraitTree extends View {
           .child(div().absolute().left(0).bottom(-4).w_full().h(2).rounded(1).bg(s.active ? color : mix(color, t.chrome, 0.45)))))
       // A space on another machine says which (its terminals and tabs live there).
       .when(Boolean(s.machine), (el) => el.child(h_flex().flex_none().gap(4).items_center().text_size(11).text_color(t.dim)
-        .child(svg("mods/workspace-chrome/server.svg").size(11)).child(s.machine)))
+        .child(svg("mods/portrait-tree/server.svg").size(11)).child(s.machine)))
       .child(this.counts(t, mine))
       .child(div().id(`new-${s.id}`).size(22).flex_none().flex().items_center().justify_center().rounded(5).text_color(t.dim)
         .hover((el) => el.bg(t.hover).text_color(t.foreground))
         .tooltip("New terminal or agent here")
         .on_mouse_down("left", (_e, cx) => cx.stop_propagation())
         .on_click((_e, cx) => { cx.stop_propagation(); this.newMenu(s); })
-        .child(svg("mods/workspace-chrome/plus.svg").size(13)));
+        .child(svg("mods/portrait-tree/plus.svg").size(13)));
   }
 
   // The tree lines in front of a row, in a monospace font so the levels line up.
@@ -273,17 +246,17 @@ export default class PortraitTree extends View {
   }
 
   // A plain terminal (a shell, nvim, a server) or a mod pane: its program and folder.
-  paneRow(t, p, prefix) {
+  paneRow(t, p, prefix, files) {
     if (p.mod === "vault-reader") return this.noteRow(t, p, prefix);
     const pic = icon(p.program, 15, t.muted);
     // An editor opened from the Files panel carries its first file as a label and
     // titles itself with the file it shows now: show that name (the first file's
     // folder while it's still on it, else the cwd).
-    const file = p.terminal ? this.files?.get(p.terminal.split("/").pop()) : null;
-    const base = file?.split("/").pop();
+    const file = p.terminal ? files().get(p.terminal.split("/").pop()) : null;
+    const base = file ? basename(file) : null;
     const shown = file ? (clean(p.title) || base) : null;
     const name = shown ?? (p.terminal ? (p.program?.name || "terminal") : (p.mod || p.title || "panel"));
-    const where = file && shown === base ? file.slice(0, file.lastIndexOf("/")).replace(this.home, "~") : p.cwd ? p.cwd.replace(this.home, "~") : "";
+    const where = file && shown === base ? tilde(dirname(file), this.home) : tilde(p.cwd, this.home);
     return h_flex().id(`pn-${p.pane}`).h(26).flex_none().pl(12).pr(10).gap(6).items_center().rounded(6)
       .when(p.focused, (el) => el.bg(t.selected))
       .hover((el) => el.bg(t.hover)).cursor_pointer()
@@ -296,21 +269,19 @@ export default class PortraitTree extends View {
       .child(div().flex_1().min_w(0).overflow_hidden().whitespace_nowrap().text_ellipsis_start().text_size(11.5).text_color(t.dim).child(where));
   }
 
-  // A note kept from the vault reader (an "obsidian" tab's pane): the Obsidian
-  // logo, the note's name and its folder in the vault (mods/vault-reader records
+  // A note kept from the vault reader (an "obsidian" tab's pane): a note icon,
+  // the note's name and its folder in the vault (mods/vault-reader records
   // which note each of its panes shows in shared "vault.panes").
   noteRow(t, p, prefix) {
-    const note = shared("vault.panes")?.[p.pane];
-    const file = note?.file ?? "";
-    const name = file.split("/").pop().replace(/\.(excalidraw\.md|md|canvas)$/i, "") || "Note";
-    const where = file.includes("/") ? file.slice(0, file.lastIndexOf("/")) : (note ? note.vault.split("/").pop() : "");
+    const { name, dir, vault } = noteParts(shared("vault.panes")?.[p.pane]);
+    const where = dir || vault;
     return h_flex().id(`pn-${p.pane}`).h(26).flex_none().pl(12).pr(10).gap(6).items_center().rounded(6)
       .when(p.focused, (el) => el.bg(t.selected))
       .hover((el) => el.bg(t.hover)).cursor_pointer()
       .on_click(() => run("pane.focus", { pane: p.pane }))
       .on_mouse_down("right", (_e, cx) => { cx.stop_propagation(); this.menu({ tab: "pane", target: { pane: p.pane, terminal: null } }); })
       .child(this.lines(t, prefix))
-      .child(image("mods/vault-reader/obsidian.png").w(15).h(15).flex_none())
+      .child(svg("mods/portrait-tree/note.svg").size(15).flex_none().text_color(t.muted))
       .child(div().flex_none().max_w(200).truncate().text_size(12.5).text_color(t.muted).child(name))
       .child(div().flex_1().min_w(0).overflow_hidden().whitespace_nowrap().text_ellipsis_start().text_size(11.5).text_color(t.dim).child(where));
   }
@@ -333,32 +304,17 @@ export default class PortraitTree extends View {
       .when(any, (el) => el.cursor_pointer().hover((h) => h.bg(t.hover).text_color(t.foreground))
         .tooltip(`${hidden.length} more: ${hidden.map((s) => s.name).join(", ")}`)
         .on_click((_e, cx) => this.shift(side === "left" ? -1 : 1, cx)))
-      .child(svg(`mods/workspace-chrome/chevron-${side}.svg`).size(12))
+      .child(svg(`mods/portrait-tree/chevron-${side}.svg`).size(12))
       .when(any, (el) => el.child(div().child(String(hidden.length))))
       .when(top === "blocked" || top === "working", (el) => el.child(this.glyph(t, top)));
   }
 
-  // Make sure the spine SVG for `name` exists; true once it does.
+  // The spine SVG for `name` (a path under the app home) once it exists, else null.
+  // Nothing is redrawn when a write fails; it is tried again a minute later.
   spine(name, cx) {
-    const file = spineFile(name);
-    if (this.spines.has(file)) return file;
-    if (!this.writing.has(file) && cx) {
-      this.writing.add(file);
-      cx.spawn(async (cx) => {
-        try {
-          const path = `${appHome()}/${file}`;
-          const want = spineSvg(name);
-          const have = await fs.readFile(path, "utf8").catch(() => null);
-          if (have !== want) {
-            await fs.mkdir(path.slice(0, path.lastIndexOf("/")), { recursive: true });
-            await fs.writeFile(path, want);
-          }
-          this.spines.add(file);
-        } catch {}
-        this.writing.delete(file);
-        cx.notify();
-      });
-    }
+    if (this.spines.ready(name)) return this.spines.file(name);
+    const writing = this.spines.request(name);
+    if (writing) cx.spawn(async (cx) => { if (await writing) cx.notify(); });
     return null;
   }
 
@@ -388,7 +344,6 @@ export default class PortraitTree extends View {
         .when(Boolean(file), (el) => el.child(svg(file).w(16).h(SPINE_H).flex_none().text_color(s.active ? color : t.muted))));
   }
 
-
   render(cx) {
     const t = theme();
     const now = Date.now();
@@ -398,20 +353,16 @@ export default class PortraitTree extends View {
     this.reveal(list, sp);
     const colors = shared("space.colors") ?? {};
 
-    // Agents per space and by pane; a name repeated within a space says its tab.
+    // Agents per space and by pane; a name repeated within a tab is numbered.
+    this.hasAgents = list.length > 0;
+    const named = list.map((a) => ({ ...a, name: nameOf(a) }));
+    const names = dedupeNames(named);
     const bySpace = new Map(sp.map((s) => [s.id, []]));
     const byPane = new Map();
-    for (const a of list) {
-      const named = { ...a, name: nameOf(a) };
-      bySpace.get(a.space)?.push(named);
-      byPane.set(a.pane, named);
-    }
-    // Same name twice in one tab: number them, in pane order.
-    const seen = {}, nth = {};
-    for (const a of list) { const k = `${a.tab}\u0000${byPane.get(a.pane).name}`; seen[k] = (seen[k] ?? 0) + 1; }
-    for (const a of list) {
-      const named = byPane.get(a.pane), k = `${a.tab}\u0000${named.name}`;
-      if (seen[k] > 1) named.name = `${named.name} (${(nth[k] = (nth[k] ?? 0) + 1)})`;
+    for (const a of named) {
+      a.name = names.get(a.address) ?? a.name;
+      bySpace.get(a.space)?.push(a);
+      if (a.pane) byPane.set(a.pane, a);
     }
     // Every pane per tab, in layout order: agents and plain terminals alike.
     const byTab = new Map();
@@ -420,42 +371,28 @@ export default class PortraitTree extends View {
       byTab.get(p.tab).push(p);
     }
     this.home = home();
-    // terminal address -> file, for editors opened from the Files panel.
-    this.files = new Map(terminals().filter((x) => x.labels?.["editor.file"]).map((x) => [x.address, x.labels["editor.file"]]));
+    // terminal address -> file, for editors opened from the Files panel. Read only if
+    // a plain terminal row needs it (terminals() marshals every terminal of the core).
+    let editors = null;
+    const files = () => editors ??= new Map(terminals().filter((x) => x.labels?.["editor.file"]).map((x) => [x.address, x.labels["editor.file"]]));
 
     // agent.next / agent.prev follow the tree.
     setAgentOrder(sp.filter((s) => !this.folded.has(s.id)).flatMap((s) => bySpace.get(s.id).map((a) => a.address)));
+    // Spines of spaces that were renamed or closed.
+    if (sp.length && !this.pruned) { this.pruned = true; this.spines.prune(sp.map((s) => s.name)); }
 
     // Columns: open ones MIN_COL or wider (they share what's left), folded ones a
     // strip. When they don't all fit, only a run of whole columns is shown, with
     // ‹ › markers for the rest; the wheel, a trackpad swipe or the markers move
-    // the run, and it follows the active space when that changes.
+    // the run, and it follows the active space when that changes (planColumns).
     // The reported size is unzoomed; sizes given to elements are scaled by zoom.
-    const avail = this.width / (Number(settings().zoom) || 1) - FOLDED_COL; // minus the "+" strip
-    const widthOf = (s) => (this.folded.has(s.id) ? FOLDED_COL : MIN_COL);
-    const total = sp.reduce((n, s) => n + widthOf(s), 0);
-    const windowed = this.width > 0 && total > avail;
-    const room = windowed ? avail - 2 * MARKER : avail;
-    let start = 0, end = sp.length;
-    if (windowed) {
-      // The furthest start that still fills the row.
-      let last = sp.length - 1;
-      for (let used = widthOf(sp[last]); last > 0 && used + widthOf(sp[last - 1]) <= room; last--) used += widthOf(sp[last - 1]);
-      this.lastStart = last;
-      const fits = (from) => { let e = from, used = 0; while (e < sp.length && used + widthOf(sp[e]) <= room) used += widthOf(sp[e++]); return Math.max(e, from + 1); };
-      const act = sp.findIndex((s) => s.active), actId = sp[act]?.id;
-      if (actId && actId !== this.lastActive) {
-        this.lastActive = actId;
-        if (act < this.start) this.start = act;
-        else if (act >= fits(this.start)) {
-          let from = act;
-          for (let used = widthOf(sp[act]); from > 0 && used + widthOf(sp[from - 1]) <= room; from--) used += widthOf(sp[from - 1]);
-          this.start = from;
-        }
-      }
-      this.start = Math.max(0, Math.min(this.start, this.lastStart));
-      start = this.start; end = fits(start);
-    } else { this.start = 0; this.lastStart = 0; }
+    const act = sp.findIndex((s) => s.active), actId = sp[act]?.id;
+    const follow = Boolean(actId) && actId !== this.lastActive;
+    const plan = planColumns({ widths: sp.map((s) => (this.folded.has(s.id) ? FOLDED_COL : MIN_COL)), width: this.width,
+      zoom: settings().zoom, active: act, follow, start: this.start });
+    if (plan.windowed && follow) this.lastActive = actId;
+    this.start = plan.start; this.lastStart = plan.lastStart;
+    const { windowed, room, start, end } = plan;
     const shown = sp.slice(start, end);
 
     const open = shown.filter((s) => !this.folded.has(s.id)).length;
@@ -470,7 +407,7 @@ export default class PortraitTree extends View {
       return v_flex().id(`col-${s.id}`).flex_1().min_w(MIN_COL).h_full()
         .when(i < shown.length - 1, (el) => el.border_r(1).border_color(t.border))
         .when(s.active, (el) => el.bg(t.raised))
-        .child(this.header(t, s, gi, mine, color))
+        .child(this.header(t, s, gi, mine, color, sp))
         // Right-click on the column's empty space: Herdr's general menu (New space, ...).
         .child(v_flex().id(`list-${s.id}`).flex_1().min_h(0).px(4).py(4).overflow_y_scrollbar()
           .on_mouse_down("right", () => this.menu({ tab: "global", target: {} }))
@@ -481,8 +418,8 @@ export default class PortraitTree extends View {
               this.tabRow(t, s, tab, lastTab),
               ...ps.map((p, pi) => {
                 const prefix = (lastTab ? "   " : "│  ") + (pi === ps.length - 1 ? "└─" : "├─");
-                const a = byPane.get(p.pane);
-                return a ? this.agentRow(t, a, prefix, wordy, now) : this.paneRow(t, p, prefix);
+                const a = p.pane ? byPane.get(p.pane) : null;
+                return a ? this.agentRow(t, a, prefix, wordy, now) : this.paneRow(t, p, prefix, files);
               }),
             ];
           })));
@@ -495,7 +432,7 @@ export default class PortraitTree extends View {
       .tooltip("New space")
       .on_click(() => run("space.new"))
       .on_mouse_down("right", (_e, cx) => { cx.stop_propagation(); this.menu({ tab: "global", target: {} }); })
-      .child(svg("mods/workspace-chrome/plus.svg").size(14));
+      .child(svg("mods/portrait-tree/plus.svg").size(14));
 
     // A thin bar under the columns: where the shown run sits among all spaces.
     const track = (el) => el.child(div().h(5).w_full().relative().flex_none().bg(t.border)
@@ -508,12 +445,8 @@ export default class PortraitTree extends View {
       const dx = e.delta?.x ?? 0, dy = e.delta?.y ?? 0;
       const d = Math.abs(dx) > Math.abs(dy) ? dx : (e.modifiers?.shift ? dy : 0);
       if (!d) return;
-      this.wheel += d;
-      while (Math.abs(this.wheel) >= WHEEL_STEP) {
-        const back = this.wheel > 0;
-        this.wheel += back ? -WHEEL_STEP : WHEEL_STEP;
-        this.shift(back ? -1 : 1, cx);
-      }
+      this.wheelState = wheelSteps(this.wheelState, d, WHEEL_STEP, Date.now());
+      if (this.wheelState.steps) this.shift(-this.wheelState.steps, cx);
     };
 
     return h_flex().id("root").size_full().min_w(0).bg(t.chrome)
