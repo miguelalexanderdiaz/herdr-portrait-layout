@@ -32,7 +32,8 @@ const denylist = [
 ].map((s) => s.trim()).filter((s) => s && !s.startsWith("#"));
 if (!denylist.length) r.note("no denylist: add terms to .privacy-denylist (git-ignored) or PRIVACY_DENYLIST to check names, employers and hosts");
 
-// The LICENSE copyright line is the one place the author's name belongs.
+// The LICENSE copyright line is the one place the author's name belongs (github.com/<owner>/<repo> addresses are
+// allowed too: see scan()).
 const EXEMPT_FILES = new Set(["LICENSE"]);
 const PLAN_EXEMPT_RULES = (f) => f.startsWith("plans/");
 
@@ -46,7 +47,8 @@ function scan(label, text, { path, skipDenylist = false } = {}) {
     }
   }
   if (!skipDenylist) {
-    const low = text.toLowerCase();
+    // The repository's own address (owner/name in a github.com URL) is allowed: installing needs it (decision D12).
+    const low = text.replace(/github\.com[/:][\w.-]+\/[\w.-]+/gi, (m) => " ".repeat(m.length)).toLowerCase();
     for (const term of denylist) {
       const at = low.indexOf(term.toLowerCase());
       if (at >= 0) r.error(`${label}:${text.slice(0, at).split("\n").length}: denylist term "${term[0]}${"*".repeat(Math.max(0, term.length - 1))}" (${term.length} chars)`);
