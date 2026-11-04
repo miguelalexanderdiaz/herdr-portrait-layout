@@ -11,17 +11,21 @@
 
 import { View, div, svg, image } from "gpui-kit";
 import { h_flex, v_flex } from "gpui-base";
-import { props, run, theme, terminals, panes, spaces, exec, openOverlay, closeOverlay, notify, settings } from "herdr";
+import { props, run, theme, terminals, panes, spaces, exec, openOverlay, closeOverlay, notify, settings, home } from "herdr";
+import { tilde, basename, dirname, loginPath, nvimArgv } from "./logic.mjs";
 
 const MENU_W = 280;
 const clean = (s) => (s ?? "").replace(/^[^\p{L}\p{N}.]+/u, "").trim();
 
-// nvim through the login shell (the app's own PATH lacks Homebrew), on the
-// space's machine. `script` sees its extra arguments as $0, $1, ...
+// nvim in plain sh with the login shell's PATH (the app's own PATH lacks Homebrew), on the
+// space's machine. `script` sees its extra arguments as $1, $2, ... (see logic.mjs).
 async function nvim(on, script, ...rest) {
-  return exec("sh", ["-c", `exec "\${SHELL:-sh}" -lc '${script}' "$@"`, "sh", ...rest], { on: on || undefined });
+  const argv = nvimArgv(await loginPath(exec, on || undefined), script, ...rest);
+  return exec(argv[0], argv.slice(1), { on: on || undefined });
 }
-const QUIT = 'exec nvim --server "$0" --remote-send "<C-\\\\><C-N>:confirm qa<CR>"';
+const QUIT = 'exec nvim --server "$1" --remote-send "<C-\\\\><C-N>:confirm qa<CR>"';
+// A command that ran but nvim was missing says so (sh exits 127), not its raw stderr.
+const failure = (r, fallback) => (r?.code === 127 ? "nvim not found on PATH" : r?.stderr || fallback);
 
 function icon(program, t) {
   if (!program?.icon) return div().w(14).flex_none();
@@ -39,7 +43,7 @@ function keptEditors(spaceId, self) {
   return panes().filter((p) => tabName.has(p.tab) && p.terminal && live.has(p.terminal.split("/").pop()))
     .map((p) => {
       const t = live.get(p.terminal.split("/").pop());
-      const file = clean(t.title) || (t.labels["editor.file"] ?? "").split("/").pop();
+      const file = clean(t.title) || basename(t.labels["editor.file"] ?? "");
       return { pane: p.pane, socket: t.labels["editor.socket"], label: `${tabName.get(p.tab)}  (${file})` };
     });
 }
@@ -54,27 +58,28 @@ export default class NvimFloat extends View {
   bar(p) {
     const t = theme();
     const term = terminals().find((x) => x.address === p.terminal);
-    const title = clean(term?.title) || (p.file ?? "").split("/").pop() || "nvim";
-    const folder = (p.file ?? "").slice(0, (p.file ?? "").lastIndexOf("/"));
+    const title = clean(term?.title) || basename(p.file ?? "") || "nvim";
+    // `~` only for this computer's folders; another machine's home is not ours.
+    const folder = p.on ? dirname(p.file ?? "") : tilde(dirname(p.file ?? ""), home());
     const stop = (_e, cx) => cx.stop_propagation();
-    const button = (id, child, action) => h_flex().id(id).h(22).px(8).gap(5).flex_none().items_center().rounded(5)
+    const button = (id, child, action, onDown = stop) => h_flex().id(id).h(22).px(8).gap(5).flex_none().items_center().rounded(5)
       .cursor_pointer().text_color(t.muted).hover((el) => el.bg(t.hover).text_color(t.foreground))
-      .on_mouse_down("left", stop).on_click(action).child(child);
+      .on_mouse_down("left", onDown).on_click(action).child(child);
     // Presses the buttons don't stop drag the window.
     return h_flex().id("nvim-bar").size_full().px(10).gap(8).items_center().bg(t.chrome).border_b(1).border_color(t.border)
       .text_size(12.5).text_color(t.foreground)
       .child(icon(term?.program, t))
       .child(div().flex_none().font_medium().child(title))
       .child(div().flex_1().min_w(0).overflow_hidden().whitespace_nowrap().text_ellipsis_start().text_size(11.5).text_color(t.dim)
-        .child(folder.replace(/^\/Users\/[^/]+/, "~")))
+        .child(folder))
       // The menu opens under the button, right edges lined up. Event positions are
       // window px; overlay positions are at zoom 1, hence the division.
-      .child(button("nvim-keep", h_flex().gap(4).items_center().child("Keep").child(svg("mods/workspace-chrome/chevron-down.svg").size(11)), () => {
+      .child(button("nvim-keep", h_flex().gap(4).items_center().child("Keep").child(svg("mods/nvim-float/chevron-down.svg").size(11)), () => {
         const z = Number(settings().zoom) || 1, b = this.keepAt;
         const at = b ? { x: Math.max(0, (b.x + b.width) / z - MENU_W), y: (b.y + b.height) / z + 4 } : "pointer";
         openOverlay({ mod: "nvim-float", kind: "popup", width: MENU_W, at, props: { ...p, menu: true, window: p.overlay } });
-      }).on_mouse_down("left", (e, cx) => { cx.stop_propagation(); this.keepAt = e.bounds ?? (e.position ? { ...e.position, width: 0, height: 0 } : null); }))
-      .child(button("nvim-close", svg("mods/pane/close.svg").size(13), (_e, cx) =>
+      }, (e, cx) => { cx.stop_propagation(); this.keepAt = e.bounds ?? (e.position ? { ...e.position, width: 0, height: 0 } : null); }))
+      .child(button("nvim-close", svg("mods/nvim-float/close.svg").size(13), (_e, cx) =>
         cx.spawn(async () => { await nvim(p.on, QUIT, p.socket).catch(() => {}); })));
   }
 
@@ -97,11 +102,11 @@ export default class NvimFloat extends View {
         this.busy = true;
         cx.spawn(async () => {
           // The file the float shows now (it may have moved on from the one clicked).
-          const cur = await nvim(p.on, 'exec nvim --server "$0" --remote-expr "expand(\\"%:p\\")"', p.socket).catch(() => null);
+          const cur = await nvim(p.on, 'exec nvim --server "$1" --remote-expr "expand(\\"%:p\\")"', p.socket).catch(() => null);
           const file = (cur?.code === 0 && cur.stdout.trim()) || p.file;
-          const r = await nvim(p.on, 'exec nvim --server "$0" --remote "$1"', k.socket, file).catch((e) => ({ code: 1, stderr: String(e) }));
+          const r = await nvim(p.on, 'exec nvim --server "$1" --remote "$2"', k.socket, file).catch((e) => ({ code: 1, stderr: String(e) }));
           if (r.code !== 0) {
-            notify({ title: "Couldn't add to nvim", body: r.stderr || "nvim --remote failed", level: "error" });
+            notify({ title: "Couldn't add to nvim", body: failure(r, "nvim --remote failed"), level: "error" });
             this.busy = false; closeOverlay(p.overlay); return;
           }
           run("pane.focus", { pane: k.pane });

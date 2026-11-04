@@ -1,0 +1,30 @@
+# Portrait layout for Herdr
+
+> A Herdr layout for vertical (portrait) monitors: spaces as columns with a tab and pane tree and agent states, a strip with a needs-you bell, a Files side panel with a floating nvim, and a tab bar. Two layouts and the mods they need. Apache-2.0. No network use.
+
+Install by telling a Herdr agent: install https://github.com/miguelalexanderdiaz/herdr-portrait-layout
+
+## Start here
+
+- [README](https://github.com/miguelalexanderdiaz/herdr-portrait-layout/blob/main/README.md): what it is, install by agent and by hand, keys, requirements, privacy, troubleshooting, uninstall.
+- [AGENTS.md](https://github.com/miguelalexanderdiaz/herdr-portrait-layout/blob/main/AGENTS.md): how an agent installs, adapts, tests and edits this repository safely.
+- [RECIPE.md](https://github.com/miguelalexanderdiaz/herdr-portrait-layout/blob/main/RECIPE.md): the build brief in Herdr's six-section format.
+
+## Reference
+
+- [Privacy and side effects](https://github.com/miguelalexanderdiaz/herdr-portrait-layout/blob/main/docs/privacy.html): what each mod reads, runs and writes.
+- [Platforms](https://github.com/miguelalexanderdiaz/herdr-portrait-layout/blob/main/docs/platforms.html): macOS, Linux, Windows.
+- [Usage](https://github.com/miguelalexanderdiaz/herdr-portrait-layout/blob/main/docs/usage.html) and [Configuration](https://github.com/miguelalexanderdiaz/herdr-portrait-layout/blob/main/docs/configuration.html): what each part does; theme, sizes, keys, Vault panel.
+- [How it works](https://github.com/miguelalexanderdiaz/herdr-portrait-layout/blob/main/docs/how-it-works.html): layout tree, mods, shared state, provenance.
+- [Troubleshooting](https://github.com/miguelalexanderdiaz/herdr-portrait-layout/blob/main/docs/troubleshooting.html)
+
+## Files
+
+- [layouts/portrait.json](https://github.com/miguelalexanderdiaz/herdr-portrait-layout/blob/main/layouts/portrait.json) and [layouts/portrait-bottom.json](https://github.com/miguelalexanderdiaz/herdr-portrait-layout/blob/main/layouts/portrait-bottom.json): the two layouts.
+- [keys.json](https://github.com/miguelalexanderdiaz/herdr-portrait-layout/blob/main/keys.json): keys to merge into the person's own.
+- [mods/](https://github.com/miguelalexanderdiaz/herdr-portrait-layout/tree/main/mods): bar-strip, portrait-tree, portrait-tabs, portrait-pane, portrait-files, nvim-float, attention-picker (bundled copy).
+- [snippets/vault-panel.json](https://github.com/miguelalexanderdiaz/herdr-portrait-layout/blob/main/snippets/vault-panel.json): optional Vault panel node.
+
+## Optional
+
+- [CONTRIBUTING.md](https://github.com/miguelalexanderdiaz/herdr-portrait-layout/blob/main/CONTRIBUTING.md), [CHANGELOG.md](https://github.com/miguelalexanderdiaz/herdr-portrait-layout/blob/main/CHANGELOG.md), [NOTICE](https://github.com/miguelalexanderdiaz/herdr-portrait-layout/blob/main/NOTICE)

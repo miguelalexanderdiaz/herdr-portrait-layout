@@ -5,21 +5,18 @@
 
 import { View, div, svg } from "gpui-kit";
 import { h_flex } from "gpui-base";
-import { run, theme, updates, layout, shared, agents, nextCommand, openOverlay } from "herdr";
-
-function find(node, id) {
-  if (node?.id === id) return node;
-  for (const child of node?.children ?? []) {
-    const found = find(child, id);
-    if (found) return found;
-  }
-  return null;
-}
+import { run, theme, updates, layout, shared, setShared, agents, nextCommand, openOverlay, closeOverlay, keys, appHome } from "herdr";
+import * as fs from "fs/promises";
+import { PICKER, find, vaultWanted, joinPath, keyHint, waitingAgents, nextWaiting } from "./logic.mjs";
 
 export default class BarStrip extends View {
   init(_props, cx) {
     this.last = null; // { address, index } of the last agent the bell went to
-    // `bar-strip.attention` (ctrl-b a): the list of waiting agents, with a search box.
+    this.pickerId = null; // the open "Agents waiting" overlay, so a second key press doesn't stack another
+    // Is the optional vault mod installed? Other mods read shared "mods.vault".
+    cx.spawn((cx) => this.probeVault(cx));
+    cx.timer.every(60000, (cx) => cx.spawn((cx) => this.probeVault(cx)));
+    // `bar-strip.attention` (bound in keys.json): the list of waiting agents, with a search box.
     // `bar-strip.jump`: what a plain click on the bell does.
     cx.spawn(async (cx) => {
       for (;;) {
@@ -31,32 +28,33 @@ export default class BarStrip extends View {
     });
   }
 
-  // Agents waiting on you: first those asking for input, then those that
-  // finished while you weren't looking; each group longest-waiting first
-  // (lower seq = changed longer ago).
-  waiting() {
-    const by = (st) => agents().filter((a) => a.status === st).sort((a, b) => a.seq - b.seq);
-    return [...by("blocked"), ...by("done")];
+  // Is <app home>/mods/vault there? Published as shared "mods.vault", only when it changes.
+  async probeVault(cx) {
+    let found = false;
+    try { found = await fs.exists(joinPath(appHome(), "mods", "vault", "main.js")); } catch {}
+    if (shared("mods.vault") !== found) { setShared("mods.vault", found); cx.notify(); }
   }
 
-  // The "Agents waiting" list (mods/attention-picker), with a search box or not.
+  // Agents waiting on you, most urgent first (see waitingAgents).
+  waiting() {
+    return waitingAgents(agents());
+  }
+
+  // The "Agents waiting" list (mods/attention-picker, PICKER), with a search box or not.
+  // One at a time: an open one is closed first.
   picker(search) {
-    openOverlay({ mod: "attention-picker", kind: "dialog", width: 640, props: { search } });
+    if (this.pickerId) { try { closeOverlay(this.pickerId); } catch {} }
+    this.pickerId = openOverlay({ mod: PICKER, kind: "dialog", width: 640, props: { search } });
   }
 
   // Go to the longest-waiting agent; from one of them, go to the next (wrapping).
   // A finished agent turns idle once seen and leaves the list, so when we're
   // still on the one we jumped to, the next is whatever took its place.
   attention() {
-    const list = this.waiting();
-    if (!list.length) return;
-    const focused = agents().find((a) => a.focused)?.address;
-    let at = list.findIndex((a) => a.address === focused);
-    let next = at + 1;
-    if (at === -1 && this.last && focused === this.last.address) next = this.last.index;
-    next %= list.length;
-    this.last = { address: list[next].address, index: next };
-    run("agent.focus", { terminal: list[next].address });
+    const go = nextWaiting(this.waiting(), agents().find((a) => a.focused)?.address, this.last);
+    if (!go) return;
+    this.last = go;
+    run("agent.focus", { terminal: go.address });
   }
 
   // An icon + label button, as in the default sidebar's footer.
@@ -83,6 +81,7 @@ export default class BarStrip extends View {
   // Click: see attention().
   bell(t) {
     const list = this.waiting();
+    const key = keyHint(keys(), shared("layout"));
     const asking = list.filter((a) => a.status === "blocked").length, done = list.length - asking;
     const parts = [asking && `${asking} need${asking === 1 ? "s" : ""} you`, done && `${done} done`].filter(Boolean);
     const color = asking ? t.blocked : done ? t.done : t.dim;
@@ -90,9 +89,9 @@ export default class BarStrip extends View {
       .text_color(color)
       .cursor_pointer()
       .when(list.length > 0, (el) => el.bg(color + "1f").hover((h) => h.bg(color + "33")))
-      .tooltip(list.length
-        ? `Go to the agent waiting longest, asking first${list.length > 1 ? "; again for the next" : ""}. Shift-click: search them all. ctrl-b a: list`
-        : "No agent is waiting on you. Shift-click: search agents. ctrl-b a: list")
+      .tooltip((list.length
+        ? `Go to the agent waiting longest, asking first${list.length > 1 ? "; again for the next" : ""}. Shift-click: search them all.`
+        : "No agent is waiting on you. Shift-click: search agents.") + (key ? ` ${key}: list` : ""))
       // Click: straight to the longest-waiting agent. Shift-click: the list, with search.
       .on_click((e) => (e?.modifiers?.shift ? this.picker(true) : this.attention()))
       .child(svg("mods/bar-strip/bell.svg").size(13))
@@ -104,15 +103,16 @@ export default class BarStrip extends View {
     const root = layout(), panel = find(root, "panel"), body = find(root, "panel-body");
     const enabled = shared("workspace.panels") ?? ["files", "changes"];
     return h_flex().size_full().px(8).gap(4).items_center().bg(t.chrome).border_b(1).border_color(t.border).text_size(11.5)
-      .child(this.button(t, "search", "mods/workspace-chrome/search.svg", "Search", () => run("mod.open", { name: "picker" })))
-      .child(this.button(t, "machine", "mods/workspace-chrome/server.svg", "Add machine", () => run("mod.open", { name: "machine-add" })))
+      .child(this.button(t, "search", "mods/bar-strip/search.svg", "Search", () => run("mod.open", { name: "picker" })))
+      .child(this.button(t, "machine", "mods/bar-strip/server.svg", "Add machine", () => run("mod.open", { name: "machine-add" })))
       // The accent dot: an app update is downloaded and waiting (as on the sidebar's Settings).
-      .child(this.button(t, "settings", "mods/workspace-chrome/settings.svg", "Settings", () => run("app.settings"), Boolean(updates().app.ready)))
+      .child(this.button(t, "settings", "mods/bar-strip/settings.svg", "Settings", () => run("app.settings"), Boolean(updates().app.ready)))
       .child(div().flex_1())
       .child(this.bell(t))
-      .when(enabled.includes("files"), (el) => el.child(this.panelButton(t, panel, body, "files", "Files", "mods/files/file.svg")))
-      .when(enabled.includes("changes"), (el) => el.child(this.panelButton(t, panel, body, "changes", "Changes", "mods/changes/changes.svg")))
-      // The Obsidian vault (mods/vault), when the layout has its panel.
-      .when(Boolean(find(body, "vault")), (el) => el.child(this.panelButton(t, panel, body, "vault", "Vault", "mods/vault/icons/book-open.svg")));
+      .when(enabled.includes("files"), (el) => el.child(this.panelButton(t, panel, body, "files", "Files", "mods/bar-strip/file.svg")))
+      .when(enabled.includes("changes"), (el) => el.child(this.panelButton(t, panel, body, "changes", "Changes", "mods/bar-strip/changes.svg")))
+      // The Obsidian vault (mods/vault): only when that mod is installed AND the layout has its panel
+      // (snippets/vault-panel.json); either one alone would be a button that does nothing.
+      .when(vaultWanted({ installed: shared("mods.vault"), hasNode: find(body, "vault") }), (el) => el.child(this.panelButton(t, panel, body, "vault", "Vault", "mods/vault/icons/book-open.svg")));
   }
 }

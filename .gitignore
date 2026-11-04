@@ -1,4 +1,30 @@
+# Written into every mod folder by the Herdr app (editor typings); never commit them.
 gpui-kit.d.ts
 jsconfig.json
+
+# Runtime data the app writes next to mods when a clone of the repo is used as an app home.
+/data/
+*.corrupt-*
+
+# Operating system and editor leftovers.
 .DS_Store
+Thumbs.db
+desktop.ini
+*.swp
+*~
+.idea/
+.vscode/
+
+# Tooling.
 node_modules/
+*.log
+.env
+.env.*
+herdr-shot*.png
+
+# Local, per-author files. The privacy denylist holds terms only its author knows
+# (names, employers, hostnames); scripts/privacy-scan.mjs reads it when present.
+.privacy-denylist
+
+# Agent worktrees.
+.wt/

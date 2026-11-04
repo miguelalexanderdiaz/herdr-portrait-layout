@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>For agents - Portrait layout for Herdr</title>
+<meta name="description" content="How an agent installs, adapts, tests and edits the portrait layout safely; pointers to AGENTS.md and llms.txt.">
+<link rel="stylesheet" href="assets/site.css">
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="site"><div class="inner">
+<a class="brand" href="index.html">Portrait layout for Herdr</a>
+<nav class="site" aria-label="Documentation"><ul><li><a href="index.html">Overview</a></li><li><a href="install.html">Install</a></li><li><a href="usage.html">Usage</a></li><li><a href="configuration.html">Configuration</a></li><li><a href="platforms.html">Platforms</a></li><li><a href="privacy.html">Privacy</a></li><li><a href="how-it-works.html">How it works</a></li><li><a href="troubleshooting.html">Troubleshooting</a></li><li><a href="for-agents.html" aria-current="page">For agents</a></li></ul></nav>
+</div></header>
+<main id="main">
+<h1>For agents</h1>
+<p class="lead">If you are a coding agent asked to install, adapt or change this layout, read <a href="https://github.com/miguelalexanderdiaz/herdr-portrait-layout/blob/main/AGENTS.md">AGENTS.md</a> first. This page is its summary. A machine-readable index is <a href="llms.txt">llms.txt</a>.</p>
+
+<h2 id="tell">Before you install, tell the person</h2>
+<ul>
+<li>No mod uses the network.</li>
+<li>They run: <code>sh</code> (or <code>powershell</code> on Windows) to list folders, <code>git</code> for change marks, <code>hc run</code> and <code>hc read</code>, and <code>nvim</code> through the login shell.</li>
+<li>They read the folder of the focused pane, one file when alt-clicked, and the screen text of blocked or finished agents while the waiting list is open.</li>
+<li>They write <code>data/portrait-tree-spines/*.svg</code> in the Herdr home folder and nvim sockets under <code>/tmp</code>.</li>
+</ul>
+
+<h2 id="install">Install steps</h2>
+<ol>
+<li>Read <code>RECIPE.md</code>, <code>AGENTS.md</code> and every file before writing.</li>
+<li>Copy <code>layouts/*</code> and each folder of <code>mods/</code> into the Herdr home folder. Never overwrite. If a name is taken (the person's or Herdr's), rename the new one: file or folder, the <code>mod</code> names in the layouts, the <code>mods/&lt;name&gt;/</code> paths inside the mod, the keys sections.</li>
+<li>If the person already has <code>attention-picker</code>, keep theirs and skip the bundled copy.</li>
+<li>Merge <code>keys.json</code>; ask before replacing a key they already use.</li>
+<li><code>herdr-app check &lt;absolute folder&gt;</code> for every mod, then <code>layout.switch</code> to <code>portrait</code>. Their own layout stays; <kbd>ctrl-shift-l</kbd> switches back.</li>
+</ol>
+
+<h2 id="rename">Rename checklist</h2>
+<ul>
+<li>A layout file: the keys section <code>layout:&lt;name&gt;</code> and the <code>layout.switch:&lt;other&gt;</code> values.</li>
+<li>A mod folder: its own <code>mods/&lt;name&gt;/</code> asset paths in <code>svg()</code> and <code>image()</code> calls, and the <code>mod</code> name in the layouts. For <code>attention-picker</code>, the constant <code>PICKER</code> in <code>bar-strip</code>.</li>
+<li>Never rename the ids <code>bar</code>, <code>panel</code>, <code>panel-body</code>, <code>vault</code>.</li>
+</ul>
+
+<h2 id="safe">Editing safely</h2>
+<ul>
+<li>Do not write into a live Herdr home from a script in a checkout: every save reloads on the person's screen at once. Work in a scratch copy selected with <code>HERDR_APP_HOME</code>.</li>
+<li>Do not drive someone's running app (<code>herdr-app do</code>, <code>shot</code>, <code>status</code>) without asking.</li>
+<li><code>mods/attention-picker</code> is a bundled copy. Change it in the herdr-agents-waiting repository.</li>
+<li>The three <code>cloned_from</code> mods are copies of Herdr 0.1.12 mods and are never updated by Herdr.</li>
+<li>Tests: <code>node --test</code> (no argument); <code>herdr-app check</code> on each mod; the scripts in <code>scripts/</code>.</li>
+</ul>
+<p>Full text with the gotchas list: <a href="https://github.com/miguelalexanderdiaz/herdr-portrait-layout/blob/main/AGENTS.md">AGENTS.md</a>.</p>
+</main>
+<footer class="site"><div class="inner">
+<p>Apache-2.0. Source and issues: <a href="https://github.com/miguelalexanderdiaz/herdr-portrait-layout">github.com/miguelalexanderdiaz/herdr-portrait-layout</a>. Written for humans and for agents: see <a href="for-agents.html">For agents</a> and <a href="llms.txt">llms.txt</a>.</p>
+</div></footer>
+</body>
+</html>

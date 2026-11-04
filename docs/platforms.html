@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Platforms - Portrait layout for Herdr</title>
+<meta name="description" content="What works on macOS, Linux and Windows, and the code that decides each answer.">
+<link rel="stylesheet" href="assets/site.css">
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="site"><div class="inner">
+<a class="brand" href="index.html">Portrait layout for Herdr</a>
+<nav class="site" aria-label="Documentation"><ul><li><a href="index.html">Overview</a></li><li><a href="install.html">Install</a></li><li><a href="usage.html">Usage</a></li><li><a href="configuration.html">Configuration</a></li><li><a href="platforms.html" aria-current="page">Platforms</a></li><li><a href="privacy.html">Privacy</a></li><li><a href="how-it-works.html">How it works</a></li><li><a href="troubleshooting.html">Troubleshooting</a></li><li><a href="for-agents.html">For agents</a></li></ul></nav>
+</div></header>
+<main id="main">
+<h1>Platforms</h1>
+<p class="lead">Developed and used on macOS. Linux and Windows are described from reading the code; nothing here claims a test run that did not happen. The pure-logic tests are written to run on all three systems, but no test can show the layout in a live Herdr window.</p>
+<div class="scroll" role="region" aria-label="Feature table" tabindex="0"><table><thead><tr><th scope="col">Feature</th><th scope="col">macOS</th><th scope="col">Linux</th><th scope="col">Windows</th><th scope="col">What decides it</th></tr></thead><tbody><tr><td>Layouts, space tree, tab bar, pane headers, bell, waiting list</td><td>Works</td><td>Expected to work</td><td>Expected to work</td><td>No operating-system calls; only Herdr's own functions.</td></tr><tr><td>Bar toggle and flip keys</td><td><kbd>cmd-</kbd> and <kbd>ctrl-shift-</kbd> keys</td><td><kbd>ctrl-shift-</kbd> keys</td><td><kbd>ctrl-shift-</kbd> keys</td><td><code>keys.json</code>. There is no cmd key outside macOS.</td></tr><tr><td>Files: folder listing</td><td>Works (<code>sh</code>)</td><td>Expected to work (<code>sh</code>)</td><td>Expected to work (<code>powershell</code>)</td><td><code>directory()</code> in portrait-files: PowerShell when the machine is a local Windows one, otherwise <code>sh</code> (also for remote machines).</td></tr><tr><td>Files: git marks</td><td>Works</td><td>Expected to work</td><td>Expected to work if <code>git</code> is on the PATH</td><td><code>git rev-parse</code>, <code>git status</code>; skipped silently when git fails.</td></tr><tr><td>Files: alt-click preview</td><td>Works</td><td>Expected to work</td><td>Expected to work</td><td><code>readTextFile</code>, no shell.</td></tr><tr><td>Files: click opens nvim</td><td>Works</td><td>Expected to work</td><td>No: opens the read-only preview and shows one info message</td><td><code>platformMode()</code> in portrait-files; <code>edit()</code> needs <code>sh</code>, nvim on the login shell's PATH and a socket in <code>/tmp</code>.</td></tr><tr><td>nvim on a remote POSIX machine</td><td>Works</td><td>Expected to work</td><td>Expected to work if the remote machine is POSIX</td><td>The command runs on the machine of the focused pane.</td></tr><tr><td>Spine names of folded spaces</td><td>Works</td><td>Expected to work</td><td>Expected to work</td><td>Writes under the Herdr home folder with <code>appHome()</code>.</td></tr></tbody></table></div>
+<h2>Notes</h2>
+<ul>
+<li>The nvim socket lives in <code>/tmp</code> on purpose: unix-socket paths are limited to about 104 bytes, and the per-user temporary folder on macOS plus a long home path can exceed that.</li>
+<li>nvim is started through your login shell so that it finds the same PATH as your terminals. The PATH is read once with <code>printenv PATH</code>, which works in bash, zsh and fish.</li>
+<li>Paths shown with <code>~</code> use Herdr's <code>home()</code>, so Linux and Windows home folders shorten too.</li>
+<li>Key names use Herdr's spelling. <kbd>ctrl-alt-</kbd> combinations are avoided because Windows treats them as AltGr.</li>
+</ul>
+</main>
+<footer class="site"><div class="inner">
+<p>Apache-2.0. Source and issues: <a href="https://github.com/miguelalexanderdiaz/herdr-portrait-layout">github.com/miguelalexanderdiaz/herdr-portrait-layout</a>. Written for humans and for agents: see <a href="for-agents.html">For agents</a> and <a href="llms.txt">llms.txt</a>.</p>
+</div></footer>
+</body>
+</html>
