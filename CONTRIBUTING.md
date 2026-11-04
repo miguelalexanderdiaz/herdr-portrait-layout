@@ -44,7 +44,7 @@ Run from the repository root before you push. `npm test` and `npm run check` are
 | Docs: links, no external hosts, keys table, llms.txt copy | `node scripts/check-docs.mjs` |
 | Commit history carries no personal address | `npm run check:history` (see [scripts/PUBLISH.md](scripts/PUBLISH.md), step 0) |
 
-The CI definition is [scripts/ci.workflow.yml](scripts/ci.workflow.yml): it runs the tests and `npm run check` on Ubuntu, Windows and macOS. It is not active until the maintainer copies it to `.github/workflows/ci.yml` with a login that has the workflow scope (PUBLISH.md, section "CI"); pull requests must not add files under `.github/workflows/`. `herdr-app check` cannot see runtime behaviour, so the manual checklist below still matters.
+The CI definition is [scripts/ci.workflow.yml](scripts/ci.workflow.yml): it runs the tests and `npm run check` on Ubuntu, Windows and macOS. It is not active until the maintainer copies it to `.github/workflows/ci.yml` with a login that has the workflow scope ([scripts/PUBLISH.md](scripts/PUBLISH.md), step 6); pull requests must not add files under `.github/workflows/`. `herdr-app check` cannot see runtime behaviour, so the manual checklist below still matters.
 
 Two suites guard the docs against the code: `scripts/check-docs.mjs` (every key of `keys.json` has a row in the README and in the Configuration page, the names in the "Where to check" cells exist in `mods/`, every mod is named in the README and the Privacy page) and `tests/docs-claims.test.mjs` (the numbers in the text, such as `290 px`, `34 px`, `40 px` and `7 days`, equal the constants in the code). Keep each number next to its unit as plain text, one `<td>` per key, and no line breaks inside a table cell, so those checks can read them.
 
@@ -56,7 +56,7 @@ Two suites guard the docs against the code: `scripts/check-docs.mjs` (every key 
 2. Run `node --test` with those `.d.ts` files present (`~/.config/herdr-app`, or the folder in `HERDR_APP_HOME`): `tests/api.test.mjs` checks that every Herdr function the mods import still exists, and is skipped when the files are missing.
 3. `herdr-app check` for every mod (above).
 4. Herdr replaces its shipped mods whole and never updates a clone. Compare each clone with the shipped mod of the same name in the Herdr home folder (read-only): `portrait-tabs` with `tabs`, `portrait-pane` with `pane`, `portrait-files` with `files`, and the layouts with the shipped `main`. Port what you want; keep `cloned_from` and the NOTICE entry true.
-5. Refresh the three snapshots `scripts/default-keys.json`, `scripts/commands.json` and `scripts/shipped-mods.json` as described in [scripts/PUBLISH.md](scripts/PUBLISH.md), then `node scripts/validate.mjs`: a new Herdr default chord that clashes with a key in `keys.json` shows up here.
+5. Refresh the three snapshots in `scripts/` by hand (there is no network tool): `default-keys.json` is the `defaults/keys*.json` files of the Herdr release (github.com/herdrdev/herdr-app, folder `defaults/`); `commands.json` is the output of `herdr-app commands` (command names with their argument names); `shipped-mods.json` is the list of mod folders under `<app home>/mods/` that Herdr ships (today `workspace-status`, `changes`, `picker`, `machine-add`, `menu`, `new-menu`). Keep each file's `_about` and version fields true, then `npm run check`: a new Herdr default chord that clashes with a key in `keys.json`, or a command that no longer exists, fails `validate`.
 6. Update "built and used on" in README, `docs/` and CHANGELOG only after you used it on that version.
 
 ### When attention-picker is re-synced
@@ -65,11 +65,13 @@ Two suites guard the docs against the code: `scripts/check-docs.mjs` (every key 
 
 ```sh
 git rm -r mods/attention-picker
-git -C <herdr-agents-waiting clone> archive <commit or origin/branch> mods/attention-picker | tar -x -C .
+git -C <path to herdr-agents-waiting> archive <commit or branch> mods/attention-picker | tar -x -C .
 herdr-app check "$PWD/mods/attention-picker"
-node scripts/bundled.mjs <the 40-character commit>
+node scripts/bundled.mjs <the 40-character commit that was archived>   # rewrites scripts/bundled.json
 npm test && npm run check
 ```
+
+The same steps are in [scripts/PUBLISH.md](scripts/PUBLISH.md), step 7.
 
 Never copy `gpui-kit.d.ts` or `jsconfig.json` (Herdr writes them). `bundled.json` records the hash of every file, so a hand edit or a forgotten file fails `validate`. Then re-read the privacy text in README, `docs/privacy.html` and RECIPE.md against the picker's constants (how often it reads, how many lines, what it stores), update NOTICE if the file list changed, and check that `bar-strip` still opens it by name with the props the new version reads.
 

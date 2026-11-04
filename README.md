@@ -18,10 +18,11 @@ Docs for humans: the [documentation site](https://miguelalexanderdiaz.github.io/
 | `portrait-tabs`, `portrait-pane` | Tab bar and pane header, cloned from Herdr's shipped mods. They remember the side panel per space. |
 | `portrait-files`, `nvim-float` | Files for the focused pane's folder with git marks; click a file to edit it in a floating nvim (macOS and Linux). |
 | `attention-picker` | The *Agents waiting* list (bundled copy of the herdr-agents-waiting mod). |
+| Vault panel (optional) | Works without the Obsidian mods. To add it, install `vault` and `vault-reader` from herdr-obsidian-vault and paste `snippets/vault-panel.json` into the `children` of the `panel-body` stack in each layout you use. The Vault button, tab and note rows appear only when the mod and the panel are both there. |
 
 ## Requirements
 
-The Herdr desktop app, 0.1.12 or newer (built and used on 0.1.12). `git` for change marks and `nvim` for click-to-edit are optional. No network, no account, nothing to install first.
+The Herdr desktop app, 0.1.12 or newer (built and used on 0.1.12). `git` (change marks) and `nvim` (click-to-edit) are optional. No network, no account.
 
 | Feature | macOS | Linux | Windows |
 |---|---|---|---|
@@ -30,7 +31,7 @@ The Herdr desktop app, 0.1.12 or newer (built and used on 0.1.12). `git` for cha
 | Click a file to edit in nvim | Works | Not run, expected to work | No: opens the read-only preview and says so once |
 | Keys | `cmd-` and `ctrl-shift-` | `ctrl-shift-` | `ctrl-shift-` |
 
-Developed and used on macOS only. Linux and Windows are described from the code, not from a test run. Details, and the code that decides each row: [Platforms](https://miguelalexanderdiaz.github.io/herdr-portrait-layout/platforms.html).
+Developed and used on macOS only. Linux and Windows are described from the code, not from a test run; no CI run has been reported yet. The layouts keep the system title bar, so no window buttons are drawn on Linux and Windows. Details, and the code that decides each row: [Platforms](https://miguelalexanderdiaz.github.io/herdr-portrait-layout/platforms.html).
 
 ## Install
 
@@ -46,7 +47,7 @@ It follows Herdr's protocol for shared layouts: tells you what runs, never overw
 
 ### By hand, macOS and Linux
 
-Run in a scratch Herdr home first if you like (`HERDR_APP_HOME=<empty folder>`): on macOS that copied everything and `herdr-app check` passed for all seven mods.
+Tried in a scratch Herdr home on macOS (`HERDR_APP_HOME=<empty folder>`): everything copied, `herdr-app check` passed for all seven mods.
 
 ```sh
 git clone https://github.com/miguelalexanderdiaz/herdr-portrait-layout.git
@@ -110,10 +111,6 @@ The PowerShell block follows its documentation and has not been run on Windows; 
 
 `cmd-b` is macOS only; it does nothing on Linux and Windows, where the `ctrl-shift-` keys do the work. If you rename a layout, rename its `layout:<name>` section and the `layout.switch:` values with it. The bell's tooltip prints the key really bound on your machine. `ctrl-b` chords are not shipped (they take `ctrl-b` from your terminals); the optional set is on the [Configuration page](https://miguelalexanderdiaz.github.io/herdr-portrait-layout/configuration.html#tmux) and in [AGENTS.md](AGENTS.md).
 
-## Optional: Vault panel
-
-The layouts work without the Obsidian mods. To add the Vault panel, install `vault` and `vault-reader` from herdr-obsidian-vault and paste `snippets/vault-panel.json` into the `children` of the `panel-body` stack in each layout you use. The Vault button, tab and note rows appear only when both the mod and the panel are there.
-
 ## Theme
 
 No theme is pinned: Settings decides, and every Herdr theme names the same colours, so any theme works. Chrome, text and state colours come from the theme (`foreground`, `background`, `muted`, `dim`, `chrome`, `raised`, `hover`, `selected`, `border`, `accent`, `working`, `blocked`, `done`, `idle`; Files also uses `ansi1` to `ansi6`). The exceptions are the space marks, six fixed colours that look the same on every theme, with a white or near-black letter chosen per colour by contrast. The mark colour is also the title rule and the active folded space's name; on a light theme that name is mixed toward the text colour for contrast (how it looks on `paper` has not been seen). To fix a theme in the layout, add `"theme": { "light": "paper", "dark": "graphite" }` to the layout's root, or carry your own `themes/<name>.json`.
@@ -134,7 +131,7 @@ The full table with the function that does each thing: [Privacy](https://miguela
 ## Troubleshooting
 
 - **Layout won't load.** Read `layout.error` in the Herdr home folder; `ctrl-alt-shift-escape` always returns to the default layout.
-- **The waiting-list key does nothing.** Check `keys.error`, and that the key is in the section of the layout that is shown (`layout:portrait` or `layout:portrait-bottom`).
+- **The waiting-list key does nothing.** Check `keys.error`, that the key is in the section of the shown layout, and that the mod is named `attention-picker`.
 - **A click shows a preview or "Couldn't open nvim".** nvim is not on your login shell's PATH, `hc run` failed, or the terminal did not appear within 10 seconds. On Windows a click opens the preview.
 - **No Vault button.** It needs the `vault` mod and the `vault` panel node, both.
 - **Columns cut off.** Each needs 290 px; use the arrow markers, swipe sideways, fold spaces, or widen the bar. A folded space is 34 px wide.
@@ -148,7 +145,5 @@ Switch to another layout (`ctrl-shift-l` cycles), delete `layouts/portrait*.json
 ## What is original, cloned, bundled
 
 `portrait-tree`, `bar-strip` and `nvim-float` are original. The two layouts and `portrait-tabs`, `portrait-pane`, `portrait-files` are clones of Herdr's shipped 0.1.12 layout and mods (`cloned_from`), changed. `attention-picker` is a bundled copy; its source is the herdr-agents-waiting repository, so change it there, not here. Small icons are carried inside each mod: Lucide icons (ISC; a few also MIT), art copied from Herdr's shipped mods (Apache-2.0), and two drawings made for this layout; [NOTICE](NOTICE) lists every file. What the layout needs from Herdr (its status line, Changes tab, search and menu overlays) is on [How it works](https://miguelalexanderdiaz.github.io/herdr-portrait-layout/how-it-works.html).
-
-## Contributing, changelog, licence
 
 [CONTRIBUTING.md](CONTRIBUTING.md), [CHANGELOG.md](CHANGELOG.md). Apache-2.0, see [LICENSE](LICENSE) and [NOTICE](NOTICE).
