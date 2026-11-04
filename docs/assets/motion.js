@@ -1,8 +1,8 @@
-// The home page's two small behaviours. Nothing is loaded, sent or stored; the page reads the same without it.
+// The site's two small behaviours. Nothing is loaded, sent or stored; the page reads the same without it.
 //   - A feature picture ([data-motion]) gets "play" the first time half of it is on screen, which starts its CSS
 //     animation (assets/site.css, "home page pictures"), and "run" while it stays there; it pauses when it leaves.
 //     Nothing moves when the system asks for reduced motion: the picture keeps its still frame.
-//   - The copy button next to the install line copies it.
+//   - A copy button (button[data-copy], on the home and install pages) copies the command in the cell it sits in.
 (() => {
   "use strict";
   const reduce = window.matchMedia ? window.matchMedia("(prefers-reduced-motion: reduce)") : { matches: false };

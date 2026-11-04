@@ -167,6 +167,7 @@ fails("a docs link that does not resolve", "check-docs", (s) => appendFileSync(s
 fails("a docs page that loads from another host", "check-docs", (s) => s.edit("docs/index.html", "</head>", '<link rel="stylesheet" href="https://fonts.example.net/x.css"></head>'), /outside the site|only github\.com/);
 fails("a docs page with an inline script", "check-docs", (s) => s.edit("docs/index.html", "</head>", "<script>alert(1)</script></head>"), /inline <script>/);
 fails("a docs page loading a script from another host", "check-docs", (s) => s.edit("docs/index.html", "</head>", '<script src="https://cdn.example.net/x.js"></script></head>'), /outside the site|must be an existing file in docs\/assets/);
+fails("a raw.githubusercontent.com address of another owner, split by <wbr>", "check-docs", (s) => s.edit("docs/install.html", "</main>", "<p>https://raw.githubusercontent.com/<wbr>zebra/x/main/install.sh</p></main>"), /raw\.githubusercontent\.com\/zebra/);
 fails("a site script that reaches the network", "check-docs", (s) => appendFileSync(s.file("docs/assets/motion.js"), "\nfetch('x.json');\n"), /may not reach the network/);
 fails("llms.txt differing from its copy", "check-docs", (s) => appendFileSync(s.file("docs/llms.txt"), "\nextra\n"), /byte-identical/);
 

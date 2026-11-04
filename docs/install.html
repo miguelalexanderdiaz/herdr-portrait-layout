@@ -5,8 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="dark">
 <title>Install - Portrait layout for Herdr</title>
-<meta name="description" content="Install the portrait layout with a Herdr agent or by hand on macOS, Linux and Windows, and remove it again.">
+<meta name="description" content="Install the portrait layout with one command on macOS, Linux and Windows, and remove it again.">
 <link rel="stylesheet" href="assets/site.css">
+<script src="assets/motion.js" defer></script>
 </head>
 <body>
 <a class="skip" href="#main">Skip to content</a>
@@ -19,49 +20,32 @@
 </div></header>
 <main id="main">
 <h1>Install</h1>
-<p class="lead">One command does it. An agent, or copying the files yourself, works too.</p>
 
-<h2 id="one-command">One command</h2>
-<p>macOS and Linux:</p>
-<pre tabindex="0"><code>curl -fsSL https://raw.githubusercontent.com/miguelalexanderdiaz/herdr-portrait-layout/main/install/install.sh | sh</code></pre>
-<p>Windows (PowerShell):</p>
-<pre tabindex="0"><code>irm https://raw.githubusercontent.com/miguelalexanderdiaz/herdr-portrait-layout/main/install/install.ps1 | iex</code></pre>
-<p>It first lists what the mods reach (no network; the programs they run; what they read, as on <a href="privacy.html">Privacy</a>) and asks before writing anything. Then it:</p>
-<ol>
-<li>copies the two layouts and the mods into your Herdr home;</li>
-<li>keeps your <code>attention-picker</code> if you already have one;</li>
-<li>merges <code>keys.json</code> into yours, asking before it replaces a key you already use;</li>
-<li>runs <code>herdr-app check</code> on every mod and, the first time, switches to the <code>portrait</code> layout.</li>
-</ol>
-<p>Anything it replaces is backed up first under <code>community/herdr-portrait-layout/</code> in the Herdr home, and running it again updates in place. Options: <code>sh -s -- --yes</code> answers every question with yes (Windows: <code>$env:HERDR_YES = 1</code> first); <code>--home &lt;folder&gt;</code> or <code>HERDR_APP_HOME</code> picks another Herdr home; from a clone, run <code>install/install.sh</code> or <code>.\install\install.ps1</code>. Merging <code>keys.json</code> uses Node, or on macOS the system's own JavaScript; without either the script prints the keys to add by hand. The scripts are short and readable: <a href="https://github.com/miguelalexanderdiaz/herdr-portrait-layout/tree/main/install">install/</a>.</p>
-<p>To remove it: the same line with <code>sh -s -- --uninstall</code> (Windows: <code>$env:HERDR_UNINSTALL = 1</code> first). It removes only what it installed, and only the keys you have not changed since.</p>
+<p class="os" id="sh-label">macOS and Linux</p>
+<div class="cell"><pre id="cmd-sh" tabindex="0" aria-labelledby="sh-label"><code>curl -fsSL https://raw.githubusercontent.com/<wbr>miguelalexanderdiaz/<span class="nw">herdr-portrait-layout/</span><wbr>main/install/install.sh | sh</code></pre><button class="copy" type="button" data-copy="cmd-sh" aria-live="polite" hidden>Copy</button></div>
+<p class="os" id="ps-label">Windows (PowerShell)</p>
+<div class="cell"><pre id="cmd-ps" tabindex="0" aria-labelledby="ps-label"><code>irm https://raw.githubusercontent.com/<wbr>miguelalexanderdiaz/<span class="nw">herdr-portrait-layout/</span><wbr>main/install/install.ps1 | iex</code></pre><button class="copy" type="button" data-copy="cmd-ps" aria-live="polite" hidden>Copy</button></div>
+<p>It shows what the mods reach and asks before writing anything. It backs up whatever it replaces, merges your <code>keys.json</code>, checks each mod with <code>herdr-app check</code> and, the first time, switches to the <code>portrait</code> layout. Running it again updates.</p>
 
-<h2 id="agent">With an agent</h2>
-<p>In a terminal agent inside Herdr (or any agent that can edit your Herdr home folder), say:</p>
-<pre tabindex="0"><code>install https://github.com/miguelalexanderdiaz/herdr-portrait-layout</code></pre>
-<p>A good agent will (this is the protocol Herdr's own reference gives for layouts other people made):</p>
-<ol>
-<li>Read <code>RECIPE.md</code>, <code>AGENTS.md</code> and every file before writing anything, and tell you that the mods run programs and read folders (the short list is on <a href="privacy.html">Privacy</a>) and use no network.</li>
-<li>Copy the layout files into <code>layouts/</code> and each mod folder into <code>mods/</code>, leaving the recipe and the preview out. If a name is taken it renames the new one, including the <code>mod</code> names inside the layouts and the <code>mods/&lt;name&gt;/</code> asset paths.</li>
-<li>Merge <code>keys.json</code> into yours and ask before replacing a key you already use.</li>
-<li>Run <code>herdr-app check</code> on each mod, then switch to the layout. Your own layout stays as it was.</li>
-</ol>
-<p>The step-by-step version for agents is <a href="for-agents.html">For agents</a> and <a href="https://github.com/miguelalexanderdiaz/herdr-portrait-layout/blob/main/AGENTS.md">AGENTS.md</a>.</p>
+<p id="remove"><strong>Remove it:</strong> the same command with the uninstall flag. It removes only what it installed, and only the keys you have not changed since.</p>
+<div class="cell"><pre id="un-sh" tabindex="0" aria-label="Uninstall on macOS and Linux"><code>curl -fsSL https://raw.githubusercontent.com/<wbr>miguelalexanderdiaz/<span class="nw">herdr-portrait-layout/</span><wbr>main/install/install.sh | <span class="nw">sh -s -- --uninstall</span></code></pre><button class="copy" type="button" data-copy="un-sh" aria-live="polite" hidden>Copy</button></div>
+<div class="cell"><pre id="un-ps" tabindex="0" aria-label="Uninstall on Windows"><code>$env:HERDR_UNINSTALL = 1; irm https://raw.githubusercontent.com/<wbr>miguelalexanderdiaz/<span class="nw">herdr-portrait-layout/</span><wbr>main/install/install.ps1 | iex</code></pre><button class="copy" type="button" data-copy="un-ps" aria-live="polite" hidden>Copy</button></div>
 
-<h2 id="by-hand">By hand</h2>
-<p>What the script does, as separate steps, for anyone who prefers to copy the files themselves.</p>
-<p>You need a clone of the repository and the path of your Herdr home folder. <code>herdr-app --help</code> prints it on its last line. On macOS it is <code>~/.config/herdr-app</code>, and Herdr's reference uses that path throughout, so expect the same on Linux; <code>HERDR_APP_HOME</code> overrides it. On Windows the default is not confirmed here, so use what <code>herdr-app --help</code> prints.</p>
-<h3>macOS and Linux</h3>
-<p>To try it without touching your own setup, run it in a scratch Herdr home first (<code>HERDR_APP_HOME=&lt;empty folder&gt;</code>).</p>
-<pre tabindex="0"><code>git clone https://github.com/miguelalexanderdiaz/herdr-portrait-layout.git
+<div class="folds">
+<details class="fold" id="agent">
+<summary>With an agent</summary>
+<p>Tell a terminal agent inside Herdr:</p>
+<div class="cell"><pre id="cmd-agent" tabindex="0"><code>install https://github.com/miguelalexanderdiaz/<wbr><span class="nw">herdr-portrait-layout</span></code></pre><button class="copy" type="button" data-copy="cmd-agent" aria-live="polite" hidden>Copy</button></div>
+<p>It reads every file first and tells you what the mods run and read. It never overwrites (a taken name is renamed), asks before changing your <code>keys.json</code>, checks each mod and switches to the layout. The steps it follows: <a href="for-agents.html">For agents</a>.</p>
+</details>
+
+<details class="fold" id="by-hand">
+<summary>By hand</summary>
+<p>Copy the files into your Herdr home, the folder on the last line of <code>herdr-app --help</code> (<code>~/.config/herdr-app</code> on macOS; <code>HERDR_APP_HOME</code> overrides it). Nothing that already exists is overwritten.</p>
+<pre tabindex="0" aria-label="By hand on macOS and Linux"><code>git clone https://github.com/miguelalexanderdiaz/herdr-portrait-layout.git
 cd herdr-portrait-layout
-
-# The Herdr home folder (herdr-app --help prints it on the last line).
 H="${HERDR_APP_HOME:-$HOME/.config/herdr-app}"
 mkdir -p "$H/layouts" "$H/mods"
-
-# Never overwrite: anything that already exists is reported and skipped.
-# Includes the layouts' .svg thumbnails. Rename a layout together with its "preview" field.
 for f in layouts/*; do
   if [ -e "$H/$f" ]; then echo "exists, rename first: $f"; else cp "$f" "$H/layouts/"; fi
 done
@@ -69,17 +53,13 @@ for m in mods/*; do
   n="${m#mods/}"
   if [ -e "$H/mods/$n" ]; then echo "exists, skip or rename: $n"; else cp -R "$m" "$H/mods/$n"; fi
 done
-
-for m in mods/*; do herdr-app check "$H/mods/${m#mods/}"; done   # check every mod you now have
-herdr-app do layout.switch --name portrait                          # switch to the layout</code></pre>
-<h3>Windows (PowerShell)</h3>
-<pre tabindex="0"><code>git clone https://github.com/miguelalexanderdiaz/herdr-portrait-layout.git
+for m in mods/*; do herdr-app check "$H/mods/${m#mods/}"; done
+herdr-app do layout.switch --name portrait</code></pre>
+<p>On Windows (not yet run on a Windows machine):</p>
+<pre tabindex="0" aria-label="By hand on Windows"><code>git clone https://github.com/miguelalexanderdiaz/herdr-portrait-layout.git
 cd herdr-portrait-layout
-
-# The Herdr home folder. If herdr-app --help prints another folder, set $H to it.
 $H = if ($env:HERDR_APP_HOME) { $env:HERDR_APP_HOME } else { Join-Path $HOME ".config\herdr-app" }
 New-Item -ItemType Directory -Force "$H\layouts", "$H\mods" | Out-Null
-
 foreach ($f in Get-ChildItem layouts) {
   if (Test-Path "$H\layouts\$($f.Name)") { "exists, rename first: $($f.Name)" }
   else { Copy-Item $f.FullName "$H\layouts\" }
@@ -88,33 +68,25 @@ foreach ($m in Get-ChildItem mods -Directory) {
   if (Test-Path "$H\mods\$($m.Name)") { "exists, skip or rename: $($m.Name)" }
   else { Copy-Item $m.FullName "$H\mods\$($m.Name)" -Recurse }
 }
-
 foreach ($m in Get-ChildItem mods -Directory) { herdr-app check "$H\mods\$($m.Name)" }
 herdr-app do layout.switch --name portrait</code></pre>
-<p class="note">What was run: the macOS and Linux script, in a scratch Herdr home on macOS (nothing overwritten, <code>herdr-app check</code> passed for all seven mods). The PowerShell version follows the PowerShell documentation and has not been run on a Windows machine; the default home folder in its first lines is a guess, so use the path <code>herdr-app --help</code> prints if it differs.</p>
+<p>Then add the sections of the repository's <code>keys.json</code> to yours (or copy it if you have none), keeping your own binding where a key is taken. The keys are listed on <a href="configuration.html#keys">Configuration</a>.</p>
+<p>To remove it by hand: switch to another layout (<kbd>ctrl-shift-l</kbd>), delete <code>layouts/portrait*.json</code> and <code>.svg</code> and the mod folders you copied, remove the keys you added, and delete <code>data/portrait-tree-spines/</code> and <code>data/portrait-viewer/</code>.</p>
+</details>
 
-<h3>Keys</h3>
-<p>Open the repository's <code>keys.json</code> and add its sections and keys to the <code>keys.json</code> in your Herdr home folder. If you have no <code>keys.json</code> yet, copying the file is enough. If a key is already used by something of yours, keep yours and pick another for ours. If Herdr rejects the file it writes the reason to <code>keys.error</code> and keeps the last good version. The table is on <a href="configuration.html#keys">Configuration</a>.</p>
-
-<h3>If a name is taken</h3>
-<p>Rename the new thing, never the old one. For a layout, rename the file and its <code>.svg</code> thumbnail, change the <code>preview</code> field in the layout's root to the new thumbnail name, and rename the section <code>layout:&lt;name&gt;</code> in your keys and the <code>layout.switch:&lt;name&gt;</code> values that point at it. For a mod, rename its folder and every <code>mods/&lt;name&gt;/</code> path inside it, then the <code>mod</code> name in the layouts. The constant <code>PICKER</code> at the top of <code>bar-strip/main.js</code> holds the name of the bundled <code>attention-picker</code>. Layout ids that mods look up must stay as they are: <code>panel</code>, <code>panel-body</code>, <code>files</code> and <code>changes</code>; <code>bar</code> is named only by the toggle key. Details: <a href="for-agents.html#rename">For agents</a>.</p>
-<p>If you already have an <code>attention-picker</code>, keep yours and skip the bundled copy.</p>
-
-<h2 id="verify">Check it worked</h2>
+<details class="fold" id="details">
+<summary>Options, name clashes and checks</summary>
 <ul>
-<li>Every <code>herdr-app check</code> line ends without an error.</li>
-<li>After the switch the window shows the strip with Search, Add machine and Settings, and the tab bar under it.</li>
-<li>If something is off, Herdr writes why to <code>layout.error</code> in its home folder and keeps your last good layout. <kbd>ctrl-alt-shift-escape</kbd> always puts the default layout back.</li>
+<li><strong>No questions:</strong> <code>sh -s -- --yes</code> (Windows: <code>$env:HERDR_YES = 1;</code> before <code>irm</code>). A key you already use is then kept.</li>
+<li><strong>Another Herdr home:</strong> <code>sh -s -- --home &lt;folder&gt;</code>, or set <code>HERDR_APP_HOME</code>.</li>
+<li><strong>From a clone:</strong> <code>install/install.sh</code> or <code>.\install\install.ps1</code>. The scripts are short: <a href="https://github.com/miguelalexanderdiaz/herdr-portrait-layout/tree/main/install">install/</a>.</li>
+<li><strong>Keys:</strong> on macOS and Linux the merge needs Node, or on macOS the system's own JavaScript; without either the script prints the keys to add by hand.</li>
+<li><strong>Backups</strong> go to <code>community/herdr-portrait-layout/</code> in the Herdr home. Removing leaves <code>data/portrait-tree-spines/</code> and <code>data/portrait-viewer/</code> there; delete them if you like.</li>
+<li><strong>Name clashes:</strong> the script keeps your own <code>attention-picker</code> and replaces only its own mods and layouts. By hand, rename the new thing, never yours: the <a href="for-agents.html#rename">rename checklist</a> lists what must change with it.</li>
+<li><strong>Check it worked:</strong> every <code>herdr-app check</code> passes, and the window shows the strip (Search, Add machine, Settings) with the tab bar under it. If not, <code>layout.error</code> in the Herdr home says why, and <kbd>ctrl-alt-shift-escape</kbd> puts the default layout back.</li>
 </ul>
-
-<h2 id="uninstall">Uninstall</h2>
-<ol>
-<li>Switch to another layout (<kbd>ctrl-shift-l</kbd> cycles layouts, or use Settings).</li>
-<li>Delete from your Herdr home folder: <code>layouts/portrait.json</code>, <code>layouts/portrait-bottom.json</code> and their <code>.svg</code> thumbnails, and the mod folders <code>bar-strip</code>, <code>portrait-tree</code>, <code>portrait-tabs</code>, <code>portrait-pane</code>, <code>portrait-files</code>, <code>nvim-float</code>, <code>portrait-viewer</code> (and <code>attention-picker</code> only if it came from this repo).</li>
-<li>Remove the keys you merged from <code>keys.json</code>.</li>
-<li>Delete the folder <code>data/portrait-tree-spines/</code> in the Herdr home folder (the only file this layout writes there).</li>
-<li>Any <code>/tmp/herdr-nvim-*.sock</code> files from nvim sessions disappear when nvim exits or on reboot; delete them if one is left.</li>
-</ol>
+</details>
+</div>
 </main>
 <footer class="site"><div class="inner">
 <p>Apache-2.0. Source and issues: <a href="https://github.com/miguelalexanderdiaz/herdr-portrait-layout">github.com/miguelalexanderdiaz/herdr-portrait-layout</a>. Written for humans and for agents: see <a href="for-agents.html">For agents</a> and <a href="llms.txt">llms.txt</a>.</p>

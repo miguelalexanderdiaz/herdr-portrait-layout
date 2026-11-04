@@ -7,7 +7,7 @@ Install by telling a Herdr agent: install https://github.com/miguelalexanderdiaz
 ## Start here
 
 - [AGENTS.md](https://github.com/miguelalexanderdiaz/herdr-portrait-layout/blob/main/AGENTS.md): how an agent installs, adapts, tests and edits this repository safely, with the Herdr gotchas.
-- [README](https://github.com/miguelalexanderdiaz/herdr-portrait-layout/blob/main/README.md): what it is, requirements per OS, install by agent and by hand, keys, privacy, troubleshooting, uninstall.
+- [README](https://github.com/miguelalexanderdiaz/herdr-portrait-layout/blob/main/README.md): what it is, requirements per OS, the install and uninstall commands, keys, privacy, troubleshooting.
 - [RECIPE.md](https://github.com/miguelalexanderdiaz/herdr-portrait-layout/blob/main/RECIPE.md): the build brief in Herdr's six-section format, with the disclosure of what runs and the list of names that must not change.
 
 ## Reference

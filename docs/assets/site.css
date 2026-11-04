@@ -487,6 +487,47 @@ body:has(main.home) footer.site .inner { max-width: var(--body-width); }
 .copy:hover { color: var(--d-orange); }
 .facts { color: var(--fg-dim); font-size: var(--fs-small); }
 
+/* The install page: the commands first, the rest folded into quiet rows (plain details, no script needed). */
+.os { margin: 1.4rem 0 0.4rem; font-size: var(--fs-small); color: var(--fg-dim); }
+h1 + .os { margin-top: 0; }
+main .cell pre { white-space: pre-wrap; overflow-wrap: anywhere; }
+.cell .nw { white-space: nowrap; }  /* wrap a long command at its slashes, not inside the repository name */
+#remove { margin-top: 1.6rem; }
+.folds { margin-top: 2.4rem; border-bottom: 1px solid var(--rule); }
+.fold { border-top: 1px solid var(--rule); }
+.fold > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.95rem 0;
+  font-family: var(--f-display);
+  font-size: var(--fs-h3);
+  font-weight: 500;
+  line-height: var(--lh-tight);
+  color: var(--fg);
+  cursor: pointer;
+  list-style: none;
+  transition: color var(--dur-fast) var(--ease);
+}
+.fold > summary::-webkit-details-marker { display: none; }
+.fold > summary::after {
+  content: "";
+  flex: none;
+  width: 7px;
+  height: 7px;
+  margin-right: 4px;
+  border-right: 1.5px solid var(--fg-dim);
+  border-bottom: 1.5px solid var(--fg-dim);
+  transform: translateY(-2px) rotate(45deg);
+  transition: transform var(--dur-fast) var(--ease), border-color var(--dur-fast) var(--ease);
+}
+.fold > summary:hover { color: var(--d-orange); }
+.fold > summary:hover::after { border-color: var(--d-orange); }
+.fold[open] > summary::after { transform: translateY(2px) rotate(225deg); }
+.fold > :last-child { margin-bottom: 1.4rem; }
+@media (prefers-reduced-motion: reduce) { .fold > summary::after { transition: none; } }
+
 /* ---- home page pictures. Still (no script, or reduced motion): the after state, what the feature shows. With
    motion.js a picture gets "play" the first time half of it is on screen (its parts start moving) and "run" while it
    stays there (they pause when it leaves). One 8 s cycle each: the change, then a long rest. */

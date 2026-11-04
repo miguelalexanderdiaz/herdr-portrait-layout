@@ -161,7 +161,8 @@ for (const f of files.filter((f) => /^docs\/.+\.css$/.test(f))) {
 
 // ---- every file: external hosts and personal data
 for (const f of [...MD, ...HTML, ...TXT]) {
-  const text = read(f).replace(/xmlns(?::\w+)?\s*=\s*["'][^"']*["']/g, "");
+  // <wbr> (a line-break hint inside a long command) is not part of the address it sits in.
+  const text = read(f).replace(/xmlns(?::\w+)?\s*=\s*["'][^"']*["']/g, "").replace(/<wbr\s*\/?>/gi, "");
   for (const m of text.matchAll(/\bhttps?:\/\/([A-Za-z0-9.-]+)(\/[\w.-]*)?/g)) {
     r.check(hostAllowed(f, m[1], m[2] ?? ""), `${f}: mentions ${m[1]}${m[2] ?? ""}; only github.com, herdr.dev and this repository's own Pages address (in ${[...PAGES_FILES].join(", ")}) are allowed`);
   }

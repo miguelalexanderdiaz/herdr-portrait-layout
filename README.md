@@ -34,43 +34,33 @@ Developed and used on macOS only. Linux and Windows are described from the code,
 
 ## Install
 
-One command, on macOS and Linux:
+macOS and Linux:
 
 ```sh
 curl -fsSL https://raw.githubusercontent.com/miguelalexanderdiaz/herdr-portrait-layout/main/install/install.sh | sh
 ```
 
-On Windows (PowerShell):
+Windows (PowerShell):
 
 ```powershell
 irm https://raw.githubusercontent.com/miguelalexanderdiaz/herdr-portrait-layout/main/install/install.ps1 | iex
 ```
 
-It lists what the mods reach (no network; the programs they run; what they read) and asks before
-writing anything. Then it copies the two layouts and the mods into your Herdr home, keeps your
-`attention-picker` if you already have one, merges
-`keys.json` (asking before it replaces a key you use), runs `herdr-app check` on every mod and, the
-first time, switches to the `portrait` layout. Anything it replaces is backed up first under
-`community/herdr-portrait-layout/` in the Herdr home; running it again updates in place.
+It shows what the mods reach and asks before writing anything. It backs up whatever it replaces, merges your
+`keys.json`, checks each mod with `herdr-app check` and, the first time, switches to the `portrait` layout.
+Running it again updates.
 
-- From a clone: `install/install.sh` (or `.\install\install.ps1` on Windows).
-- No questions: add `-s -- --yes` after `sh` (Windows: set `$env:HERDR_YES = 1` first).
-- Another Herdr home: `--home <folder>` (or `HERDR_APP_HOME`).
-- Merging `keys.json` uses Node, or on macOS the system's own JavaScript; without either it prints
-  the keys to add by hand.
+Remove it with the same command and the uninstall flag:
 
-### With an agent
-
-Tell the agent in your Herdr:
-
-```
-install https://github.com/miguelalexanderdiaz/herdr-portrait-layout
+```sh
+curl -fsSL https://raw.githubusercontent.com/miguelalexanderdiaz/herdr-portrait-layout/main/install/install.sh | sh -s -- --uninstall
 ```
 
-It follows Herdr's protocol for shared layouts: tells you what runs, never overwrites, renames on a
-clash, asks before changing your `keys.json`, checks each mod, then switches the layout. Steps for
-agents: [AGENTS.md](AGENTS.md). Copying the files by hand, step by step:
-[Install](https://miguelalexanderdiaz.github.io/herdr-portrait-layout/install.html).
+```powershell
+$env:HERDR_UNINSTALL = 1; irm https://raw.githubusercontent.com/miguelalexanderdiaz/herdr-portrait-layout/main/install/install.ps1 | iex
+```
+
+With an agent, by hand, options and checks: [Install](https://miguelalexanderdiaz.github.io/herdr-portrait-layout/install.html).
 
 ## Keys
 
@@ -121,12 +111,7 @@ More: [Troubleshooting](https://miguelalexanderdiaz.github.io/herdr-portrait-lay
 curl -fsSL https://raw.githubusercontent.com/miguelalexanderdiaz/herdr-portrait-layout/main/install/install.sh | sh -s -- --uninstall
 ```
 
-(Windows: `$env:HERDR_UNINSTALL = 1` before the `irm ... | iex` line.) It switches away from the
-portrait layouts if one is shown, removes the mods and layouts it installed and the keys it added
-(not ones you changed since), and backs them up first. It leaves `data/portrait-tree-spines/` and
-`data/portrait-viewer/` in the Herdr home; delete them if you like.
-
-By hand: switch to another layout (`ctrl-shift-l` cycles), delete `layouts/portrait*.json` and `.svg` and the mod folders you copied from the Herdr home folder, remove the keys you merged, and delete `data/portrait-tree-spines/` and `data/portrait-viewer/` there. Leftover `/tmp/herdr-nvim-*.sock` files vanish on reboot.
+Windows, and removing it by hand: [Install](https://miguelalexanderdiaz.github.io/herdr-portrait-layout/install.html).
 
 ## What is original, cloned, bundled
 
