@@ -61,7 +61,8 @@ texts reproduced in section 3.
   file.svg                         mods/portrait-files, mods/bar-strip                          -> files
   folder.svg                       mods/portrait-files                                          -> files, workspace-chrome
   changes.svg                      mods/bar-strip  (the Changes button)                         -> changes
-  close.svg                        mods/portrait-tabs, mods/portrait-pane, mods/nvim-float     -> pane
+  close.svg                        mods/portrait-tabs, mods/portrait-pane, mods/nvim-float,
+                                   mods/portrait-viewer                                         -> pane
   split-right.svg, split-down.svg, zoom.svg, unzoom.svg
                                    mods/portrait-pane                                           -> pane
   win-min.svg, win-max.svg, win-restore.svg, win-close.svg
@@ -131,11 +132,18 @@ are also available under the MIT License:
   small pictures (the search glyph and the spinner) are that project's own drawings, made for it, and are not Herdr's
   files: see that repository's NOTICE. If you already have that mod installed, keep yours.
 
+  mods/portrait-viewer/logic.mjs   part of it
+
+  The platform helpers (opening files, file stamps, finding Poppler, image headers, install hints) are copied
+  unchanged from mods/vault-reader/platform.js of the herdr-obsidian-vault repository (Apache License 2.0, same
+  copyright holder); the picture cache is a trimmed copy of that mod's assets-core.js (pictures and PDF pages only,
+  cached under data/portrait-viewer/cache). The rest of the viewer is original to this repository.
+
 
 5. Original to this repository (Apache License 2.0)
 ---------------------------------------------------
 
-Everything else (mods/portrait-tree, mods/bar-strip, mods/nvim-float, the code changes listed above, RECIPE.md,
+Everything else (mods/portrait-tree, mods/bar-strip, mods/nvim-float, mods/portrait-viewer/main.js, the code changes listed above, RECIPE.md,
 keys.json, snippets/, scripts/, the preview and the layout thumbnails, which show invented content) is original work
 under the Apache License 2.0. That includes the two folding pictures `fold.svg` and `unfold.svg` in mods/portrait-tree,
 which were drawn for this project (they are not copies of any Herdr or Lucide file).

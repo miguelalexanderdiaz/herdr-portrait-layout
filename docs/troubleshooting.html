@@ -31,11 +31,14 @@
 <h2>The waiting-list key does nothing</h2>
 <p>The key (<kbd>ctrl-shift-j</kbd> by default) runs <code>mod.open:attention-picker</code>. It is bound in the two layout sections of <code>keys.json</code>, so it does nothing in another layout, or if you renamed the layout without renaming the keys section. It also needs a mod named <code>attention-picker</code> in <code>mods/</code>; if you renamed it, change the key. Look for <code>keys.error</code> in the Herdr home folder. The bell's tooltip names the key that is really bound. If you bound <code>bar-strip.attention</code> or <code>bar-strip.jump</code> yourself instead, those reach only a bar-strip that is shown, so they do nothing while the bar is hidden.</p>
 
-<h2>A click shows a preview or &ldquo;Couldn't open nvim&rdquo;</h2>
+<h2>A click opens the wrong thing, or &ldquo;Couldn't open &hellip;&rdquo;</h2>
 <ul>
-<li>&ldquo;nvim not found on PATH&rdquo;: nvim is not on the PATH of your login shell, and the file opens in the read-only preview. Test with <code>$SHELL -lc 'command -v nvim'</code>.</li>
-<li>&ldquo;Showing a read-only preview&rdquo;: expected on Windows, where click-to-edit is not available.</li>
-<li>&ldquo;Couldn't open nvim&rdquo;: <code>hc run</code> failed (the message has its error), or the terminal did not show up within 10 seconds (the layout ends it and names it).</li>
+<li>Pick the editor with the <code>&#9662;</code> in the Files header. It lists only editors on the PATH of your login shell (and, on macOS, apps in <code>/Applications</code> or <code>~/Applications</code>); test with <code>$SHELL -lc 'command -v nvim'</code>. An editor you just installed shows up within a minute.</li>
+<li>&ldquo;Showing a read-only preview&rdquo;: the default app is picked and the file is a script, which its system app could run; the preview opens instead. Pick an editor.</li>
+<li>&ldquo;Couldn't open nvim&rdquo; (or another editor): <code>hc run</code> failed (the message has its error), or the terminal did not show up within 10 seconds (the layout ends it and names it).</li>
+<li>&ldquo;Not opened&rdquo;: the file is a program (<code>.exe</code>, <code>.app</code>, an installer); the Files panel never starts programs.</li>
+<li>A PDF shows only its first page, or a hint: install Poppler (<code>brew install poppler</code>, <code>apt install poppler-utils</code>, <code>scoop install poppler</code>).</li>
+<li>A picture or PDF outside your home folder opens in the system's app: Herdr mods can only read inside the home folder.</li>
 </ul>
 
 <h2>Files says &ldquo;No folder&rdquo; or &ldquo;No files&rdquo;</h2>

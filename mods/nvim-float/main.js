@@ -1,13 +1,16 @@
-// The title bar of a floating nvim opened from the Files panel (portrait-files),
-// and its "Keep" menu (the same mod, opened as a popup with `menu: true`).
+// The title bar of a floating terminal editor opened from the Files panel (portrait-files),
+// and its "Keep" menu (the same mod, opened as a popup with `menu: true`). Named for nvim,
+// which gets the most: other editors (Helix, Vim, micro, nano) have no socket.
 //
-// Bar props:  { terminal, socket, file, space, on, overlay }   (overlay = the window)
+// Bar props:  { terminal, socket, file, space, on, editor, overlay }   (overlay = the window;
+//             socket: nvim's, else null; editor: its name for the title)
 // Menu props: { menu: true, window, terminal, socket, file, space, on, overlay }
 //
-// Keep → New tab: the float's terminal becomes a tab (terminal.keep).
+// Keep → New tab: the float's terminal becomes a tab (terminal.keep). Any editor.
 // Keep → Add to <nvim tab>: its file opens as a buffer in that kept nvim, the tab
-//   gets focus, and the float's nvim quits (":confirm qa" asks first if unsaved).
-// ✕: the float's nvim quits the same way; the window closes when its terminal ends.
+//   gets focus, and the float's nvim quits (":confirm qa" asks first if unsaved). nvim only.
+// ✕: the float's nvim quits the same way; the window closes when its terminal ends. nvim
+//   only: another editor is closed the way it closes (its window goes when it ends).
 
 import { View, div, svg, image } from "gpui-kit";
 import { h_flex, v_flex } from "gpui-base";
@@ -57,7 +60,7 @@ export default class NvimFloat extends View {
   bar(p) {
     const t = theme();
     const term = terminals().find((x) => x.address === p.terminal);
-    const title = cleanTitle(term?.title) || basename(p.file ?? "") || "nvim";
+    const title = cleanTitle(term?.title) || basename(p.file ?? "") || p.editor || "nvim";
     // `~` only for this computer's folders; another machine's home is not ours.
     const folder = p.on ? dirname(p.file ?? "") : tilde(dirname(p.file ?? ""), home());
     const stop = (_e, cx) => cx.stop_propagation();
@@ -78,13 +81,14 @@ export default class NvimFloat extends View {
         const at = b ? { x: Math.max(0, (b.x + b.width) / z - MENU_W), y: (b.y + b.height) / z + 4 } : "pointer";
         openOverlay({ mod: "nvim-float", kind: "popup", width: MENU_W, at, props: { ...p, menu: true, window: p.overlay } });
       }, (e, cx) => { cx.stop_propagation(); this.keepAt = e.bounds ?? (e.position ? { ...e.position, width: 0, height: 0 } : null); }))
-      .child(button("nvim-close", svg("mods/nvim-float/close.svg").size(13), (_e, cx) =>
-        cx.spawn(async () => { await nvim(p.on, QUIT, p.socket).catch(() => {}); })));
+      .when(Boolean(p.socket), (el) => el.child(button("nvim-close", svg("mods/nvim-float/close.svg").size(13), (_e, cx) =>
+        cx.spawn(async () => { await nvim(p.on, QUIT, p.socket).catch(() => {}); }))))
+      .when(!p.socket, (el) => el.child(div().flex_none().text_size(11).text_color(t.dim).child(`Quit ${p.editor || "the editor"} to close`)));
   }
 
   menu(p) {
     const t = theme();
-    const kept = keptEditors(p.space, p.terminal);
+    const kept = p.socket ? keptEditors(p.space, p.terminal) : [];
     const item = (id, label, hint, action) => v_flex().id(id).px(10).py(6).rounded(6).cursor_pointer()
       .hover((el) => el.bg(t.hover)).on_click(action)
       .child(div().text_size(12.5).text_color(t.foreground).child(label))
@@ -113,6 +117,6 @@ export default class NvimFloat extends View {
           closeOverlay(p.overlay);
         });
       })))
-      .when(kept.length === 0, (el) => el.child(div().px(10).py(6).text_size(11).text_color(t.dim).child("No nvim tab in this space to add to")));
+      .when(kept.length === 0 && Boolean(p.socket), (el) => el.child(div().px(10).py(6).text_size(11).text_color(t.dim).child("No nvim tab in this space to add to")));
   }
 }
