@@ -89,9 +89,8 @@ Nothing here is part of the Pages site.
    Never copy `gpui-kit.d.ts` or `jsconfig.json`: Herdr writes those into mod folders and `validate` refuses them. Review
    the diff of the folder, RECIPE's picker row and disclosure (poll interval, `hc read` lines, `localStorage` keys) and
    NOTICE section 4 before committing.
-7a. [ ] **author** Decide about `plans/`: it holds the review notes of each round and is public with the repository. The
-   scan checks it like every other file (a path or address on a plain line fails). Keep it, or remove it before the
-   release (`git rm -r plans`; the notes stay in the history).
+7a. [x] **author** Decide about `plans/`: done 2026-11-04. The round notes are no longer tracked (`/plans/` is in
+   `.gitignore`, the folder stays on the author's machine); earlier commits still hold them.
 
 ## Publishing
 
