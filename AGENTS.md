@@ -87,7 +87,7 @@ Optional tmux-style chords (not shipped: a bound `ctrl-b` prefix takes `ctrl-b` 
 ## Test
 
 - `herdr-app check <absolute mod folder>` for every changed mod. It loads the mod once and renders it once; it does not lay out, run async states or exercise clicks. Say so; do not call a mod done on this alone.
-- `node --test` with no argument (Node 18 or newer, no install; on Node 22 and later `node --test tests/` fails because the argument is read as a file); `npm test` is the same. With Herdr's `herdr.d.ts` present in the Herdr home folder (or `HERDR_APP_HOME`) the API test also checks that every Herdr function the mods import exists; it is skipped without the file. Pure logic lives in `mods/<mod>/logic.mjs` with no gpui imports so tests can load it.
+- `node --test` with no argument (Node 22 or newer, no install; on Node 22 and later `node --test tests/` fails because the argument is read as a file); `npm test` is the same. With Herdr's `herdr.d.ts` present in the Herdr home folder (or `HERDR_APP_HOME`) the API test also checks that every Herdr function the mods import exists; it is skipped without the file. Pure logic lives in `mods/<mod>/logic.mjs` with no gpui imports so tests can load it.
 - JSON files: parse them (`node -e "JSON.parse(require('fs').readFileSync(process.argv[1],'utf8'))" file`).
 - `npm run check` runs `scripts/validate.mjs`, `check-recipe.mjs`, `check-assets.mjs`, `check-docs.mjs` and `privacy-scan.mjs` from the repository root in one go (each also runs alone). `npm run check:history` scans the commit history.
 - CI: the definition is `scripts/ci.workflow.yml`; it is active only after the maintainer copies it to `.github/workflows/ci.yml` (needs a workflow-scoped login). Never commit anything under `.github/workflows/`.

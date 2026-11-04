@@ -16,7 +16,7 @@ git clone https://github.com/miguelalexanderdiaz/herdr-portrait-layout.git
 cd herdr-portrait-layout
 ```
 
-No dependencies. Node 18 or newer for the tests and scripts, and the `herdr-app` command for `check`.
+No dependencies. Node 22 or newer for the tests and scripts (they load the mods' `.js` files as ES modules, which older Node refuses), and the `herdr-app` command for `check`.
 
 ## Never test against your live Herdr
 

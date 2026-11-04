@@ -21,7 +21,7 @@ Nothing here is part of the Pages site.
 1. [ ] **author** Create `.privacy-denylist` (git-ignored) with one term per line: your own name, employers, host
    names, anything that must never appear. Run `npm run check:history`; apart from step 0 it must say `ok`. Also add the
    same terms, comma separated, as the repository secret `PRIVACY_DENYLIST` so CI checks them too.
-2. [ ] Run the suite from the repository root; both must exit 0 (Node 18 or newer, no install):
+2. [ ] Run the suite from the repository root; both must exit 0 (Node 22 or newer, no install):
    ```sh
    npm test            # node --test: unit tests, repository invariants, the checks' own negative tests
    npm run check       # validate, check-recipe, check-assets, check-docs, privacy-scan in one summary

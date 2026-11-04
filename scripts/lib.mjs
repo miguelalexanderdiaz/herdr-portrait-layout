@@ -1,4 +1,4 @@
-// Shared helpers for the repo checks. Dependency-free, Node 18+, identical on Linux, macOS and Windows:
+// Shared helpers for the repo checks. Dependency-free, Node 22+, identical on Linux, macOS and Windows:
 // no shell, no POSIX-only paths, every path is built with node:path and shown with forward slashes.
 import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
