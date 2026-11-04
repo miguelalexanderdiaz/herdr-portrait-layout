@@ -1,0 +1,5 @@
+# One line ending everywhere, so a checkout on Windows byte-matches the other systems
+# (llms.txt must equal docs/llms.txt, the privacy scan and the tests read raw text).
+* text=auto eol=lf
+*.png binary
+*.sh text eol=lf

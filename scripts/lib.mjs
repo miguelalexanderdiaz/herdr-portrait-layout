@@ -9,7 +9,7 @@ export const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 
 export const posix = (p) => p.split(sep).join("/");
 export const abs = (...p) => join(ROOT, ...p);
-export const read = (p) => readFileSync(abs(p), "utf8");
+export const read = (p) => readFileSync(abs(p), "utf8").replace(/\r\n/g, "\n");
 export const exists = (p) => existsSync(abs(p));
 export const json = (p) => JSON.parse(read(p));
 
