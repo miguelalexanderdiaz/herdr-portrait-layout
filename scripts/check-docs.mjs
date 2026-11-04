@@ -7,7 +7,8 @@
 //     name are not written here: they must match a github.com/<owner>/<repo> link of the same files.
 //   - the keys table of README.md and docs/configuration.html equals keys.json row for row (no missing, extra or doubled row)
 //   - every `identifier` in a "Where to check" cell of the privacy page exists in mods/, and every mod folder is named in
-//     README.md and docs/privacy.html
+//     README.md and docs/privacy.html; the privacy page opens with its short Network, Runs, Reads and Writes lines
+//     (Network: none) above the folded mod-by-mod part
 //   - each HTML page has <html lang>, a <title>, exactly one <h1>, an alt on every image, ids that are unique
 //   - pages run no inline script; the only scripts are the site's own files in docs/assets/ (<script src="assets/x.js">),
 //     and those may not reach the network, load code, or store anything (the site stays static and offline)
@@ -196,6 +197,9 @@ if (exists("docs/privacy.html")) {
   for (const dd of privacy.matchAll(/<dt>Where to check<\/dt>\s*<dd>([\s\S]*?)<\/dd>/g)) for (const m of dd[1].matchAll(/<code>([^<]+)<\/code>/g)) idents.add(m[1].trim());
   r.check(idents.size >= 10, 'docs/privacy.html: found fewer than 10 identifiers in "Where to check" cells (markup changed?)');
   for (const id of idents) r.check(new RegExp(`(^|[^\\w$])${id.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}([^\\w$]|$)`).test(sources), `docs/privacy.html: "Where to check" names \`${id}\`, which is not in any mod source`);
+  const short = (privacy.split(/<main\b/)[1] ?? "").split(/<details\b/)[0];
+  for (const term of ["Network", "Runs", "Reads", "Writes"]) r.check(short.includes(`<dt>${term}</dt>`), `docs/privacy.html: the short part above the fold has no "${term}" line`);
+  r.check(/<dt>Network<\/dt><dd>None\b/.test(short), 'docs/privacy.html: the short part must say "Network: None"');
   const readme = read("README.md");
   for (const m of modFolders()) {
     r.check(readme.includes(`\`${m}\``), `README.md does not name the mod \`${m}\``);

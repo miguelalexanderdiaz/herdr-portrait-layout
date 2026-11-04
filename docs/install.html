@@ -14,8 +14,8 @@
 <header class="site"><div class="inner">
 <a class="brand" href="index.html">Portrait layout for Herdr</a>
 <nav class="site" aria-label="Documentation">
-<details class="menu"><summary>Menu: Install</summary><ul><li><a href="index.html">Overview</a></li><li><a href="install.html" aria-current="page">Install</a></li><li><a href="usage.html">Usage</a></li><li><a href="configuration.html">Configuration</a></li><li><a href="platforms.html">Platforms</a></li><li><a href="privacy.html">Privacy</a></li><li><a href="how-it-works.html">How it works</a></li><li><a href="troubleshooting.html">Troubleshooting</a></li><li><a href="for-agents.html">For agents</a></li></ul></details>
-<ul class="wide"><li><a href="index.html">Overview</a></li><li><a href="install.html" aria-current="page">Install</a></li><li><a href="usage.html">Usage</a></li><li><a href="configuration.html">Configuration</a></li><li><a href="platforms.html">Platforms</a></li><li><a href="privacy.html">Privacy</a></li><li><a href="how-it-works.html">How it works</a></li><li><a href="troubleshooting.html">Troubleshooting</a></li><li><a href="for-agents.html">For agents</a></li></ul>
+<details class="menu"><summary>Menu: Install</summary><ul><li><a href="index.html">Overview</a></li><li><a href="install.html" aria-current="page">Install</a></li><li><a href="usage.html">Usage</a></li><li><a href="configuration.html">Configuration</a></li><li><a href="privacy.html">Privacy</a></li><li><a href="troubleshooting.html">Troubleshooting</a></li><li><a href="for-agents.html">For agents</a></li></ul></details>
+<ul class="wide"><li><a href="index.html">Overview</a></li><li><a href="install.html" aria-current="page">Install</a></li><li><a href="usage.html">Usage</a></li><li><a href="configuration.html">Configuration</a></li><li><a href="privacy.html">Privacy</a></li><li><a href="troubleshooting.html">Troubleshooting</a></li><li><a href="for-agents.html">For agents</a></li></ul>
 </nav>
 </div></header>
 <main id="main">
@@ -26,6 +26,7 @@
 <p class="os" id="ps-label">Windows (PowerShell)</p>
 <div class="cell"><pre id="cmd-ps" tabindex="0" aria-labelledby="ps-label"><code>irm https://raw.githubusercontent.com/<wbr>miguelalexanderdiaz/<span class="nw">herdr-portrait-layout/</span><wbr>main/install/install.ps1 | iex</code></pre><button class="copy" type="button" data-copy="cmd-ps" aria-live="polite" hidden>Copy</button></div>
 <p>It shows what the mods reach and asks before writing anything. It backs up whatever it replaces, merges your <code>keys.json</code>, checks each mod with <code>herdr-app check</code> and, the first time, switches to the <code>portrait</code> layout. Running it again updates.</p>
+<p class="facts">Needs Herdr 0.1.12 or newer. Built and used on macOS; Linux and Windows should work but have not been run.</p>
 
 <p id="remove"><strong>Remove it:</strong> the same command with the uninstall flag. It removes only what it installed, and only the keys you have not changed since.</p>
 <div class="cell"><pre id="un-sh" tabindex="0" aria-label="Uninstall on macOS and Linux"><code>curl -fsSL https://raw.githubusercontent.com/<wbr>miguelalexanderdiaz/<span class="nw">herdr-portrait-layout/</span><wbr>main/install/install.sh | <span class="nw">sh -s -- --uninstall</span></code></pre><button class="copy" type="button" data-copy="un-sh" aria-live="polite" hidden>Copy</button></div>
