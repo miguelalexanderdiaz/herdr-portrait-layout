@@ -2,9 +2,11 @@
 
 All notable changes to this repository, in the style of Keep a Changelog. Built against Herdr app 0.1.12 and its shipped mods.
 
-## [Unreleased]
+Releases are written here by [release-please](https://github.com/googleapis/release-please) from the titles of the pull requests merged since the last release (Conventional Commits, see CONTRIBUTING.md), newest first, and tagged `vX.Y.Z` on GitHub. Below them is the hand-written history from before the first release.
 
-Every merged round adds its lines here; tagging a release moves them under the new version. Round 2 reviewed round 1 and hardened it.
+## [Before the first release]
+
+Hand-written, one round at a time. Round 2 reviewed round 1 and hardened it.
 
 ### Added
 
@@ -33,7 +35,7 @@ Every merged round adds its lines here; tagging a release moves them under the n
 
 - Documentation that the code did not back: "the mods use only theme colours" (the six space marks are fixed colours), the picker's poll interval, "`agent.next` skips folded spaces" (it appends them), the ids list ("never rename" now names what the mods look up), "folders before files" on Windows with more than 500 entries, and the Windows window buttons (not shown with the system title bar).
 
-## [0.1.0] - not yet tagged
+## [Initial import]
 
 The first public release: the layouts and mods imported from a working Herdr setup, made shareable in round 1.
 

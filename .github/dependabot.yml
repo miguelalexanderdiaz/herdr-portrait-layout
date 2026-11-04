@@ -8,3 +8,7 @@ updates:
     groups:
       actions:
         patterns: ["*"]
+    # Pull request titles must be Conventional Commits (.github/workflows/pr-title.yml): "ci(deps): bump ..."
+    commit-message:
+      prefix: ci
+      include: scope
