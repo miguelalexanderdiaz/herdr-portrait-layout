@@ -4,6 +4,7 @@
     "name": "main",
     "version": "0.1.12"
   },
+  "preview": "layouts/portrait-bottom.svg",
   "type": "row",
   "background": "canvas",
   "terminal_padding": [
@@ -147,13 +148,6 @@
               "type": "block",
               "content": {
                 "mod": "changes"
-              }
-            },
-            {
-              "id": "vault",
-              "type": "block",
-              "content": {
-                "mod": "vault"
               }
             }
           ]

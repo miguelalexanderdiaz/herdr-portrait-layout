@@ -4,6 +4,7 @@
     "name": "main",
     "version": "0.1.12"
   },
+  "preview": "layouts/portrait.svg",
   "type": "row",
   "children": [
     {
@@ -131,13 +132,6 @@
               "type": "block",
               "content": {
                 "mod": "changes"
-              }
-            },
-            {
-              "id": "vault",
-              "type": "block",
-              "content": {
-                "mod": "vault"
               }
             }
           ],

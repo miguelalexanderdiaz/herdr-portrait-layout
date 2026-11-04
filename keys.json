@@ -1,15 +1,14 @@
 {
-  "global": {
-    "ctrl-b a": "bar-strip.attention"
-  },
   "layout:portrait": {
-    "ctrl-b shift-b": "layout.switch:portrait-bottom",
-    "ctrl-b b": "layout.toggle:bar",
-    "cmd-b": "layout.toggle:bar"
+    "ctrl-shift-g": "layout.toggle:bar",
+    "cmd-b": "layout.toggle:bar",
+    "ctrl-shift-y": "layout.switch:portrait-bottom",
+    "ctrl-shift-j": "bar-strip.attention"
   },
   "layout:portrait-bottom": {
-    "ctrl-b shift-b": "layout.switch:portrait",
-    "ctrl-b b": "layout.toggle:bar",
-    "cmd-b": "layout.toggle:bar"
+    "ctrl-shift-g": "layout.toggle:bar",
+    "cmd-b": "layout.toggle:bar",
+    "ctrl-shift-y": "layout.switch:portrait",
+    "ctrl-shift-j": "bar-strip.attention"
   }
 }
