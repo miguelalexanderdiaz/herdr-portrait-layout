@@ -188,7 +188,9 @@ function mock(variant) {
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">${o}</svg>\n`;
 }
 
-// Thumbnail for Settings: wireframe of the same layout at 1/5 scale (216x384).
+// Thumbnail for Settings: wireframe of the same layout at 1/5 scale (216x384), set upright in the middle
+// of a 320x200 card, the size of Herdr's own thumbnails (Settings draws a taller picture past its card).
+const CARD_W = 320, CARD_H = 200;
 function thumb(variant) {
   const top = variant === "top";
   const s = 0.2, w = W * s, h = H * s;
@@ -203,7 +205,8 @@ function thumb(variant) {
   const h1 = Math.round((ph - 2) * 0.56);
   o += rect(2, py, w - 4, h1, C.pane, { r: 2, stroke: C.accent, sw: 0.6 }) + rect(2, py + h1 + 2, w - 4, ph - h1 - 2, C.pane, { r: 2, stroke: C.border, sw: 0.6 });
   o += rect(0, h - st, w, st, C.chrome);
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">${o}</svg>\n`;
+  const k = CARD_H / h, x = (CARD_W - w * k) / 2;
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${CARD_W}" height="${CARD_H}" viewBox="0 0 ${CARD_W} ${CARD_H}"><g transform="translate(${+x.toFixed(2)} 0) scale(${+k.toFixed(5)})">${o}</g></svg>\n`;
 }
 
 writeFileSync(abs("layouts/portrait.svg"), thumb("top"));
