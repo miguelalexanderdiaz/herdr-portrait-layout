@@ -1,70 +1,84 @@
 // "Agents waiting" (a dialog): the agents that need you and the finished ones in a
-// plain list, then, under a rule, every other agent grouped by space as Go to…
-// shows them. Opened by ctrl-b a and by shift-clicking the bell in the bar
-// strip, with a search box on top (props.search; without it, keys only:
-// ↑↓, Enter, 1-9, Esc).
-// Picking one shows it (agent.focus) and closes the list.
+// plain list, then, under a rule, every other agent grouped by space. Picking
+// one shows it (agent.focus) and closes the dialog.
+//
+// Standalone: it needs no other mod. Open it with the command
+// "mod.open:attention-picker" bound to any key (keys.json); mod.open passes no
+// props, so the search box is on by default.
+//
+// Props   search   false = keys only (↑↓, Enter, 1-9, Esc); anything else = search box on.
+// Shared  reads  "agents.since"  { address: ms } when a layout tracks status times (it wins);
+//                "space.colors"  { spaceId: color name or #rrggbb }
+//         read/write "attention.sort"  "recent" | "oldest" | "space"
+// Command agent.focus {terminal}
+// Without "agents.since" the waiting times come from the tab (changed_at) and
+// from a first-seen record kept in this mod's localStorage (address -> status
+// group and time; no screen text). Screens are read with `hc read` only while
+// the dialog is open, for agents that need you or finished.
+// Known callers: the portrait layout's bar strip passes { search: true|false }.
+// Pure logic lives in logic.js and ask.js (tests/ runs it under node).
 
 import { View, div, svg } from "gpui-kit";
 import { v_flex, h_flex, InputState, Input } from "gpui-base";
 import { agents, spaces, run, hc, theme, settings, shared, setShared, props, closeOverlay } from "herdr";
 import { askOf } from "./ask.js";
+import {
+  ORDER, WORD, isPick, pickSearch, duration, normalizeSort, nextSort, parseSeen, trackSeen,
+  buildRows, emptyState, inkOn, resolveSelection, moveSelection, createPreviewReader,
+} from "./logic.js";
 
-const ORDER = { blocked: 0, done: 1, working: 2 };
-const WORD = { blocked: "needs you", done: "finished", working: "working" };
+const HOME = "mods/attention-picker"; // this mod's folder, for its own assets
+const POLL_MS = 3000; // how often waiting agents' screens are re-read
+const READ_LINES = 60; // lines of each screen hc read returns
+const READ_CONCURRENCY = 4; // hc read calls in flight at once
+const SEEN_KEY = "attention.seen"; // localStorage: { address: { s: status group, at: ms } }
+const HOME_SPACE_NAME = "~"; // Herdr names a space after its folder; the home folder shows as "~" and is drawn dim
+
 const MARK = { ansi6: "#22a99a", ansi3: "#e3814f", ansi4: "#5b8def", ansi5: "#8b7cf6", ansi2: "#3fae6a", ansi1: "#d9649a" };
 const H = { head: 29, agent: 32, waiting: 46, sep: 17, earlier: 35 }; // row heights, as in Go to…
-const DAY = 24 * 3600 * 1000;
-// How the agents under the rule are ordered (kept in shared "attention.sort").
-const SORTS = ["recent", "oldest", "space"];
 const SORT_LABEL = { recent: "Recent", oldest: "Oldest", space: "Space order" };
 const SORT_TIP = { recent: "Latest activity first", oldest: "Longest idle first", space: "As the space tree shows them" };
-const sortNow = () => (SORTS.includes(shared("attention.sort")) ? shared("attention.sort") : "recent");
-const PICK = (r) => r.kind === "agent" || r.kind === "waiting" || r.kind === "earlier"; // rows ↑↓ and Enter reach
+const sortNow = () => normalizeSort(shared("attention.sort"));
 const LIST_H = 320;
 
-function duration(ms) {
-  const m = Math.floor(ms / 60000);
-  if (m < 1) return "<1m";
-  if (m < 60) return `${m}m`;
-  const h = Math.floor(m / 60);
-  return h < 24 ? `${h}h` : `${Math.floor(h / 24)}d`;
+function loadSeen() {
+  try { return parseSeen(localStorage.getItem(SEEN_KEY)); } catch { return {}; }
 }
-
-const clean = (s) => (s ?? "").replace(/^[^\p{L}\p{N}]+/u, "").trim();
-
-// The agent's own name, as the space tree shows it: its title (a Claude
-// session's name), else a named tab, else its program.
-function nameOf(a) {
-  const title = clean(a.title);
-  if (title && !/^[~/]|^[A-Za-z]:\\/.test(title) && !title.includes("@") && title !== a.program?.name) return title;
-  if (a.tab_name && !/^\d+$/.test(a.tab_name)) return a.tab_name;
-  return a.program?.name || a.app || "agent";
+function saveSeen(seen) {
+  try { localStorage.setItem(SEEN_KEY, JSON.stringify(seen)); } catch { /* storage unavailable: times stay in memory */ }
 }
 
 // The space's color, as every other list shows it (shared "space.colors").
 function spaceColor(t, s) {
-  if (s.name === "~") return t.dim;
+  if (s.name === HOME_SPACE_NAME) return t.dim;
   const c = (shared("space.colors") ?? {})[s.id] ?? "ansi6";
   return c.startsWith("#") ? c : (MARK[c] ?? t[c]);
 }
 
 export default class AttentionPicker extends View {
   init(_props, cx) {
-    this.at = 0;
+    this.selected = null; // key of the selected row (an address, or "earlier"); the first row when null or gone
     this.filter = "";
     this.scroll = 0;
-    this.search = Boolean(props()?.search);
+    this.search = pickSearch(_props ?? props());
     this.showEarlier = false;
+    this.dead = false;
+    this.seen = loadSeen();
+    this.track(agents(), Date.now()); // also drops agents that are gone
     // What each waiting agent says (its last question), read off its screen.
     this.previews = new Map(); // address → { status, text }
+    this.reader = createPreviewReader({
+      read: (address) => hc(["read", address, "--lines", String(READ_LINES)]),
+      parse: askOf,
+      concurrency: READ_CONCURRENCY,
+    });
     this.readPreviews(cx);
-    cx.timer.every(2000, (cx) => this.readPreviews(cx));
+    cx.timer.every(POLL_MS, (cx) => this.readPreviews(cx));
     this.handle = cx.focus_handle();
     if (this.search) {
       this.input = InputState.new({ placeholder: "Search agents, spaces, programs…" });
-      this.input.on("change", (_e, cx) => { this.filter = this.input.value(); this.at = 0; cx.notify(); });
-      this.input.on("submit", (_e, cx) => { this.go(this.agentRows()[this.at]); cx?.notify?.(); });
+      this.input.on("change", (_e, cx) => { this.filter = this.input.value(); this.selected = null; cx.notify(); });
+      this.input.on("submit", (_e, cx) => { this.go(this.selection()); cx?.notify?.(); });
       this.input.focus();
       cx.timer.after(300, () => this.input.focus());
     } else {
@@ -73,101 +87,84 @@ export default class AttentionPicker extends View {
     }
   }
 
-  // On top, a plain list: the agents that need you, then the finished ones
-  // (longest-waiting first: lower seq = changed longer ago), each with what
-  // it's asking. Under a rule, every other agent grouped by space as Go to…
-  // lists them, in the chosen order (sortNow: latest activity first, longest
-  // idle first, or the tree's order; spaces follow their first agent); the
-  // ones idle for over a day fold into an
-  // "earlier" line. Filtered by the search (which also opens "earlier").
-  // Returns agents, a rule, space heads and the earlier line.
-  rows() {
-    const q = this.filter.trim().toLowerCase();
-    const since = shared("agents.since") ?? {};
-    const now = Date.now();
-    const rank = (a) => ORDER[a.status] ?? 3;
-    const all = agents()
-      .map((a, idx) => ({ a, idx, name: nameOf(a), program: a.program?.name || a.app || "", since: since[a.address] ?? null }))
-      .filter((r) => !q || [r.name, r.program, r.a.space_name, r.a.tab_name].join(" ").toLowerCase().includes(q))
-      .sort((x, y) => rank(x.a) - rank(y.a) || x.a.seq - y.a.seq);
-    const waiting = (r) => r.a.status === "blocked" || r.a.status === "done";
-    const top = all.filter(waiting)
-      .map((r) => ({ ...r, kind: "waiting", sub: [r.a.space_name, r.a.tab_name].filter(Boolean).join(" · ") }));
-    const sort = sortNow();
-    const by = { recent: (x, y) => (y.since ?? 0) - (x.since ?? 0), oldest: (x, y) => (x.since ?? 0) - (y.since ?? 0), space: (x, y) => x.idx - y.idx }[sort];
-    const rest = all.filter((r) => !waiting(r)).sort((x, y) => by(x, y) || x.idx - y.idx)
-      .map((r) => ({ ...r, kind: "agent", sub: [r.program, r.a.tab_name].filter(Boolean).join(" · ") }));
-    const old = (r) => r.a.status !== "working" && !r.a.focused && r.since && now - r.since > DAY;
-    const recent = rest.filter((r) => !old(r)), earlier = rest.filter(old);
-    const byId = new Map(spaces().map((s) => [s.id, s]));
-    const grouped = (list) => {
-      const groups = new Map();
-      for (const r of list) {
-        if (!groups.has(r.a.space)) groups.set(r.a.space, []);
-        groups.get(r.a.space).push(r);
-      }
-      return [...groups].flatMap(([id, rs]) => [{ kind: "head", s: byId.get(id) ?? { id, name: rs[0].a.space_name ?? "space" } }, ...rs]);
-    };
-    const out = [...top];
-    if (top.length && rest.length) out.push({ kind: "sep" });
-    out.push(...grouped(recent));
-    if (earlier.length) {
-      const open = this.showEarlier || Boolean(q);
-      out.push({ kind: "earlier", count: earlier.length, open });
-      if (open) out.push(...grouped(earlier));
-    }
-    return out;
+  // Keeps the first-seen record current; saved only when it changed.
+  track(list, now) {
+    const r = trackSeen(this.seen, list, now);
+    if (!r.changed) return;
+    this.seen = r.seen;
+    saveSeen(this.seen);
   }
 
-  agentRows() { return this.rows().filter(PICK); }
+  // The rows, built once per render and reused by the key and click handlers.
+  view(now = Date.now()) {
+    const list = agents();
+    this.track(list, now);
+    const rows = buildRows({
+      agents: list, spaces: spaces(), sharedSince: shared("agents.since") ?? {}, seen: this.seen,
+      query: this.filter, sort: sortNow(), showEarlier: this.showEarlier, now,
+    });
+    const picks = rows.filter(isPick);
+    const numbers = new Map(); // key → 1-9 shortcut, "earlier" has none
+    for (const r of picks) if (r.kind !== "earlier") numbers.set(r.key, numbers.size + 1);
+    this.cache = { rows, picks, numbers, anyAgents: list.length > 0 };
+    return this.cache;
+  }
+
+  selection() {
+    const { picks } = this.cache ?? this.view();
+    return picks[resolveSelection(picks, this.selected)];
+  }
 
   readPreviews(cx) {
-    const want = agents().filter((a) => a.status === "blocked" || a.status === "done");
+    if (this.dead || this.reader.busy) return;
+    const want = agents().filter((a) => a.status === "blocked" || a.status === "done")
+      .map((a) => ({ address: a.address, status: a.status }));
+    if (!want.length && !this.previews.size) return;
     cx.spawn(async (cx) => {
-      let changed = false;
-      await Promise.all(want.map(async (a) => {
-        const r = await hc(["read", a.address]).catch(() => null);
-        const text = r?.code === 0 ? askOf(r.stdout, a.status) : "";
-        const old = this.previews.get(a.address);
-        if (old?.text !== text || old?.status !== a.status) { this.previews.set(a.address, { status: a.status, text }); changed = true; }
-      }));
-      if (changed) cx.notify();
+      const changed = await this.reader.pass(want, this.previews);
+      if (changed && !this.dead) cx.notify();
     });
   }
 
-  close() { closeOverlay(props().overlay); }
+  // Not close(): that name is the host's final-cleanup hook on a View.
+  dismiss() {
+    this.dead = true;
+    const id = props()?.overlay;
+    if (id) closeOverlay(id);
+    else run("overlay.close");
+  }
 
-  nextSort() {
-    setShared("attention.sort", SORTS[(SORTS.indexOf(sortNow()) + 1) % SORTS.length]);
-    this.at = 0;
+  setSort(value) {
+    setShared("attention.sort", value);
+    this.selected = null;
     this.scroll = 0;
   }
 
   go(r) {
     if (!r) return;
     if (r.kind === "earlier") { this.showEarlier = !this.showEarlier; return; }
-    this.close();
+    this.dismiss();
     run("agent.focus", { terminal: r.a.address });
   }
 
   glyph(t, st) {
-    if (st === "working") return svg("mods/workspace-chrome/spinner.svg").size(12).flex_none().text_color(t.working).spin(900);
+    if (st === "working") return svg(`${HOME}/spinner.svg`).size(12).flex_none().text_color(t.working).spin(900);
     return div().w(12).flex_none().text_color(t[st] ?? t.dim).child(st in ORDER ? "●" : "○");
   }
 
   render() {
     const t = theme();
-    const rows = this.rows();
-    const picks = rows.filter(PICK);
     const now = Date.now();
-    if (this.at >= picks.length) this.at = Math.max(0, picks.length - 1);
-    const sel = picks[this.at];
+    const { rows, picks, numbers, anyAgents } = this.view(now);
+    const selIdx = resolveSelection(picks, this.selected);
+    const sel = picks[selIdx];
     const asking = picks.filter((r) => r.a?.status === "blocked").length;
     const done = picks.filter((r) => r.a?.status === "done").length;
     const title = asking ? `${asking} agent${asking === 1 ? "" : "s"} need${asking === 1 ? "s" : ""} you`
-      : done ? `${done} finished` : "Nothing needs you right now";
+      : done ? `${done} finished` : (emptyState({ anyAgents }).title ?? "Nothing needs you right now");
     const hint = this.search ? "↑↓ choose · Enter go · Tab sort · Esc" : "↑↓ choose · Enter go · 1–9 jump · Tab sort · Esc";
     const sort = sortNow();
+    const sortAfter = nextSort(sort);
 
     // One strip, each row at a fixed y, scrolled only as far as it takes to keep
     // the selected agent in view (as Go to… does).
@@ -194,9 +191,10 @@ export default class AttentionPicker extends View {
     const row = (r) => {
       if (r.kind === "sep") return v_flex().h(H.sep).px(10).justify_center().child(div().h(1).bg(t.border));
       if (r.kind === "head") {
+        const tile = spaceColor(t, r.s);
         return h_flex().px(10).pt(10).pb(3).gap(8).items_center().text_size(11).font_semibold().text_color(t.dim)
-          .child(h_flex().size(18).rounded(5).bg(spaceColor(t, r.s)).items_center().justify_center()
-            .text_size(10.5).font_bold().text_color("#ffffff").child([...r.s.name][0]?.toUpperCase() ?? "?"))
+          .child(h_flex().size(18).rounded(5).bg(tile).items_center().justify_center()
+            .text_size(10.5).font_bold().text_color(inkOn(tile)).child([...r.s.name][0]?.toUpperCase() ?? "?"))
           .child(r.s.name);
       }
       const on = r === sel;
@@ -204,14 +202,15 @@ export default class AttentionPicker extends View {
         return h_flex().id("ap-earlier").mx(4).mt(6).px(10).h(H.earlier - 6).gap(8).items_center().rounded(7).cursor_pointer()
           .border_t(1).border_color(t.border).text_size(12).text_color(on ? t.foreground : t.dim)
           .when(on, (el) => el.bg(t.hover)).hover((el) => el.text_color(t.foreground))
-          .on_click((_e, cx) => { this.go(r); cx.notify(); })
+          .on_click((_e, cx) => { this.selected = r.key; this.go(r); cx.notify(); })
           .child(`earlier: ${r.count} agent${r.count > 1 ? "s" : ""} idle for over a day ${r.open ? "▴" : "▾"}`);
       }
-      const i = picks.filter((x) => x.kind !== "earlier").indexOf(r), color = t[r.a.status] ?? t.dim;
+      const color = t[r.a.status] ?? t.dim;
       const word = WORD[r.a.status] ?? (r.a.status === "idle" ? "idle" : null);
       const ago = r.since ? duration(now - r.since) : null;
+      const num = numbers.get(r.key);
       const line = h_flex().h(20).gap(10).items_center()
-        .when(!this.search, (el) => el.child(div().w(10).flex_none().text_size(11).text_color(t.dim).child(i >= 0 && i < 9 ? String(i + 1) : "")))
+        .when(!this.search, (el) => el.child(div().w(10).flex_none().text_size(11).text_color(t.dim).child(num && num <= 9 ? String(num) : "")))
         .child(this.glyph(t, r.a.status))
         .child(div().flex_1().min_w(0).truncate().text_color(t.foreground).child(r.name))
         .child(h_flex().flex_none().gap(5).items_center().text_size(11)
@@ -231,12 +230,12 @@ export default class AttentionPicker extends View {
     return v_flex().id("attention-picker").track_focus(this.handle).w_full().min_h(0).p(18).gap(10).bg(t.popover).text_size(13)
       .on_key_down((e, cx) => {
         const k = e.key;
-        if (k === "escape") return this.close();
-        if (k === "down" && picks.length) this.at = (this.at + 1) % picks.length;
-        else if (k === "up" && picks.length) this.at = (this.at + picks.length - 1) % picks.length;
+        if (k === "escape") return this.dismiss();
+        if (k === "down" && picks.length) this.selected = moveSelection(picks, this.selected, 1);
+        else if (k === "up" && picks.length) this.selected = moveSelection(picks, this.selected, -1);
         else if (k === "enter" && !this.search) { this.go(sel); if (sel?.kind !== "earlier") return; }
-        else if (k === "tab") this.nextSort();
-        else if (!this.search && /^[1-9]$/.test(k) && !e.modifiers?.control && !e.modifiers?.platform) return this.go(picks.filter((x) => x.kind !== "earlier")[Number(k) - 1]);
+        else if (k === "tab") this.setSort(nextSort(sort, e.modifiers?.shift ? -1 : 1));
+        else if (!this.search && /^[1-9]$/.test(k) && !e.modifiers?.control && !e.modifiers?.platform) return this.go(picks.find((x) => numbers.get(x.key) === Number(k)));
         else return;
         cx.stop_propagation();
         cx.notify();
@@ -245,24 +244,26 @@ export default class AttentionPicker extends View {
         .child(div().flex_1().text_size(15).font_semibold().text_color(t.foreground).child(title))
         .child(h_flex().id("ap-sort").mr(10).h(22).px(8).gap(4).items_center().rounded(6).cursor_pointer()
           .text_size(11.5).text_color(t.muted).bg(t.raised).hover((el) => el.bg(t.hover).text_color(t.foreground))
-          .on_click((_e, cx) => { this.nextSort(); cx.notify(); })
-          .tooltip(`${SORT_TIP[sort]} · click or Tab for ${SORT_LABEL[SORTS[(SORTS.indexOf(sort) + 1) % SORTS.length]]}`)
+          .on_click((_e, cx) => { this.setSort(sortAfter); cx.notify(); })
+          .tooltip(`${SORT_TIP[sort]} · click or Tab for ${SORT_LABEL[sortAfter]}`)
           .child(div().text_color(t.dim).child("Sort"))
           .child(SORT_LABEL[sort]))
         .child(div().text_size(11).text_color(t.dim).child(hint)))
       .when(this.search, (el) => el.child(h_flex().h(36).flex_none().px(10).gap(8).items_center().rounded(9).border_1().border_color(t.accent).bg(t.background)
-        .child(svg("mods/workspace-chrome/search.svg").size(15).text_color(t.dim))
+        .child(svg(`${HOME}/search.svg`).size(15).text_color(t.dim))
         .child(Input.new(this.input).flex_1().h_full().text_size(12.8).text_color(t.foreground))))
       .when(rows.length === 0, (el) => el.child(div().px(10).py(8).text_size(12).text_color(t.dim)
-        .child(this.filter ? "No match" : "Nothing needs you right now")))
+        .child(emptyState({ anyAgents, filter: this.filter }).body)))
       .when(rows.length > 0, (el) => el.child(v_flex().id("ap-list")
         .on_size_change((size, cx) => { this.listHeight = size.height / (Number(settings().zoom) || 1); cx.notify(); })
         .h(Math.min(LIST_H, total)).min_h(0).mb(6)
         .when(fixed, (el) => el.overflow_hidden().on_scroll_wheel((e, cx) => {
           this.scroll = Math.max(0, Math.min(this.scroll - e.delta.y, maxScroll));
           // The selection follows the wheel, so the next frame doesn't scroll back to it.
-          while (this.at < picks.length - 1 && tops[rows.indexOf(picks[this.at])] < this.scroll) this.at++;
-          while (this.at > 0 && tops[rows.indexOf(picks[this.at])] + H[picks[this.at].kind] > this.scroll + height) this.at--;
+          let at = selIdx;
+          while (at < picks.length - 1 && tops[rows.indexOf(picks[at])] < this.scroll) at++;
+          while (at > 0 && tops[rows.indexOf(picks[at])] + H[picks[at].kind] > this.scroll + height) at--;
+          if (picks[at]) this.selected = picks[at].key;
           cx.notify();
         }))
         .children(rows.map((r, i) => (visible(i) ? place(row(r), i) : null)).filter(Boolean))));
