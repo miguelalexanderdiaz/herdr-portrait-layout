@@ -26,7 +26,7 @@ Tests added or changed: `tree` (pruneSpaceIds, alpha, markText, tabRows, wheelSt
 
 ## Checks run
 
-- `node --test`: 102 pass on the branch (88 before `api.test.mjs`, which adds 14).
+- `node --test`: 105 tests, 104 pass. The one failure is `docs-claims` (column widths): README.md has no `34 px` yet (see Deferred). Without `docs-claims`: 102 pass (88 before `api.test.mjs`, which adds 14).
 - `herdr-app check <worktree>/mods/<m>` for portrait-tree, portrait-tabs, portrait-pane, portrait-files, bar-strip, nvim-float: all pass.
 - `node scripts/{validate,check-assets,check-recipe,check-docs,privacy-scan}.mjs`: ok.
 - Scratch merge of this branch with `origin/feat/round-2-hardening--herdr-completeness` (outside the repo): `node --test` 102 pass, all five scripts ok.
