@@ -1,4 +1,4 @@
-// Pure helpers of portrait-tabs (no gpui-kit, no herdr): `node --test tests/` loads this file.
+// Pure helpers of portrait-tabs (no gpui-kit, no herdr): `node --test` loads this file.
 // Blocks between "<shared:...>" markers are copies of the same blocks in other mods
 // (tests/shared.test.mjs keeps them identical).
 

@@ -1,4 +1,4 @@
-// Pure helpers of portrait-tree: no gpui-kit, no herdr, so `node --test tests/` can load them.
+// Pure helpers of portrait-tree: no gpui-kit, no herdr, so `node --test` can load them.
 // Blocks between "<shared:...>" markers are copied byte for byte into other mods
 // (tests/shared.test.mjs keeps the copies identical).
 
