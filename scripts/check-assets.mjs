@@ -1,8 +1,8 @@
 #!/usr/bin/env node
-// Asset checks: preview.png is a real, clean, portrait PNG at least 800px wide; every SVG in the repo is
+// Asset checks: preview.png is a real, clean, portrait PNG at least 800px wide and was drawn from scripts/preview-source.svg; every SVG in the repo is
 // well formed, has no script or external reference; layouts' preview files exist; mod icon files are small.
 import { readFileSync, statSync } from "node:fs";
-import { abs, exists, json, layoutNames, read, reporter, repoFiles } from "./lib.mjs";
+import { abs, exists, json, layoutNames, read, reporter, repoFiles, sha256 } from "./lib.mjs";
 
 const r = reporter("check-assets");
 const files = repoFiles();
@@ -26,6 +26,13 @@ if (r.check(exists("preview.png"), "preview.png is missing (herdr.dev needs it, 
     const meta = chunks.filter((c) => ["tEXt", "zTXt", "iTXt", "eXIf", "tIME"].includes(c));
     r.check(meta.length === 0, `preview.png: carries metadata chunks (${meta.join(", ")}); re-render it with scripts/make-preview.mjs`);
     r.check(chunks[0] === "IHDR" && chunks.at(-1) === "IEND" && chunks.includes("IDAT"), "preview.png: chunk structure is broken");
+  }
+}
+
+// ---- preview.png was rendered from the committed source (the render needs rsvg-convert, which CI does not have)
+if (exists("scripts/preview-source.svg")) {
+  if (r.check(exists("scripts/preview.sha256"), "scripts/preview.sha256 is missing: run node scripts/make-preview.mjs with rsvg-convert installed")) {
+    r.check(read("scripts/preview.sha256").trim() === sha256("scripts/preview-source.svg"), "scripts/preview-source.svg changed since preview.png was rendered: run node scripts/make-preview.mjs (needs rsvg-convert) and copy preview.png to docs/assets/");
   }
 }
 

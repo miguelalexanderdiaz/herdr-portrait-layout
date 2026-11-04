@@ -9,13 +9,33 @@
 export const rgb = (hex) => { const n = parseInt(/^#?([0-9a-f]{6})/i.exec(hex ?? "")?.[1] ?? "808080", 16); return [(n >> 16) & 255, (n >> 8) & 255, n & 255]; };
 export const hex = (c) => "#" + c.map((v) => Math.round(Math.max(0, Math.min(255, v))).toString(16).padStart(2, "0")).join("");
 // Text on the space's letter badge: white or near-black, whichever contrasts more.
-export const lumOf = (h) => { const l = (v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; }; const [r, g, b] = rgb(h); return 0.2126 * l(r) + 0.7152 * l(g) + 0.0722 * l(b); };
+const lumOf = (h) => { const l = (v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; }; const [r, g, b] = rgb(h); return 0.2126 * l(r) + 0.7152 * l(g) + 0.0722 * l(b); };
 export const inkOn = (h) => (1.05 / (lumOf(h) + 0.05) >= (lumOf(h) + 0.05) / (0.007 + 0.05) ? "#ffffff" : "#141414");
 export const mix = (a, b, k) => hex(rgb(a).map((v, i) => v + (rgb(b)[i] - v) * k));
+// The space's mark as text or a rule on the column: on a light theme (`dark === false`) the mark
+// colours are too pale for text (2.3 to 3.4 : 1 on cream), so they are mixed toward the theme's
+// foreground. Dark themes, and a theme that does not say, keep the colour.
+export const markText = (color, foreground, dark) => (dark === false ? mix(color, foreground, 0.5) : color);
 
 // ---- text -------------------------------------------------------------------------------
 
-export const clean = (s) => (s ?? "").replace(/^[^\p{L}\p{N}]+/u, "").trim();
+// <shared:title>
+// A terminal's title without the status glyph in front of it ("✳ Fix it" -> "Fix it"); a dot
+// stays (".env"); a title with no letter or digit at all ("...") is empty.
+export function cleanTitle(s) {
+  const t = (s ?? "").replace(/^[^\p{L}\p{N}.]+/u, "").trim();
+  return /[\p{L}\p{N}]/u.test(t) ? t : "";
+}
+// </shared:title>
+
+// <shared:alpha>
+// `color` ("#rrggbb" or "#rrggbbaa") at opacity `a` (0 to 1); anything else comes back as it was.
+export function alpha(color, a) {
+  const m = /^#([0-9a-f]{6})(?:[0-9a-f]{2})?$/i.exec(typeof color === "string" ? color : "");
+  if (!m) return color;
+  return "#" + m[1] + Math.round(Math.max(0, Math.min(1, Number(a) || 0)) * 255).toString(16).padStart(2, "0");
+}
+// </shared:alpha>
 
 export function duration(ms) {
   const m = Math.floor(ms / 60000);
@@ -27,11 +47,12 @@ export function duration(ms) {
 
 // An agent's own name: its title (a Claude session's name), else a named tab, else its program.
 export function nameOf(a) {
-  const title = clean(a.title);
-  // A path or user@host title (a shell's) says nothing about the agent. Looked up before clean(),
+  const title = cleanTitle(a.title);
+  // A path or user@host title (a shell's) says nothing about the agent. Looked up before cleanTitle(),
   // which would strip the leading "~/" and make a path look like a name.
   const raw = (a.title ?? "").trim();
-  const telling = title && !/^[~/]|^[A-Za-z]:\\/.test(raw) && !/^[~/]|^[A-Za-z]:\\/.test(title) && !title.includes("@") && title !== a.program?.name;
+  const path = (x) => /^[~/]|^[A-Za-z]:\\|^\.\.?[\\/]/.test(x);
+  const telling = title && !path(raw) && !path(title) && !title.includes("@") && title !== a.program?.name;
   if (telling) return title;
   if (a.tab_name && !/^\d+$/.test(a.tab_name)) return a.tab_name;
   return a.program?.name || a.app || "agent";
@@ -48,6 +69,15 @@ export function dedupeNames(list) {
     out.set(a.address, total.get(key(a)) > 1 ? `${a.name} (${n})` : a.name);
   }
   return out;
+}
+
+// A tab's children in the tree: its panes in layout order, then the tab's agents that have no
+// pane (sub-agents: they belong to their parent's tab), by address. `branch` is the tree line
+// of the row: the last child of the tab closes it. `panes` and `agents` are the tab's own.
+export function tabRows(panes, agents) {
+  const loose = (agents ?? []).filter((a) => !a.pane).sort((a, b) => (a.address < b.address ? -1 : a.address > b.address ? 1 : 0));
+  const rows = [...(panes ?? []).map((p) => ({ kind: "pane", pane: p })), ...loose.map((a) => ({ kind: "agent", agent: a }))];
+  return rows.map((row, i) => ({ ...row, branch: i === rows.length - 1 ? "└─" : "├─" }));
 }
 
 // ---- paths ------------------------------------------------------------------------------
@@ -106,13 +136,24 @@ export function readJson(storage, key, fallback, validate = () => true) {
   } catch { return fallback; }
 }
 export const writeJson = (storage, key, value) => storage.setItem(key, JSON.stringify(value));
-export const isPlainObject = (v) => v !== null && typeof v === "object" && !Array.isArray(v);
+const isPlainObject = (v) => v !== null && typeof v === "object" && !Array.isArray(v);
 export const isStringArray = (v) => Array.isArray(v) && v.every((x) => typeof x === "string");
-// Keep only the ids that still exist, but never prune against an empty list: at startup the
-// app may not have listed anything yet.
-export function pruneIds(ids, live) {
-  const keep = new Set(live);
-  return keep.size ? [...ids].filter((id) => keep.has(id)) : [...ids];
+// Keep only the space ids that still exist, never pruning against an empty list (at startup the
+// app may not have listed anything yet). The spaces of a machine that is not "ready" (loading,
+// offline, unreachable) are just not listed yet, so their ids stay. `spaces`: spaces() (or plain
+// ids); `machines`: machines(). A remote id is "<machine>/<id>", a local one has no "/"; a
+// machine that machines() does not list is unknown, and unknown keeps.
+export function pruneSpaceIds(ids, spaces, machines) {
+  const listed = new Set((spaces ?? []).map((s) => (typeof s === "string" ? s : s?.id)));
+  listed.delete(undefined);
+  if (!listed.size) return [...ids];
+  const state = new Map((Array.isArray(machines) ? machines : []).map((m) => [m?.name ?? null, m?.layout]));
+  return [...ids].filter((id) => {
+    if (listed.has(id)) return true;
+    const slash = String(id).indexOf("/");
+    const name = slash > 0 ? String(id).slice(0, slash) : null;
+    return state.get(name) !== "ready";
+  });
 }
 // </shared:storage>
 
@@ -137,7 +178,7 @@ export function spineFile(name) {
   return `${SPINE_DIR}/${h.toString(36)}.svg`;
 }
 // Text for an XML document: markup characters escaped, characters XML 1.0 forbids dropped.
-export const xml = (str) => str.replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F￾￿]/g, "")
+export const xml = (str) => str.replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\uFFFE\uFFFF]/g, "")
   .replace(/[<>&"']/g, (c) => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;", '"': "&quot;", "'": "&#39;" })[c]);
 export const spineSvg = (name) => `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="${SPINE_H}" viewBox="0 0 16 ${SPINE_H}">
   <text x="0" y="-4" transform="rotate(90)" font-family="Geist, Segoe UI, Helvetica Neue, Helvetica, Arial, sans-serif" font-size="13" font-weight="500" fill="currentColor">${xml(name)}</text>
@@ -237,17 +278,27 @@ export function planColumns({ widths, width, zoom = 1, active = -1, follow = fal
   return { windowed: true, avail, room, start: s, end: fits(s), lastStart: last };
 }
 
-export const WHEEL_STEP = 40;
-export const WHEEL_IDLE = 400;
+export const WHEEL_STEP = 40; // trackpad px per column (a mouse wheel notch is one column)
 // <shared:wheel>
+export const WHEEL_IDLE = 400;
 // A wheel or trackpad stream in `delta` px: how many whole `step`s it adds up to (signed, the
 // sign of `delta`). The remainder is forgotten when the direction flips or the stream paused.
-export function wheelSteps(state, delta, step, now, idle = 400) {
+export function wheelSteps(state, delta, step, now, idle = WHEEL_IDLE) {
   let accum = state?.accum ?? 0;
   if (!delta) return { accum, at: state?.at ?? now, steps: 0 };
   if ((accum && Math.sign(accum) !== Math.sign(delta)) || now - (state?.at ?? now) > idle) accum = 0;
   accum += delta;
   const steps = Math.trunc(accum / step) || 0; // || 0: never -0
   return { accum: accum - steps * step, at: now, steps };
+}
+// One scroll event of `axis` ("x" or "y") into steps. A notched mouse wheel reports whole lines
+// (`delta_lines`): one line is one step. A trackpad reports pixels: `pixelStep` px is one step.
+// The remainder is dropped when a new gesture starts (`touch_phase` "started") or the unit changes.
+export function wheelStream(state, event, axis, now, pixelStep = 40) {
+  const lines = event?.delta_lines?.[axis];
+  const byLine = Number.isFinite(lines) && lines !== 0;
+  const amount = byLine ? lines : (Number(event?.delta?.[axis]) || 0);
+  const prev = event?.touch_phase === "started" || state?.byLine !== byLine ? null : state;
+  return { ...wheelSteps(prev, amount, byLine ? 1 : pixelStep, now), byLine };
 }
 // </shared:wheel>

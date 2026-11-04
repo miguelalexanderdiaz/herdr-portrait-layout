@@ -52,10 +52,11 @@ export function loginPath(exec, on) {
   }
   return loginPaths.get(key);
 }
-// ["sh", "-c", ...] running `script` with PATH set to `pathValue`; `args` are its $1, $2, ...
+// ["sh", "-c", ...] running `script` with `pathValue` (the login shell's PATH) in front of the
+// PATH it inherits, so the system folders stay even when a profile prints a short list; `args` are its $1, $2, ...
 // (arguments, never code: a quote or a space in a file name is safe).
 export function nvimArgv(pathValue, script, ...args) {
-  return ["sh", "-c", 'if [ -n "$1" ]; then PATH="$1"; export PATH; fi; shift; ' + script, "sh", pathValue ?? "", ...args];
+  return ["sh", "-c", 'if [ -n "$1" ]; then PATH="$1:$PATH"; export PATH; fi; shift; ' + script, "sh", pathValue ?? "", ...args];
 }
 // Click-to-edit needs nvim and a POSIX sh: on Windows the local machine gets the read-only preview.
 export const platformMode = (platform, on) => (on || platform !== "windows" ? "nvim" : "preview");
@@ -82,6 +83,29 @@ export function filesVisible(root) {
 }
 // Watching a whole home folder or a drive root is far too much: those rely on the timer.
 export const watchable = (root, home) => Boolean(root) && tilde(root, home) !== "~" && !/^([A-Za-z]:)?[\\/]*$/.test(root);
+
+// Refresh pacing. A busy folder (a build writing files, a dev server) fires watch events all
+// the time, and every refresh lists the open folders and runs git: runs are at least `gap` ms
+// apart, one at a time, and a request that arrives while one runs is not lost.
+//   request(trailing)  "now": run now (call start()); "later": run after wait() ms and ask again
+//                      with trailing = true; "skip": nothing to do (a run is on, or one is booked).
+//   finish()           true when a request came in during the run, so ask once more.
+export const REFRESH_GAP = 1500;
+export function createPacer({ gap = REFRESH_GAP, now = Date.now } = {}) {
+  let running = false, again = false, booked = false, last = -Infinity;
+  return {
+    request(trailing = false) {
+      if (trailing) booked = false;
+      if (running) { again = true; return "skip"; }
+      if (now() - last < gap) { if (booked) return "skip"; booked = true; return "later"; }
+      return "now";
+    },
+    start() { running = true; again = false; last = now(); },
+    finish() { running = false; const more = again; again = false; return more; },
+    wait: () => Math.max(0, last + gap - now()),
+    get busy() { return running; },
+  };
+}
 
 // One click opens one editor: the gate stays shut from the click until its window is up (or gave up).
 // It opens again by itself after `ttl` ms so a lost event can never lock the panel.

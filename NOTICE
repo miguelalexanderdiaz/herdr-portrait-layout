@@ -33,41 +33,48 @@ Modified copies (all taken from Herdr 0.1.12):
       Changes: a click on a file opens it in nvim in a floating window (mods/nvim-float) instead of a preview, with
       the read-only preview kept for Alt-click and for Windows; a title was added to mod.json.
 
-Herdr art copied into this repository (Apache License 2.0, Herdr 0.1.12):
-
-  spinner.svg                      mods/portrait-tree, mods/portrait-tabs, mods/portrait-pane  (the working spinner)
-  search.svg, server.svg           mods/bar-strip, mods/portrait-tree
-  changes.svg                      mods/bar-strip  (the Changes button)
-  close.svg                        mods/portrait-tabs, mods/portrait-pane, mods/nvim-float
-  split-right.svg, split-down.svg, zoom.svg, unzoom.svg
-                                   mods/portrait-pane
-  win-min.svg, win-max.svg, win-restore.svg, win-close.svg
-                                   mods/portrait-tabs
-
 Not redistributed: Herdr's other mods (`workspace-status`, `changes`, `picker`, `machine-add`, `menu`, `new-menu`)
 are only used by name; they come with the person's Herdr and are never copied into this repository.
 
 
-2. Icons from Lucide (ISC License; some also MIT)
---------------------------------------------------
+2. Icons copied from Herdr 0.1.12 (Apache License 2.0; glyphs: Lucide, ISC, and MIT)
+--------------------------------------------------------------------------------------
 
-Which icons are Lucide. Herdr's own mods ship Lucide icons (Herdr 0.1.12 carries the Lucide license in its icon folder) and
-this repository copies some of them into the mod folders that use them. Evidence per file: `settings.svg`, `plus.svg`,
-`chevron-right.svg`, `chevron-down.svg` and `folder.svg` carry the `lucide` class marker; `bell.svg`, `chevron-left.svg`,
-`file.svg` and `note.svg` (Lucide's file-text) have exactly the geometry of the Lucide icon of that name. All of them are
-used under the Lucide license reproduced below. Only the folder changed.
+These small SVG pictures are byte-for-byte or whitespace-only copies of files in Herdr 0.1.12's shipped mods, placed in
+the mod folder that draws them (a mod may not load another mod's files: Herdr replaces its shipped mods on every update).
+The folder after the arrow is where the file comes from in Herdr.
 
-  bell.svg                         mods/bar-strip
-  plus.svg                         mods/portrait-tree  (also derived from Feather)
-  settings.svg                     mods/bar-strip
-  chevron-down.svg                 mods/portrait-files, mods/nvim-float  (also derived from Feather)
-  chevron-left.svg                 mods/portrait-tree  (also derived from Feather)
-  chevron-right.svg                mods/portrait-files, mods/portrait-tree  (also derived from Feather)
-  file.svg                         mods/portrait-files, mods/bar-strip
-  folder.svg                       mods/portrait-files
-  note.svg                         mods/portrait-tree, mods/portrait-pane  (Lucide's file-text, replacing a note logo)
-  fold.svg, unfold.svg             mods/portrait-tree  (drawn in the Lucide style; the original file was not recorded,
-                                   so Lucide's license is applied to them as a precaution)
+What Herdr says about them. Herdr's repository (`defaults/icons/LICENSES.md`) states: "Glyphs ... including icons in
+shipped mods: Lucide, ISC, with MIT-licensed Feather-derived icons". Some of the files differ from Lucide's current
+drawing (other stroke width or radius); those are Herdr's own work, and Herdr's license is Apache-2.0. This repository
+cannot tell the two apart file by file, so it keeps both notices: the Apache License 2.0 (LICENSE), and the ISC and MIT
+texts reproduced in section 3.
+
+  spinner.svg                      mods/portrait-tree, mods/portrait-tabs, mods/portrait-pane   -> workspace-chrome
+  search.svg, server.svg           mods/bar-strip, mods/portrait-tree                           -> workspace-chrome
+  settings.svg                     mods/bar-strip                                               -> workspace-chrome
+  plus.svg                         mods/portrait-tree                                           -> workspace-chrome
+  chevron-left.svg                 mods/portrait-tree                                           -> workspace-chrome
+  chevron-right.svg                mods/portrait-files, mods/portrait-tree                      -> files, workspace-chrome
+  chevron-down.svg                 mods/portrait-files, mods/nvim-float                         -> files, workspace-chrome
+  note.svg                         mods/portrait-tree, mods/portrait-pane                       -> workspace-chrome
+  file.svg                         mods/portrait-files, mods/bar-strip                          -> files
+  folder.svg                       mods/portrait-files                                          -> files, workspace-chrome
+  changes.svg                      mods/bar-strip  (the Changes button)                         -> changes
+  close.svg                        mods/portrait-tabs, mods/portrait-pane, mods/nvim-float     -> pane
+  split-right.svg, split-down.svg, zoom.svg, unzoom.svg
+                                   mods/portrait-pane                                           -> pane
+  win-min.svg, win-max.svg, win-restore.svg, win-close.svg
+                                   mods/portrait-tabs                                           -> tabs
+
+
+3. Icon from Lucide (ISC License; some also MIT)
+-------------------------------------------------
+
+  bell.svg                         mods/bar-strip  (the geometry of Lucide's `bell`; Herdr's shipped mods have no such file)
+
+The icons of section 2 that carry Lucide's license are used under the texts below, as is `bell.svg`. Only the folder
+changed.
 
 Lucide license (https://github.com/lucide-icons/lucide/blob/main/LICENSE):
 
@@ -87,8 +94,8 @@ Lucide license (https://github.com/lucide-icons/lucide/blob/main/LICENSE):
   ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
   OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
-Lucide icons derived from the Feather project (plus, chevron-down, chevron-left, chevron-right above) are also
-available under the MIT License:
+Lucide icons derived from the Feather project (`plus.svg`, `chevron-down.svg`, `chevron-left.svg`, `chevron-right.svg`)
+are also available under the MIT License:
 
   The MIT License (MIT)
 
@@ -113,27 +120,30 @@ available under the MIT License:
   SOFTWARE.
 
 
-3. Bundled from another repository of the same author
------------------------------------------------------
+4. Bundled from another repository of the same author (Apache License 2.0)
+-----------------------------------------------------------------------
 
   mods/attention-picker/           the "Agents waiting" dialog
 
   A bundled, unmodified copy of the mod of the same name in the herdr-agents-waiting repository (Apache License 2.0,
-  same copyright holder). It is kept in sync from there; edit it there, not here. If you already have that mod
-  installed, keep yours.
+  same copyright holder), at the commit recorded in scripts/bundled.json, which also holds the SHA-256 of every file;
+  `node scripts/validate.mjs` fails if one differs. It is kept in sync from there; edit it there, not here. Its two
+  small pictures (the search glyph and the spinner) are that project's own drawings, made for it, and are not Herdr's
+  files: see that repository's NOTICE. If you already have that mod installed, keep yours.
 
 
-4. Original to this repository
-------------------------------
+5. Original to this repository (Apache License 2.0)
+---------------------------------------------------
 
 Everything else (mods/portrait-tree, mods/bar-strip, mods/nvim-float, the code changes listed above, RECIPE.md,
 keys.json, snippets/, scripts/, the preview and the layout thumbnails, which show invented content) is original work
-under the Apache License 2.0.
+under the Apache License 2.0. That includes the two folding pictures `fold.svg` and `unfold.svg` in mods/portrait-tree,
+which were drawn for this project (they are not copies of any Herdr or Lucide file).
 
 Space and agent names, folders and notes that appear in the preview are made up.
 
 
-5. Not included
+6. Not included
 ---------------
 
 No theme is shipped. The layouts take the colors of whatever theme the person has chosen. Fonts are the ones Herdr

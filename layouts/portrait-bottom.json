@@ -6,15 +6,6 @@
   },
   "preview": "layouts/portrait-bottom.svg",
   "type": "row",
-  "background": "canvas",
-  "terminal_padding": [
-    14,
-    12
-  ],
-  "divider": {
-    "width": 1,
-    "color": "border"
-  },
   "children": [
     {
       "id": "left",
@@ -78,21 +69,15 @@
         {
           "id": "bar",
           "type": "column",
-          "size": {
-            "px": 246
-          },
-          "min": 90,
-          "max": 1400,
-          "background": "chrome",
           "children": [
             {
               "id": "bar-strip",
               "type": "block",
-              "size": {
-                "px": 26
-              },
               "content": {
                 "mod": "bar-strip"
+              },
+              "size": {
+                "px": 26
               }
             },
             {
@@ -102,7 +87,13 @@
                 "mod": "portrait-tree"
               }
             }
-          ]
+          ],
+          "size": {
+            "px": 246
+          },
+          "min": 90,
+          "max": 1400,
+          "background": "chrome"
         },
         {
           "id": "status",
@@ -115,26 +106,19 @@
           }
         }
       ],
-      "resizable": true,
       "divider": {
         "width": 1,
         "color": "border"
-      }
+      },
+      "resizable": true
     },
     {
       "id": "panel",
       "type": "column",
-      "hidden": true,
-      "size": {
-        "px": 368
-      },
-      "min": 280,
-      "max": 1600,
       "children": [
         {
           "id": "panel-body",
           "type": "stack",
-          "active": "files",
           "children": [
             {
               "id": "files",
@@ -150,10 +134,26 @@
                 "mod": "changes"
               }
             }
-          ]
+          ],
+          "active": "files"
         }
       ],
+      "size": {
+        "px": 368
+      },
+      "min": 280,
+      "max": 1600,
+      "hidden": true,
       "padding": 8
     }
-  ]
+  ],
+  "background": "canvas",
+  "terminal_padding": [
+    14,
+    12
+  ],
+  "divider": {
+    "width": 1,
+    "color": "border"
+  }
 }

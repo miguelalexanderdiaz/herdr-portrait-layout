@@ -10,12 +10,14 @@ This file is the brief: enough to build Portrait from an empty folder. The files
 they don't work on your Herdr, or you want it different, build it again from here. The picture is drawn from invented
 content (`scripts/make-preview.mjs`); it is not a screenshot of anyone's window.
 
-Made for Herdr 0.1.12. It uses the theme, fonts and keys of the person's own settings: it sets none.
+Made for Herdr 0.1.12. It sets no theme and no fonts (the person's own settings decide the look) and adds four keys, see
+Keys. Linux, Windows and fish-shell behaviour is written down but was never run on a live build, see Watch out.
 
 ## What you see
 
-Top to bottom, the whole window width. The window keeps the system title bar; on Linux and Windows the tab strip
-also draws the minimize, maximize and close buttons.
+Top to bottom, the whole window width. The window keeps the system title bar on every system (the layouts set no
+`titlebar`), so the minimize, maximize and close buttons are the system's own. The tab strip draws its own three buttons
+only if Herdr reports that the window has none (`window().buttons`), which neither layout causes.
 
 1. **The bar**, 246px tall (the drag handle under it resizes it: 90px to 1400px), background `chrome`, a 1px `border`
    rule under it.
@@ -39,10 +41,13 @@ also draws the minimize, maximize and close buttons.
        "done", "working", "idle"; dropped when the column is narrower than 320px), the time since the state last
        changed ("<1m", "5m", "3h", "2d") and a 14px state glyph. A plain terminal or mod pane shows its program
        or mod name and its folder (path shortened with `~`, losing its start when short of room). The focused
-       pane's row is `selected`, the shown tab's row `hover`.
+       pane's row is `selected`, the shown tab's row `hover`. An agent that has no pane of its own (a sub-agent)
+       gets a row under its tab with the program icon, name, state and time; a click focuses it (`agent.focus`), and it has no
+       right-click menu.
      - A **folded space** is a 34px strip: its badge on the header line, one 14px glyph per agent (six at most, then
        `+N`), and its name running down the strip like a book spine, in the space's color when active and `muted`
-       otherwise.
+       otherwise (on a light theme the active name is mixed halfway toward `foreground`, which keeps it readable; this was
+       measured against sample light colors, not seen on a shipped light theme).
      - When the columns don't fit, a whole run of columns is shown, with 28px `‹` and `›` markers at the ends that say
        how many spaces are off that side and the most urgent state among them, and a 5px track under the columns
        whose thumb shows where the run sits.
@@ -52,7 +57,7 @@ also draws the minimize, maximize and close buttons.
      `raised` background, a `border` outline, `foreground` text and a close icon; the others are `muted` on
      `chrome`. A tab shows the program's icon (14px), its name (170px at most; "Name Z" when zoomed) and, when an
      agent in it works, a 12px spinner in `working`, or when it is blocked or done a 6px dot in `blocked` or `done`.
-     At the end a 26px `+` and, on Linux and Windows, the three window buttons.
+     At the end a 26px `+` (and, only when Herdr reports a window without system buttons, the three window buttons).
    - **The panes**, in a 8px padding with 8px between cards: the active tab's terminals. Each pane is a card with
      radius 10, a 1px `border` outline (1px `accent` when focused), background `background`, and a 30px header
      that is always shown. Terminals have 14px top and bottom, 12px left and right padding inside the card; one
@@ -91,9 +96,12 @@ the times move.
 **The bar's strip**
 - *Search* opens the shipped `picker`; *Add machine* the shipped `machine-add`; *Settings* runs `app.settings`.
 - The *bell*: a click goes to the agent that has waited longest, asking agents before finished ones, with
-  `agent.focus`; clicking again moves to the next, wrapping. Shift-click, or the key for `bar-strip.attention`
-  (ctrl-shift-j), opens the "Agents waiting" list (`attention-picker`) with a search box. Its tooltip names the
-  real key. Idle bell: dimmed, nothing happens on a plain click.
+  `agent.focus`; clicking again moves to the next, wrapping. Shift-click, or the key `ctrl-shift-j`
+  (`mod.open:attention-picker`, which works even while the bar is hidden and closes the list when pressed again), opens
+  the "Agents waiting" list (`attention-picker`) with a search box. The bell's tooltip names the real key. The mod
+  commands `bar-strip.attention` (the same list, with the box on) and `bar-strip.jump` (what a plain click does) are still
+  served for anyone who binds them in a `layout:` section; they reach a shown strip only. Idle bell: dimmed, nothing
+  happens on a plain click.
 - *Files* and *Changes* open the right panel on that tab (`layout.select` on `panel-body`, then `layout.show` on
   `panel`); clicking the lit one hides the panel (`layout.hide`). The panel choice is remembered **per space**: switch
   spaces and the panel comes back as that space had it, or closed if it never had one.
@@ -111,8 +119,9 @@ the times move.
 - A folded space opens when one of its agents gets focus (by the bell, the waiting list, a notification or
   `agent.next`), and folds again once you move to another space. Opening or folding one by hand keeps it as you left it.
   Folding the space you are in keeps it folded.
-- `agent.next` and `agent.prev` follow the tree, folded spaces left out (`setAgentOrder`).
-- The wheel: a horizontal swipe, or Shift plus the wheel, moves the run of columns by one per 40px; plain vertical
+- `agent.next` and `agent.prev` follow the tree's order (`setAgentOrder`). Herdr appends the agents it was not given in
+  its own order, so agents of folded spaces come last rather than being skipped; focusing one opens its space.
+- The wheel: a horizontal swipe, or Shift plus the wheel, moves the run of columns by one column per notch of a mouse wheel, or per 40px of a trackpad or any device that reports pixels; plain vertical
   scrolling stays with the column. The markers do the same on click. The run follows the active space.
 - A pane that belongs to the optional Vault reader (see Built from) shows the note's name and its folder in the
   vault instead of a program and a folder, in the tree and in the pane header.
@@ -122,7 +131,7 @@ the times move.
   tab's `x`: `tab.close`. `+`: the shipped `new-menu`. The wheel over the strip: previous or next tab (see below).
 - The window buttons (Linux and Windows) run `window.minimize`, `window.maximize` and `window.close`; Windows uses
   vector icons (with a restore icon when maximized), Linux plain glyphs.
-- The wheel moves one tab per 40px of scrolling, at most three per event.
+- The wheel moves one tab per notch of a mouse wheel, or per 40px of a trackpad swipe, at most three per event.
 
 **The pane header**
 - Click: focus the pane. Hover: four 14px buttons appear: split right, split down, zoom (unzoom while zoomed), close
@@ -131,9 +140,11 @@ the times move.
 **The Files panel**
 - Shows the focused pane's folder (on its machine when the space lives on another), loaded lazily: a folder's contents
   load when it is opened. Rows are 28px with a chevron, folder or file icon and the name; git changes show a letter
-  mark (`A` new, `M`, `D`, `U` conflict) and a closed folder shows a dot, in the color of its worst child. Limits: 500
+  mark (`A` new, `M`, `D`, `U` conflict) and a closed folder shows a dot (the conflict color when something below it is in conflict, otherwise the modified color). Limits: 500
   entries per folder (folders listed first), 5,000 in all; previews stop at 400,000 characters.
-- The panel does nothing while it is closed: no listing, no `git`, no folder watching; opening it refreshes once.
+- The panel does nothing while it is closed: no listing, no `git`, no folder watching; opening it refreshes once. While it
+  is open a change in the folder refreshes it, at most once every 1.5 seconds; up to three folders are watched and a
+  fourth relies on a 10-second timer.
 - Click a folder: expand or collapse. Click a file: open it in **nvim** in a floating window over the app, one editor
   per click even on a double click (see Watch out for where it works). Alt-click: a read-only, syntax-highlighted
   preview in the panel, with a back arrow.
@@ -141,7 +152,8 @@ the times move.
   *Keep*, a menu with "New tab" (the nvim becomes a tab of the space, `terminal.keep`) and, for every nvim tab already
   kept in the space, "Add to <tab>" (the file opens there as a buffer, that tab is focused and the float quits); and
   `x`, which quits the float's nvim (`:confirm qa`, so unsaved changes ask first). The window closes when nvim ends.
-- The nvims started here are labeled with their file, which the tree shows as the pane's name.
+- The nvims started here are labeled with their file (`editor.file`) and their socket (`editor.socket`); the tree shows the
+  file as the pane's name.
 
 **What moves:** the tree and the strip follow focus and status live; the panel, the folded set and each agent's time
 are remembered across restarts (the mods' own `localStorage`).
@@ -154,12 +166,13 @@ layout shows):
 | Key | Action | What it does |
 | --- | --- | --- |
 | `ctrl-shift-g` | `layout.toggle:bar` | show or hide the bar |
-| `cmd-b` | `layout.toggle:bar` | the same, macOS alias (it replaces Herdr's macOS sidebar toggle, which these layouts have no sidebar for) |
+| `cmd-b` | `layout.toggle:bar` | the same, a macOS alias (it replaces Herdr's macOS sidebar toggle, which these layouts have no sidebar for); on Linux and Windows expect it to do nothing (`cmd` is the Super or Windows key there), so use `ctrl-shift-g` |
 | `ctrl-shift-y` | `layout.switch:portrait-bottom` (in Portrait), `layout.switch:portrait` (in Portrait bottom) | flip the bar to the other edge |
-| `ctrl-shift-j` | `bar-strip.attention` | the Agents waiting list |
+| `ctrl-shift-j` | `mod.open:attention-picker` | the Agents waiting list (a second press closes it) |
 
-None of these is a Herdr default, a plain `ctrl` letter (programs in terminals use those), or `ctrl-alt` (AltGr on
-Windows). Rename the sections if you rename the layout files.
+None of these is a Herdr default (`cmd-b` is a macOS default that this layout re-points on purpose), a plain `ctrl` letter
+(programs in terminals use those), or `ctrl-alt` (AltGr on Windows). Rename the sections if you rename the layout files.
+`ctrl-shift-a` is not used: the herdr-agents-waiting repository binds it to the same list.
 
 ## Built from
 
@@ -202,12 +215,12 @@ the `vault` node; without both, nothing about the Vault is drawn and nothing is 
 | Mod | Role | `props` / commands it reads |
 | --- | --- | --- |
 | `portrait-tree` | the space columns, the tab and pane rows, the folded spines; publishes `agents.since`; sets the agent order | none; uses `spaces()`, `agents()`, `panes()`, `terminals()` |
-| `bar-strip` | the 26px strip, the bell and the panel buttons | commands `attention` (the list) and `jump` (what a bell click does) through `nextCommand()`; opens `attention-picker` with props `{ search }` |
+| `bar-strip` | the 26px strip, the bell and the panel buttons | commands `attention` (the list) and `jump` (what a bell click does) through `nextCommand()`; opens `attention-picker` with props `{ search }`; its bell tooltip reads the person's bindings with `keys()` |
 | `portrait-tabs` | the tab pills, window buttons, per-space panel memory (clone of the shipped `tabs` 0.1.12) | none |
 | `portrait-pane` | the pane header (clone of the shipped `pane` 0.1.12) | `props()` = `{ pane, terminal }` from the app |
 | `portrait-files` | the Files panel with the nvim launcher and the read-only preview (clone of the shipped `files` 0.1.12) | none |
 | `nvim-float` | the floating nvim's title bar and its Keep menu; opened only through `openOverlay` | `props()` = `{ terminal, socket, file, space, on, overlay }` or `{ menu: true, window, ... }` |
-| `attention-picker` | the Agents waiting dialog (640px wide); a bundled copy of the herdr-agents-waiting repo's mod, do not edit | `props()` = `{ search }`; reads shared `agents.since`, `attention.sort`, `space.colors` |
+| `attention-picker` | the Agents waiting dialog (640px wide, `overlay` in its own `mod.json`); a bundled copy of the herdr-agents-waiting repo's mod, hash-checked in `scripts/bundled.json`, do not edit | `props()` = `{ search }` (the search box is on unless it is `false`; `mod.open` passes no props); reads shared `agents.since` (when `portrait-tree` publishes it, otherwise it times states itself), `attention.sort` (also written), `space.colors` |
 
 **Shipped mods it needs** (Herdr 0.1.12 or newer; they are replaced whole on every Herdr start, never edited here):
 `workspace-status` (the status block), `changes` (the panel child), and opened by name as overlays `picker`,
@@ -218,32 +231,41 @@ the `vault` node; without both, nothing about the Vault is drawn and nothing is 
 `bar-strip` looks for `<app home>/mods/vault/main.js` at start and every 60 seconds); reads `workspace.panels` (which
 panel tabs the person has enabled, default `["files", "changes"]`), `space.colors` (space id to a color name or
 `#rrggbb`), `layout` (the shown layout's name) and `vault.panes` (pane id to `{ vault, file, id }`, only for Vault note
-rows). Each mod also keeps its own `localStorage`: `folded`, `peeked`, `changed` (`portrait-tree`) and `panels`
-(`portrait-tabs`); corrupt or foreign values fall back to empty, and ids of spaces and agents that are gone are dropped.
+rows). Each mod also keeps its own `localStorage`: `folded`, `peeked`, `changed` (`portrait-tree`), `panels`
+(`portrait-tabs`) and `attention.seen` (`attention-picker`: for each agent address its state group and the time it was
+first seen in it; no screen text); corrupt or foreign values fall back to empty, and ids of spaces and agents that are gone are dropped.
 
-**Functions and commands used:** `spaces, agents, panes, terminals, focused, run, shared, setShared, setAgentOrder,
-theme, settings, layout, updates, window, home, appHome, props, nextCommand, openOverlay, closeOverlay, notify,
-exec, hc, readTextFile, watchFolder`; commands `agent.focus`, `layout.show`, `layout.hide`, `layout.select`,
+**Functions and commands used:** from `herdr`: `spaces, agents, panes, terminals, focused, run, shared, setShared,
+setAgentOrder, theme, settings, layout, updates, window, home, appHome, keys, machines, props, nextCommand,
+openOverlay, closeOverlay, notify, exec, hc, readTextFile, watchFolder`; from Node-style modules, only `fs/promises`
+(`portrait-tree`: `readFile`, `readdir`, `mkdir`, `writeFile` and `unlink` on its spine SVGs under
+`<app home>/data/portrait-tree-spines/`; `bar-strip`: `exists` on `<app home>/mods/vault/main.js`); commands `agent.focus`, `layout.show`, `layout.hide`, `layout.select`,
 `layout.toggle`, `layout.switch`, `mod.open`, `app.settings`, `space.select`, `space.move`, `space.new`, `tab.select`,
 `tab.move`, `tab.rename`, `tab.close`, `pane.focus`, `pane.split`, `pane.zoom`, `pane.close`, `terminal.keep`,
+`terminal.kill` (ends an nvim terminal that did not start in time), `overlay.close` (`attention-picker` closes itself),
 `window.minimize`, `window.maximize`, `window.close`.
 
 **What it reaches outside itself (read this before installing):**
-- **Network:** none. No mod calls `fetch` or opens a socket to another host.
+- **Network:** none. No mod calls `fetch`, `WebSocket`, `XMLHttpRequest` or any other network API (`node scripts/check-recipe.mjs`
+  fails if one appears). `hc` and `exec` reach other machines only through Herdr's own machine connections.
 - **Runs programs:** `git` (`rev-parse`, `status`, read-only, for the Files marks, only while the panel is open); `sh`
-  (lists a folder; launches nvim on macOS and Linux and on remote POSIX machines; asks the person's login shell for its
-  `PATH` once with `printenv PATH`); `powershell` (lists a folder on Windows); `nvim` (the Files click); `hc` (`hc run` to
-  start the nvim terminal; `hc read` in `attention-picker` only, to read the last lines of a blocked or finished agent's
-  terminal every 2 seconds while its list is open).
+  (lists a folder; launches nvim on macOS and Linux and on remote POSIX machines; starts the person's login shell once to
+  read its `PATH` with `printenv PATH`, so **that shell's startup files run**); `powershell` (lists a folder on Windows);
+  `nvim` (the Files click); `hc` (`hc run` to start the nvim terminal; `hc read <agent> --lines 60` in `attention-picker`
+  only, for each blocked or finished agent every 3 seconds while its list is open, to find the question on screen). Files,
+  `git`, `sh`, `nvim` and `hc run` run on the machine of the folder that is shown (`on`), which may be a remote one;
+  `hc read` reads agents on any machine Herdr lists.
 - **Reads outside its folder:** the folders shown in the Files panel and the file you click (through `exec` and
   `readTextFile`, on the folder's own machine); whether `<app home>/mods/vault/main.js` exists (existence only); terminal
-  text through `hc read` (`attention-picker` only); the shared values above; the app's own list of spaces, tabs, panes,
-  terminals and agents (names, folders, titles). The nvim terminal is labeled with `editor.file=<full path>`,
-  `editor.socket=<socket path>` and `editor.space=<id>`, which any other mod can read.
+  text through `hc read` (`attention-picker` only; kept in memory while the list is open, not stored); the person's key
+  bindings (`bar-strip`, for the bell's tooltip); the shared values above; the app's own list of spaces, tabs, panes,
+  terminals and agents (names, folders, titles). The nvim terminal is labeled with `editor.file=<full path>` and
+  `editor.socket=<socket path>`, which any other mod can read.
 - **Writes outside its folder:** one small SVG per space name under `<app home>/data/portrait-tree-spines/` (the
   rotated name of a folded space; the folder is not inside the mod because Herdr reloads a mod when its files
   change; stale ones of removed spaces are deleted); a unix socket `/tmp/herdr-nvim-<id>.sock` per nvim started from the
-  panel (macOS and Linux; nvim itself creates it); the mods' `localStorage` (folded spaces, remembered panels, state times). Nothing is written into the person's projects:
+  panel (macOS and Linux; nvim itself creates it); the mods' `localStorage` (folded spaces, remembered panels, state times, and `attention.seen`: agent address, state
+  group and time, no screen text). Nothing is written into the person's projects:
   the nvims write only what the person saves.
 
 **Art:** icons are small SVGs inside the mod that uses them (provenance and licenses in `NOTICE`); the preview and thumbnails
@@ -258,6 +280,10 @@ are drawn by `scripts/make-preview.mjs`.
   same layout takes that theme's colors. Do not pin a theme in the layout: Settings decides.
 - **The Vault is opt-in** (see Built from). A build that always draws the Vault button without the mod installed shows
   a button that opens a panel for a missing mod.
+- **Not exercised on a live Linux or Windows build in this repository's history.** The PowerShell folder listing, the
+  read-only preview that a Windows click opens, the login-shell `PATH` lookup under fish, and the window-button rules
+  below are written from the code and from Herdr's documentation; checks and tests run on all three systems in CI, but
+  CI does not start Herdr. Treat these as hypotheses until `scripts/PUBLISH.md` step 4's result table is filled in.
 - **Editing in nvim works on macOS and Linux and on remote POSIX machines; on Windows a click opens the read-only preview**
   (with a one-time notice per session that nvim editing is not available there). nvim must be installed on the machine of
   the folder; the `PATH` of the person's login shell is read once (`printenv PATH`, which also works in fish) and the
@@ -266,13 +292,17 @@ are drawn by `scripts/make-preview.mjs`.
   terminal it started and says so. The socket stays under `/tmp` because macOS temp folders can exceed the 104-byte
   limit of a unix socket path.
 - **Herdr's script engine has no `Intl`.** `new Intl.Collator()` fails `herdr-app check`; sort with `localeCompare`.
-- **Keys:** `cmd-b` is macOS only. Elsewhere use `ctrl-shift-g`. The chords are `ctrl-shift` letters because no
+- **Keys:** `cmd-b` is macOS only: on Linux and Windows `cmd` is read as the Super or Windows key (not tried on a live build), which the
+  system usually keeps, so expect it to do nothing there; use `ctrl-shift-g`. The chords are `ctrl-shift` letters because no
   plain `ctrl` letter is free (programs use them) and `ctrl-alt` is AltGr on Windows. A terminal program that wants
   `ctrl-shift-g`, `-y` or `-j` loses them while one of the two layouts shows; rebind in `keys.json`. Chords with a
   prefix such as `ctrl-b a` make every plain `ctrl-b` a prefix in every terminal (tmux, readline); this repo ships none.
 - **Layout and section names are load-bearing.** If an installer renames a layout because the name is taken, rename the
-  `layout:<name>` sections in `keys.json` and the `layout.switch:<name>` actions with it. If you already have a
-  mod named `attention-picker` (the herdr-agents-waiting repo), keep yours: `bar-strip` opens it by that name.
+  `layout:<name>` sections in `keys.json`, the `layout.switch:<name>` actions and the root `preview` field of the layout
+  (it must read `layouts/<new name>.svg`) with it, and copy the `.svg` thumbnails along with the `.json` files. If you already have a
+  mod named `attention-picker` (the herdr-agents-waiting repo), keep yours: `bar-strip` and `ctrl-shift-j` open it by that
+  name. With both repositories installed there are two keys for the same list (this one's `ctrl-shift-j` and that one's
+  own), which is harmless.
 - **The per-space right panel is the mods' own memory, not Herdr's.** It lives in `portrait-tabs`' `localStorage` and is
   applied when the active space changes, so the tab strip (`tabs`) must be present for it to work; the panel buttons
   themselves are in `bar-strip`.
@@ -280,8 +310,6 @@ are drawn by `scripts/make-preview.mjs`.
   writable the strip shows the badge and glyphs but no name.
 - **Limits:** at most 500 entries per folder and 5,000 rows in the Files panel; previews of 400,000 characters;
   six glyphs per folded strip; 170px tab names; 260px pane names.
-- **Pane-less agents:** the tree builds its rows from panes. Should Herdr ever list an agent that has no pane, it has no
-  row, though it still counts in the bell and in its space's counts.
 
 ### Load-bearing names
 
@@ -291,12 +319,12 @@ Other pieces look these up by name. A build or a rename that drops one breaks so
 - **Mods:** `portrait-tree`, `bar-strip`, `portrait-tabs`, `portrait-pane`, `portrait-files`, `nvim-float`, `attention-picker`, `workspace-status`, `changes`, `picker`, `machine-add`, `menu`, `new-menu`
 - **Key sections:** `layout:portrait`, `layout:portrait-bottom`
 - **Shared keys:** `agents.since`, `workspace.panels`, `space.colors`, `mods.vault`
-- **Commands:** `bar-strip.attention`, `layout.toggle`, `layout.switch`, `layout.select`, `layout.show`, `layout.hide`, `agent.focus`
+- **Commands:** `bar-strip.attention`, `mod.open`, `layout.toggle`, `layout.switch`, `layout.select`, `layout.show`, `layout.hide`, `agent.focus`
 
 ## Done when
 
 - [ ] `herdr-app check <app home>/mods/<mod>` passes for each of the seven mod folders, and `herdr-app commands` lists every
-  command in `keys.json`.
+  command named in `keys.json` (`layout.toggle`, `layout.switch`, `mod.open`).
 - [ ] With the layout `portrait` shown and no Vault mods installed: the window is, top to bottom, a 246px bar (26px strip with
   Search, Add machine, Settings, the bell, Files, Changes; then the space columns), a 42px tab strip, the pane cards, and a 28px
   status line; there is no Vault button and no Vault panel.
@@ -306,7 +334,8 @@ Other pieces look these up by name. A build or a rename that drops one breaks so
   tree, a 6px dot on the tab and the "Needs you" chip in the header, and the bell says "1 needs you"; clicking the bell focuses
   that agent and opens its folded space if it was folded.
 - [ ] Pressing `ctrl-shift-y` switches to `portrait-bottom` and back; `ctrl-shift-g` hides and shows the bar; `ctrl-shift-j` (or a
-  shift-click on the bell) opens the Agents waiting list with a search box.
+  shift-click on the bell) opens the Agents waiting list with a search box, also while the bar is hidden, and a second
+  press of `ctrl-shift-j` closes it.
 - [ ] The Files button opens a 368px panel with the focused folder's tree; closing it and switching space restores that space's
   choice; while it is closed no `git` or `sh` process runs. On macOS or Linux with nvim installed a click on a file opens it in
   a floating window whose Keep menu offers "New tab". On Windows, or without nvim on the `PATH`, the click shows a read-only

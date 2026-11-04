@@ -7,15 +7,16 @@
 // Flags: home-folder paths (/Users/<name>, /home/<name>, C:\Users\<name>), e-mail addresses, access tokens, private
 // network addresses, `.local` host names, and any term from the optional denylist: `.privacy-denylist` (git-ignored,
 // one term per line: your own name, employer, host names) and the PRIVACY_DENYLIST environment variable (CI secret,
-// comma or newline separated). Placeholders such as <home> or ~ are fine. plans/ may quote the patterns it explains,
-// so it is exempt from the path and e-mail rules (but not from tokens and denylist terms).
+// comma or newline separated). Placeholders such as <home> or ~ are fine. plans/ explains the patterns it looks for, so
+// there a path or address is let through only on a line that shows a pattern (a regex, `<home>`, an ellipsis): a real
+// path on a plain line of a plan fails like anywhere else. Tokens and denylist terms are never exempt.
 import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { abs, isText, read, reporter, repoFiles } from "./lib.mjs";
 
 const r = reporter("privacy-scan");
 
-const PLACEHOLDER = /^(<[^>]*>|\$\{?\w+\}?|%\w+%|~|you|user|username|name|me|example|alice|bob|<name>)$/i;
+const PLACEHOLDER = /^(<[^>]*>|\$\{?\w+\}?|%\w+%|~|you|user|username|name|me|example|alice|bob|ann|<name>)$/i;
 const rules = [
   { id: "mac home path", re: /\/Users\/([^/\s'"`)\],;:]+)/g, ok: (m) => PLACEHOLDER.test(m[1]) },
   { id: "linux home path", re: /\/home\/([^/\s'"`)\],;:]+)/g, ok: (m) => PLACEHOLDER.test(m[1]) },
@@ -36,13 +37,16 @@ if (!denylist.length) r.note("no denylist: add terms to .privacy-denylist (git-i
 // allowed too: see scan()).
 const EXEMPT_FILES = new Set(["LICENSE"]);
 const PLAN_EXEMPT_RULES = (f) => f.startsWith("plans/");
+// A line of a plan that talks about the pattern itself: <home>, a regex alternative or class, an ellipsis, a `(?` group.
+const SHOWS_PATTERN = /<home>|\\\||\[\^?[a-z0-9]|\/\.\.|\.\.\.@|\(\?/;
 
 function scan(label, text, { path, skipDenylist = false } = {}) {
   for (const rule of rules) {
-    if (path && PLAN_EXEMPT_RULES(path) && (rule.id.includes("path") || rule.id === "e-mail address")) continue;
+    const planRule = path && PLAN_EXEMPT_RULES(path) && (rule.id.includes("path") || rule.id === "e-mail address");
     for (const m of text.matchAll(rule.re)) {
       if (rule.ok(m)) continue;
       const line = text.slice(0, m.index).split("\n").length;
+      if (planRule && SHOWS_PATTERN.test(text.split("\n")[line - 1])) continue;
       r.error(`${label}:${line}: ${rule.id} "${m[0]}"`);
     }
   }
@@ -82,8 +86,15 @@ if (ci) {
       n++;
       scan(`commit ${sha.slice(0, 8)}`, body ?? "");
     }
-    const authors = execFileSync("git", ["log", "--format=%ae%n%ce", ...range], { cwd: abs("."), encoding: "utf8" }).split(/\r?\n/).filter(Boolean);
-    for (const a of new Set(authors)) r.check(/@users\.noreply\.github\.com$|^noreply@(github|anthropic)\.com$/.test(a), `a commit author or committer address is not a GitHub noreply address ("${a.replace(/^[^@]*/, "***")}")`);
+    // Author and committer addresses: name the commit and the role so the owner can find it (git log --format='%h %ae %ce').
+    const NOREPLY = /@users\.noreply\.github\.com$|^noreply@(github|anthropic)\.com$|^theoverfittingclub@gmail\.com$/; // last: the author's public commit address
+    const log = execFileSync("git", ["log", "--format=%h%x1f%ae%x1f%ce", ...range], { cwd: abs("."), encoding: "utf8", maxBuffer: 1 << 26 });
+    for (const row of log.split(/\r?\n/).filter(Boolean)) {
+      const [sha, author, committer] = row.split("\x1f");
+      for (const [role, addr] of [["author", author], ["committer", committer]]) {
+        if (addr && !NOREPLY.test(addr)) r.error(`commit ${sha}: the ${role} address is not a GitHub noreply address ("${addr.replace(/^[^@]*/, "***")}"); see scripts/PUBLISH.md step 0`);
+      }
+    }
     r.note(`${n} commit message(s) scanned`);
   } catch (e) {
     r.note(`commit history not scanned (${String(e.message).split("\n")[0]})`);

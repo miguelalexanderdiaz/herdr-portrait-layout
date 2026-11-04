@@ -40,10 +40,11 @@ export function loginPath(exec, on) {
   }
   return loginPaths.get(key);
 }
-// ["sh", "-c", ...] running `script` with PATH set to `pathValue`; `args` are its $1, $2, ...
+// ["sh", "-c", ...] running `script` with `pathValue` (the login shell's PATH) in front of the
+// PATH it inherits, so the system folders stay even when a profile prints a short list; `args` are its $1, $2, ...
 // (arguments, never code: a quote or a space in a file name is safe).
 export function nvimArgv(pathValue, script, ...args) {
-  return ["sh", "-c", 'if [ -n "$1" ]; then PATH="$1"; export PATH; fi; shift; ' + script, "sh", pathValue ?? "", ...args];
+  return ["sh", "-c", 'if [ -n "$1" ]; then PATH="$1:$PATH"; export PATH; fi; shift; ' + script, "sh", pathValue ?? "", ...args];
 }
 // Click-to-edit needs nvim and a POSIX sh: on Windows the local machine gets the read-only preview.
 export const platformMode = (platform, on) => (on || platform !== "windows" ? "nvim" : "preview");
@@ -57,3 +58,12 @@ export async function nvimFound(exec, on) {
   return r?.code === 0;
 }
 // </shared:nvim>
+
+// <shared:title>
+// A terminal's title without the status glyph in front of it ("✳ Fix it" -> "Fix it"); a dot
+// stays (".env"); a title with no letter or digit at all ("...") is empty.
+export function cleanTitle(s) {
+  const t = (s ?? "").replace(/^[^\p{L}\p{N}.]+/u, "").trim();
+  return /[\p{L}\p{N}]/u.test(t) ? t : "";
+}
+// </shared:title>

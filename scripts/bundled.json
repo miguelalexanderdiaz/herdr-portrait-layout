@@ -1,0 +1,13 @@
+{
+  "_about": "Hashes (SHA-256 of the text with LF line endings) of the bundled copy mods/attention-picker, synced from the repository named in `source` at `ref`. The copy is read-only here: change it there, sync it, then run `node scripts/bundled.mjs <ref>`. validate.mjs fails when a file differs, is missing or is new.",
+  "source": "herdr-agents-waiting",
+  "ref": "b7fcb3fa576c44e33d5a03ada94cfd0ec598ecec",
+  "files": {
+    "mods/attention-picker/ask.js": "2615149cb17528db14b97c7f27440998875005d667884247ab1c2a8c5d5b1643",
+    "mods/attention-picker/logic.js": "162f3ec6c1fa51b062996e4b0b86b99467f44a96818381c99ec7f272a6294c32",
+    "mods/attention-picker/main.js": "94ab11c46798caea857275940b846ff5a22d6d8734d6ef0520e5cf319d8185db",
+    "mods/attention-picker/mod.json": "39904c2c483ddc4d055cd32ed1ef654025a0df80a6f6538f5798878205bdcdc1",
+    "mods/attention-picker/search.svg": "e455459154d6b7ae772b6ca21692526d5fa576cf0357642f704c3a26ffa8bf92",
+    "mods/attention-picker/spinner.svg": "f368cb20bbeaec8a7ab01947fdcbe09a58a00411b0887882c2efc6958b1be0cb"
+  }
+}

@@ -12,10 +12,9 @@
 import { View, div, svg, image } from "gpui-kit";
 import { h_flex, v_flex } from "gpui-base";
 import { props, run, theme, terminals, panes, spaces, exec, openOverlay, closeOverlay, notify, settings, home } from "herdr";
-import { tilde, basename, dirname, loginPath, nvimArgv } from "./logic.mjs";
+import { tilde, basename, dirname, loginPath, nvimArgv, cleanTitle } from "./logic.mjs";
 
 const MENU_W = 280;
-const clean = (s) => (s ?? "").replace(/^[^\p{L}\p{N}.]+/u, "").trim();
 
 // nvim in plain sh with the login shell's PATH (the app's own PATH lacks Homebrew), on the
 // space's machine. `script` sees its extra arguments as $1, $2, ... (see logic.mjs).
@@ -43,7 +42,7 @@ function keptEditors(spaceId, self) {
   return panes().filter((p) => tabName.has(p.tab) && p.terminal && live.has(p.terminal.split("/").pop()))
     .map((p) => {
       const t = live.get(p.terminal.split("/").pop());
-      const file = clean(t.title) || basename(t.labels["editor.file"] ?? "");
+      const file = cleanTitle(t.title) || basename(t.labels["editor.file"] ?? "");
       return { pane: p.pane, socket: t.labels["editor.socket"], label: `${tabName.get(p.tab)}  (${file})` };
     });
 }
@@ -58,7 +57,7 @@ export default class NvimFloat extends View {
   bar(p) {
     const t = theme();
     const term = terminals().find((x) => x.address === p.terminal);
-    const title = clean(term?.title) || basename(p.file ?? "") || "nvim";
+    const title = cleanTitle(term?.title) || basename(p.file ?? "") || "nvim";
     // `~` only for this computer's folders; another machine's home is not ours.
     const folder = p.on ? dirname(p.file ?? "") : tilde(dirname(p.file ?? ""), home());
     const stop = (_e, cx) => cx.stop_propagation();

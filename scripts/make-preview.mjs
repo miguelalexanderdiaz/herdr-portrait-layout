@@ -9,10 +9,11 @@
 //   node scripts/make-preview.mjs            write the SVG files, then render preview.png when `rsvg-convert` is installed
 //   node scripts/make-preview.mjs --svg-only write only the SVG files (also written to scripts/preview-source.svg)
 //
-// The committed preview.png is the deliverable; CI does not render it (check-assets.mjs only inspects it).
+// The committed preview.png is the deliverable; CI does not render it (check-assets.mjs only inspects it, and compares
+// scripts/preview.sha256, written when rsvg-convert rendered it, with the hash of scripts/preview-source.svg).
 import { execFileSync } from "node:child_process";
 import { writeFileSync } from "node:fs";
-import { abs } from "./lib.mjs";
+import { abs, sha256 } from "./lib.mjs";
 
 const C = {
   canvas: "#13151a", chrome: "#1a1d23", pane: "#0f1115", border: "#2a2e36", accent: "#a7b4c6",
@@ -215,6 +216,8 @@ if (!process.argv.includes("--svg-only")) {
   try {
     execFileSync("rsvg-convert", ["-w", String(W), "-h", String(H), "-o", abs("preview.png"), abs("scripts/preview-source.svg")]);
     console.log("rendered preview.png");
+    // The hash of the source this picture was drawn from: check-assets.mjs fails when the source changes and the picture does not.
+    writeFileSync(abs("scripts/preview.sha256"), `${sha256("scripts/preview-source.svg")}\n`);
   } catch {
     console.log("rsvg-convert not found: kept the committed preview.png (render scripts/preview-source.svg yourself to change it)");
   }

@@ -1,0 +1,11 @@
+{
+  "private": true,
+  "description": "Portrait: a Herdr layout for vertical monitors, with its mods. No dependencies; this file only gives the checks short names.",
+  "license": "Apache-2.0",
+  "engines": { "node": ">=22" },
+  "scripts": {
+    "test": "node --test",
+    "check": "node scripts/check-all.mjs",
+    "check:history": "node scripts/privacy-scan.mjs --commits"
+  }
+}

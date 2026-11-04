@@ -17,6 +17,8 @@ const EXPECTED = {
   vault: ["bar-strip", "portrait-tabs"],
   join: ["bar-strip", "portrait-tree"],
   nvim: ["nvim-float", "portrait-files"],
+  alpha: ["bar-strip", "portrait-pane", "portrait-tree"],
+  title: ["nvim-float", "portrait-tree"],
 };
 
 function blocks() {

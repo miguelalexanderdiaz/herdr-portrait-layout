@@ -1,6 +1,7 @@
-// Shared helpers for the repo checks. Dependency-free, Node 18+, identical on Linux, macOS and Windows:
+// Shared helpers for the repo checks. Dependency-free, Node 22+, identical on Linux, macOS and Windows:
 // no shell, no POSIX-only paths, every path is built with node:path and shown with forward slashes.
 import { execFileSync } from "node:child_process";
+import { createHash } from "node:crypto";
 import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { dirname, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -11,6 +12,8 @@ export const posix = (p) => p.split(sep).join("/");
 export const abs = (...p) => join(ROOT, ...p);
 export const read = (p) => readFileSync(abs(p), "utf8").replace(/\r\n/g, "\n");
 export const exists = (p) => existsSync(abs(p));
+// SHA-256 of a text file with line endings normalised to LF, so a Windows checkout with autocrlf hashes the same.
+export const sha256 = (p) => createHash("sha256").update(read(p)).digest("hex");
 export const json = (p) => JSON.parse(read(p));
 
 // Files that belong to the repo: `git ls-files` plus untracked-but-not-ignored files, so the checks also see a
@@ -30,7 +33,7 @@ export function repoFiles() {
   return walk(ROOT).sort();
 }
 
-export const TEXT_EXT = /\.(md|txt|json|js|mjs|cjs|svg|html|css|yml|yaml|toml|gitignore|gitattributes)$|(^|\/)(LICENSE|NOTICE|\.gitignore|\.gitattributes)$/;
+export const TEXT_EXT = /\.(md|txt|json|js|mjs|cjs|svg|html|css|yml|yaml|toml|gitignore|gitattributes)$|(^|\/)(LICENSE|NOTICE|\.gitignore|\.gitattributes|\.editorconfig)$/;
 export const isText = (f) => TEXT_EXT.test(f);
 
 // A tiny reporter: collect problems, print them, exit non-zero when there are any.

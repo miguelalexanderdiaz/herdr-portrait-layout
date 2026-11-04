@@ -5,12 +5,12 @@
 
 import { View, div, svg, image } from "gpui-kit";
 import { v_flex, h_flex } from "gpui-base";
-import { spaces, agents, panes, run, theme, shared, setShared, openOverlay, setAgentOrder, settings, home, terminals, appHome } from "herdr";
+import { spaces, machines, agents, panes, run, theme, shared, setShared, openOverlay, setAgentOrder, settings, home, terminals, appHome } from "herdr";
 import * as fs from "fs/promises";
 import {
-  inkOn, mix, clean, duration, nameOf, dedupeNames, tilde, basename, dirname, noteParts,
-  safeStorage, readJson, writeJson, isStringArray, isChangedMap, pruneIds, pruneChanged,
-  SPINE_H, createSpineStore, MIN_COL, FOLDED_COL, MARKER, WHEEL_STEP, planColumns, wheelSteps,
+  inkOn, mix, markText, cleanTitle, alpha, duration, tabRows, nameOf, dedupeNames, tilde, basename, dirname, noteParts,
+  safeStorage, readJson, writeJson, isStringArray, isChangedMap, pruneSpaceIds, pruneChanged,
+  SPINE_H, createSpineStore, MIN_COL, FOLDED_COL, MARKER, WHEEL_STEP, planColumns, wheelStream,
 } from "./logic.mjs";
 
 // Same avatar colors as the shipped spaces list.
@@ -42,7 +42,9 @@ export default class PortraitTree extends View {
     this.changed = readJson(this.store, "changed", {}, isChangedMap);
     this.width = 0;
     this.pressed = null; // header index being dragged
+    this.over = null; // header index under the pointer during that drag
     this.tabPressed = null; // { id, space } of the tab row being dragged
+    this.tabOver = null; // id of the tab row under the pointer during that drag
     this.start = 0; // first column on screen, when they don't all fit
     this.lastStart = 0;
     this.lastActive = null; // follow the active space onto the screen when it changes
@@ -82,7 +84,7 @@ export default class PortraitTree extends View {
   // and what was folded at startup stays folded. A space opened this way folds
   // again once you move to another space; opening or folding it by hand keeps
   // it as you left it.
-  reveal(list, sp) {
+  reveal(list, sp, machineList) {
     const a = list.find((x) => x.focused);
     const key = a?.address ?? null;
     const changed = this.lastFocus !== undefined && key !== this.lastFocus;
@@ -102,10 +104,10 @@ export default class PortraitTree extends View {
       if (sp.some((s) => s.id === id)) this.folded.add(id);
       dirty = true;
     }
-    // Spaces that no longer exist (not while the list is empty).
-    const live = sp.map((s) => s.id);
+    // Spaces that no longer exist (not while the list is empty, and not those of a machine that
+    // is loading or offline: they are just not listed yet).
     for (const set of [this.folded, this.peeked]) {
-      const kept = pruneIds(set, live);
+      const kept = pruneSpaceIds(set, sp, machineList);
       if (kept.length !== set.size) { for (const id of [...set]) if (!kept.includes(id)) set.delete(id); dirty = true; }
     }
     if (dirty) this.saveFolds();
@@ -125,7 +127,7 @@ export default class PortraitTree extends View {
 
   glyph(t, status) {
     if (status === "working") return svg("mods/portrait-tree/spinner.svg").size(12).flex_none().text_color(t.working).spin(900);
-    if (status === "blocked") return div().size(14).flex_none().rounded(4).bg(t.blocked + "26").text_size(10.5).font_bold().text_color(t.blocked).flex().items_center().justify_center().child("!");
+    if (status === "blocked") return div().size(14).flex_none().rounded(4).bg(alpha(t.blocked, 0.15)).text_size(10.5).font_bold().text_color(t.blocked).flex().items_center().justify_center().child("!");
     if (status === "done") return div().size(7).mx(3).flex_none().rounded(4).bg(t.done);
     return div().size(7).mx(3).flex_none().rounded(4).border(1.5).border_color(t.idle ?? t.dim);
   }
@@ -152,17 +154,23 @@ export default class PortraitTree extends View {
   }
 
   header(t, s, i, mine, color, sp) {
-    const target = this.pressed !== null && this.pressed !== i && (sp[this.pressed]?.machine ?? null) === (s.machine ?? null);
+    const same = (from) => from !== null && from !== i && (sp[from]?.machine ?? null) === (s.machine ?? null);
+    // The drop line shows on the one header under the pointer, never on a plain press.
+    const target = this.over === i && same(this.pressed);
     return h_flex().id(`head-${s.id}`).relative().h(40).flex_none().px(10).gap(8).items_center()
       .border_b(1).border_color(t.border).cursor_pointer()
       .hover((el) => el.bg(t.hover))
+      // The dragged header dims once the pointer is over another one.
+      .when(this.pressed === i && this.over !== null && this.over !== i, (el) => el.opacity(0.5))
       // Drag a header onto another to reorder spaces (within one machine, as the sidebar).
-      .when(target, (el) => el.child(div().absolute().top(0).bottom(0).w(2).bg(t.accent).when(this.pressed < i, (l) => l.right(0)).when(this.pressed > i, (l) => l.left(0))))
-      .on_mouse_down("left", (_e, cx) => { this.pressed = i; cx.notify(); })
+      .when(target, (el) => el.child(div().id(`drop-${s.id}`).absolute().top(0).bottom(0).w(2).bg(t.accent).when(this.pressed < i, (l) => l.right(0)).when(this.pressed > i, (l) => l.left(0))))
+      .on_mouse_down("left", (_e, cx) => { this.pressed = i; this.over = null; cx.notify(); })
+      .on_mouse_move((_e, cx) => { if (this.over !== i && same(this.pressed)) { this.over = i; cx.notify(); } })
+      .on_hover((on, cx) => { if (!on && this.over === i) { this.over = null; cx.notify(); } })
       .on_mouse_up("left", (_e, cx) => {
-        const from = this.pressed;
-        this.pressed = null;
-        if (from !== null && from !== i && (sp[from]?.machine ?? null) === (s.machine ?? null)) run("space.move", { id: sp[from].id, index: i + 1 });
+        const from = this.pressed, dropped = this.over === i;
+        this.pressed = null; this.over = null;
+        if (dropped && same(from)) run("space.move", { id: sp[from].id, index: i + 1 });
         else if (from === i) run("space.select", { id: s.id });
         cx.notify();
       })
@@ -206,19 +214,25 @@ export default class PortraitTree extends View {
   // of the same space reorders, right-click is the tab menu.
   tabRow(t, s, tab, last) {
     const shown = s.active && tab.active;
-    const target = this.tabPressed && this.tabPressed.space === s.id && this.tabPressed.id !== tab.id;
-    return h_flex().id(`tab-${tab.id}`).h(24).flex_none().pl(12).pr(10).gap(6).items_center().rounded(6)
+    const same = (from) => Boolean(from) && from.space === s.id && from.id !== tab.id;
+    // The drop line shows only on the row under the pointer.
+    const target = this.tabOver === tab.id && same(this.tabPressed);
+    return h_flex().id(`tab-${tab.id}`).relative().h(24).flex_none().pl(12).pr(10).gap(6).items_center().rounded(6)
       .when(shown, (el) => el.bg(t.hover))
-      .when(target, (el) => el.border_b(2).border_color(t.accent))
+      .when(this.tabPressed?.id === tab.id && this.tabOver !== null && this.tabOver !== tab.id, (el) => el.opacity(0.5))
+      .when(target, (el) => el.child(div().id(`drop-${tab.id}`).absolute().left(0).right(0).bottom(0).h(2).bg(t.accent)))
       .hover((el) => el.bg(t.hover)).cursor_pointer()
-      .on_mouse_down("left", (e) => {
-        this.tabPressed = { id: tab.id, space: s.id };
+      .on_mouse_down("left", (e, cx) => {
+        this.tabPressed = { id: tab.id, space: s.id }; this.tabOver = null;
         if (e.click_count === 2) run("tab.rename", { id: tab.id });
+        cx.notify();
       })
+      .on_mouse_move((_e, cx) => { if (this.tabOver !== tab.id && same(this.tabPressed)) { this.tabOver = tab.id; cx.notify(); } })
+      .on_hover((on, cx) => { if (!on && this.tabOver === tab.id) { this.tabOver = null; cx.notify(); } })
       .on_mouse_up("left", (_e, cx) => {
-        const from = this.tabPressed;
-        this.tabPressed = null;
-        if (from && from.space === s.id && from.id !== tab.id) run("tab.move", { id: from.id, index: tab.index });
+        const from = this.tabPressed, dropped = this.tabOver === tab.id;
+        this.tabPressed = null; this.tabOver = null;
+        if (dropped && same(from)) run("tab.move", { id: from.id, index: tab.index });
         else if (from?.id === tab.id) { if (!s.active) run("space.select", { id: s.id }); run("tab.select", { id: tab.id }); }
         cx.notify();
       })
@@ -228,15 +242,17 @@ export default class PortraitTree extends View {
       .when(Boolean(tab.status) && tab.status !== "idle", (el) => el.child(h_flex().w(14).flex_none().justify_center().child(this.glyph(t, tab.status))));
   }
 
+  // An agent: in a pane, or (a sub-agent) without one, under its parent's tab.
   agentRow(t, a, prefix, wordy, now) {
     const when = this.changed[a.address]?.at;
     const quiet = a.status === "idle" && !a.focused;
     const pic = icon(a.program, 15, t.foreground);
-    return h_flex().id(`ag-${a.pane}`).h(26).flex_none().pl(12).pr(10).gap(6).items_center().rounded(6)
+    return h_flex().id(`ag-${a.pane || a.address}`).h(26).flex_none().pl(12).pr(10).gap(6).items_center().rounded(6)
       .when(a.focused, (el) => el.bg(t.selected))
       .hover((el) => el.bg(t.hover)).cursor_pointer()
-      .on_click(() => run("pane.focus", { pane: a.pane }))
-      .on_mouse_down("right", (_e, cx) => { cx.stop_propagation(); this.menu({ tab: "pane", target: { pane: a.pane, terminal: a.address } }); })
+      .on_click(() => (a.pane ? run("pane.focus", { pane: a.pane }) : run("agent.focus", { terminal: a.address })))
+      // The pane menu needs a pane; a sub-agent has none.
+      .on_mouse_down("right", (_e, cx) => { cx.stop_propagation(); if (a.pane) this.menu({ tab: "pane", target: { pane: a.pane, terminal: a.address } }); })
       .child(this.lines(t, prefix))
       .when(Boolean(pic), (el) => el.child(pic))
       .child(div().flex_1().min_w(0).truncate().text_size(12.5).text_color(quiet ? t.muted : t.foreground).child(a.name))
@@ -254,7 +270,7 @@ export default class PortraitTree extends View {
     // folder while it's still on it, else the cwd).
     const file = p.terminal ? files().get(p.terminal.split("/").pop()) : null;
     const base = file ? basename(file) : null;
-    const shown = file ? (clean(p.title) || base) : null;
+    const shown = file ? (cleanTitle(p.title) || base) : null;
     const name = shown ?? (p.terminal ? (p.program?.name || "terminal") : (p.mod || p.title || "panel"));
     const where = file && shown === base ? tilde(dirname(file), this.home) : tilde(p.cwd, this.home);
     return h_flex().id(`pn-${p.pane}`).h(26).flex_none().pl(12).pr(10).gap(6).items_center().rounded(6)
@@ -323,6 +339,7 @@ export default class PortraitTree extends View {
   strip(t, s, mine, color, cx) {
     const over = this.hovered === s.id;
     const file = this.spine(s.name, cx);
+    const dark = settings().dark; // false on a light theme (not typed in herdr.d.ts)
     const MAX = 6;
     return v_flex().id(`strip-${s.id}`).w(FOLDED_COL).h_full().flex_none().items_center()
       .border_r(1).border_color(t.border).cursor_pointer()
@@ -341,7 +358,7 @@ export default class PortraitTree extends View {
         .children(mine.slice(0, MAX).map((a) => this.glyph(t, a.status)))
         .when(mine.length > MAX, (el) => el.child(div().text_size(10).text_color(t.dim).child(`+${mine.length - MAX}`))))
       .child(div().flex_1().min_h(0).w_full().overflow_hidden().pt(mine.length ? 12 : 8).flex().justify_center()
-        .when(Boolean(file), (el) => el.child(svg(file).w(16).h(SPINE_H).flex_none().text_color(s.active ? color : t.muted))));
+        .when(Boolean(file), (el) => el.child(svg(file).w(16).h(SPINE_H).flex_none().text_color(s.active ? markText(color, t.foreground, dark) : t.muted))));
   }
 
   render(cx) {
@@ -350,7 +367,7 @@ export default class PortraitTree extends View {
     const sp = spaces();
     const list = agents();
     this.track(list, now);
-    this.reveal(list, sp);
+    this.reveal(list, sp, machines());
     const colors = shared("space.colors") ?? {};
 
     // Agents per space and by pane; a name repeated within a tab is numbered.
@@ -364,11 +381,17 @@ export default class PortraitTree extends View {
       bySpace.get(a.space)?.push(a);
       if (a.pane) byPane.set(a.pane, a);
     }
-    // Every pane per tab, in layout order: agents and plain terminals alike.
-    const byTab = new Map();
+    // Every pane per tab, in layout order: agents and plain terminals alike; and the agents
+    // without a pane (sub-agents) per tab.
+    const byTab = new Map(), looseByTab = new Map();
     for (const p of panes()) {
       if (!byTab.has(p.tab)) byTab.set(p.tab, []);
       byTab.get(p.tab).push(p);
+    }
+    for (const a of named) {
+      if (a.pane || !a.tab) continue;
+      if (!looseByTab.has(a.tab)) looseByTab.set(a.tab, []);
+      looseByTab.get(a.tab).push(a);
     }
     this.home = home();
     // terminal address -> file, for editors opened from the Files panel. Read only if
@@ -401,8 +424,8 @@ export default class PortraitTree extends View {
 
     const column = (s, i, gi) => { // i: place on screen, gi: place among all spaces
       const mine = bySpace.get(s.id) ?? [];
-      const c = colors[s.id] ?? "ansi6";
-      const color = c.startsWith("#") ? c : (MARK[c] ?? t[c]);
+      const c = typeof colors[s.id] === "string" ? colors[s.id] : "ansi6";
+      const color = c.startsWith("#") ? c : (MARK[c] ?? t[c] ?? t.accent);
       if (this.folded.has(s.id)) return this.strip(t, s, mine, color, cx);
       return v_flex().id(`col-${s.id}`).flex_1().min_w(MIN_COL).h_full()
         .when(i < shown.length - 1, (el) => el.border_r(1).border_color(t.border))
@@ -413,13 +436,13 @@ export default class PortraitTree extends View {
           .on_mouse_down("right", () => this.menu({ tab: "global", target: {} }))
           .children((s.tabs ?? []).flatMap((tab, ti, tabs) => {
             const lastTab = ti === tabs.length - 1;
-            const ps = byTab.get(tab.id) ?? [];
             return [
               this.tabRow(t, s, tab, lastTab),
-              ...ps.map((p, pi) => {
-                const prefix = (lastTab ? "   " : "│  ") + (pi === ps.length - 1 ? "└─" : "├─");
-                const a = p.pane ? byPane.get(p.pane) : null;
-                return a ? this.agentRow(t, a, prefix, wordy, now) : this.paneRow(t, p, prefix, files);
+              ...tabRows(byTab.get(tab.id) ?? [], looseByTab.get(tab.id)).map((row) => {
+                const prefix = (lastTab ? "   " : "│  ") + row.branch;
+                if (row.kind === "agent") return this.agentRow(t, row.agent, prefix, wordy, now);
+                const a = row.pane.pane ? byPane.get(row.pane.pane) : null;
+                return a ? this.agentRow(t, a, prefix, wordy, now) : this.paneRow(t, row.pane, prefix, files);
               }),
             ];
           })));
@@ -440,19 +463,19 @@ export default class PortraitTree extends View {
         .left(room * start / sp.length).w(Math.max(12, room * (end - start) / sp.length))));
 
     // Horizontal swipes (or shift + wheel) step through columns; plain vertical
-    // scrolling stays with the column lists.
+    // scrolling stays with the column lists. A notch of a mouse wheel is one column.
     const onWheel = (e, cx) => {
       const dx = e.delta?.x ?? 0, dy = e.delta?.y ?? 0;
-      const d = Math.abs(dx) > Math.abs(dy) ? dx : (e.modifiers?.shift ? dy : 0);
-      if (!d) return;
-      this.wheelState = wheelSteps(this.wheelState, d, WHEEL_STEP, Date.now());
+      const axis = Math.abs(dx) > Math.abs(dy) ? "x" : (e.modifiers?.shift ? "y" : null);
+      if (!axis || !(axis === "x" ? dx : dy)) return;
+      this.wheelState = wheelStream(this.wheelState, e, axis, Date.now(), WHEEL_STEP);
       if (this.wheelState.steps) this.shift(-this.wheelState.steps, cx);
     };
 
     return h_flex().id("root").size_full().min_w(0).bg(t.chrome)
       .on_size_change((size, cx) => { if (Math.abs(size.width - this.width) >= 1) { this.width = size.width; cx.notify(); } })
       // A drag released outside any row ends without moving anything.
-      .on_mouse_up("left", (_e, cx) => { this.pressed = null; this.tabPressed = null; cx.notify(); })
+      .on_mouse_up("left", (_e, cx) => { this.pressed = null; this.over = null; this.tabPressed = null; this.tabOver = null; cx.notify(); })
       .when(windowed, (el) => el.child(this.marker(t, "left", sp.slice(0, start), bySpace)))
       .child(v_flex().id("cols-wrap").flex_1().h_full().min_w(0)
         .child(h_flex().id("cols").flex_1().min_h(0).w_full().on_scroll_wheel(onWheel)
