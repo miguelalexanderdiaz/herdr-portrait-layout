@@ -234,7 +234,7 @@ fails if the two files drift apart.
 
 **Shared state:** writes `files.editor` (the editor text files open with, an id such as `nvim` or `code`),
 `files.request` (the last *Open with* choice: `{ at, root, on, path, editor }`, read by the panel and ignored after 10
-seconds), and `agents.since` (agent address to the time of its last state change); reads `workspace.panels` (which panel tabs
+seconds), `agents.since` (agent address to the time of its last state change) and `attention.sort` (the Agents waiting order); reads `workspace.panels` (which panel tabs
 the person has enabled, default `["files", "changes"]`), `space.colors` (space id to a color name or `#rrggbb`) and
 `layout` (the shown layout's name). Each mod also keeps its own `localStorage`: `folded`, `peeked`, `changed` (`portrait-tree`), `panels`
 (`portrait-tabs`) and `attention.seen` (`attention-picker`: for each agent address its state group and the time it was
@@ -258,8 +258,9 @@ openOverlay, closeOverlay, notify, exec, hc, readTextFile, watchFolder`; from No
 - **Runs programs:** `git` (`rev-parse`, `status`, read-only, for the Files marks, only while the panel is open); `sh`
   (lists a folder; looks up which editors are installed with `command -v` and, on macOS, whether their apps are in
   `/Applications` or `~/Applications`, at most once a minute; launches terminal editors on macOS and Linux and on remote
-  POSIX machines; starts the person's login shell once to read its `PATH` with `printenv PATH`, so **that shell's
-  startup files run**); `powershell` (lists a folder on Windows; reads file stamps for the viewer's cache); the editor
+  POSIX machines; starts the person's login shell to read its `PATH` with `printenv PATH` and to look up the viewer's tools with
+  `command -v`, so **that shell's startup files run**, once per machine for the `PATH` and per tool lookup, a failed
+  lookup retrying after 30 seconds); `powershell` (lists a folder on Windows; reads file stamps for the viewer's cache); the editor
   you pick (`nvim`, `hx`, `vim`, `micro`, `nano`, `code`, `zed` or `subl`) on the file you click; `open` (macOS),
   `xdg-open` (Linux) or `rundll32` (Windows) to hand a file to the system's app, never a program; for the viewer
   `pdfinfo` and `pdftoppm` (Poppler, when installed), `qlmanage` and `sips` (macOS, without Poppler or for AVIF and
@@ -316,7 +317,8 @@ are drawn by `scripts/make-preview.mjs`.
 - **Layout and section names are load-bearing.** If an installer renames a layout because the name is taken, rename the
   `layout:<name>` sections in `keys.json`, the `layout.switch:<name>` actions and the root `preview` field of the layout
   (it must read `layouts/<new name>.svg`) with it, and copy the `.svg` thumbnails along with the `.json` files. If you already have a
-  mod named `attention-picker`, keep yours: `bar-strip` and `ctrl-shift-j` open it by that name.
+  mod named `attention-picker`, keep yours instead of renaming the new one, the one exception to Herdr's rule:
+  `bar-strip` and `ctrl-shift-j` open it by that name.
 - **The per-space right panel is the mods' own memory, not Herdr's.** It lives in `portrait-tabs`' `localStorage` and is
   applied when the active space changes, so the tab strip (`tabs`) must be present for it to work; the panel buttons
   themselves are in `bar-strip`.
@@ -337,7 +339,7 @@ Other pieces look these up by name. A build or a rename that drops one breaks so
 
 ## Done when
 
-- [ ] `herdr-app check <app home>/mods/<mod>` passes for each of the seven mod folders, and `herdr-app commands` lists every
+- [ ] `herdr-app check <app home>/mods/<mod>` passes for each of the eight mod folders, and `herdr-app commands` lists every
   command named in `keys.json` (`layout.toggle`, `layout.switch`, `mod.open`).
 - [ ] With the layout `portrait` shown: the window is, top to bottom, a 246px bar (26px strip with Search, Add machine,
   Settings, the bell, Files, Changes; then the space columns), a 42px tab strip, the pane cards, and a 28px status line.
@@ -351,7 +353,7 @@ Other pieces look these up by name. A build or a rename that drops one breaks so
   press of `ctrl-shift-j` closes it.
 - [ ] The Files button opens a 368px panel with the focused folder's tree; closing it and switching space restores that space's
   choice; while it is closed no `git` or `sh` process runs. On macOS or Linux with nvim installed a click on a file opens it in
-  a floating window whose Keep menu offers "New tab". On Windows, or without nvim on the `PATH`, the click shows a read-only
-  preview and says why.
-- [ ] No mod writes anything but `<app home>/data/portrait-tree-spines/*.svg`, the nvim sockets and its own
+  a floating window whose Keep menu offers "New tab". On Windows, or without nvim on the `PATH`, the click hands the file to the default app;
+  alt-click, or picking *Preview only*, shows the read-only preview.
+- [ ] No mod writes anything but `<app home>/data/portrait-tree-spines/*.svg`, `<app home>/data/portrait-viewer/cache/`, the nvim sockets and its own
   `localStorage`; no mod reaches the network; `git status` of the person's projects is unchanged after browsing them.
