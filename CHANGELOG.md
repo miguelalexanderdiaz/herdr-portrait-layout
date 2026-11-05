@@ -4,6 +4,19 @@ All notable changes to this repository, in the style of Keep a Changelog. Built 
 
 Releases are written here by [release-please](https://github.com/googleapis/release-please) from the titles of the pull requests merged since the last release (Conventional Commits, see CONTRIBUTING.md), newest first, and tagged `vX.Y.Z` on GitHub. Below them is the hand-written history from before the first release.
 
+## 0.1.0 (2026-11-05)
+
+
+### Documentation
+
+* a short install page, the details folded ([#12](https://github.com/miguelalexanderdiaz/herdr-portrait-layout/issues/12)) ([79b933c](https://github.com/miguelalexanderdiaz/herdr-portrait-layout/commit/79b933cb8dd90cbcae0627c0d1049f1351b9cdf5))
+* add a documentation button to the README ([#6](https://github.com/miguelalexanderdiaz/herdr-portrait-layout/issues/6)) ([406cd23](https://github.com/miguelalexanderdiaz/herdr-portrait-layout/commit/406cd23310cc38b62b8c05896b59aa8d48250a92))
+* correct the install disclosure and recipe checks ([#14](https://github.com/miguelalexanderdiaz/herdr-portrait-layout/issues/14)) ([b0fdfe0](https://github.com/miguelalexanderdiaz/herdr-portrait-layout/commit/b0fdfe0158df5233c8147091f8d23c5a8bf93a80))
+* fewer pages, shorter privacy ([#13](https://github.com/miguelalexanderdiaz/herdr-portrait-layout/issues/13)) ([6680bf7](https://github.com/miguelalexanderdiaz/herdr-portrait-layout/commit/6680bf72dec42cca9daea9df966459e6b8828688))
+* picture every feature with 1:1 drawings ([#8](https://github.com/miguelalexanderdiaz/herdr-portrait-layout/issues/8)) ([04318be](https://github.com/miguelalexanderdiaz/herdr-portrait-layout/commit/04318be70e0fc47e00d9efee8cddd14e02830bf7))
+* restyle the documentation site with the Dragon design system ([#5](https://github.com/miguelalexanderdiaz/herdr-portrait-layout/issues/5)) ([cbd6a7a](https://github.com/miguelalexanderdiaz/herdr-portrait-layout/commit/cbd6a7ac5c6457db9894143968a832be8f2413e0))
+* shorter home page whose feature pictures show what they do ([#11](https://github.com/miguelalexanderdiaz/herdr-portrait-layout/issues/11)) ([4d74f26](https://github.com/miguelalexanderdiaz/herdr-portrait-layout/commit/4d74f26661a9095974ac9567c532f07a96b0e5ac))
+
 ## [Before the first release]
 
 Hand-written, one round at a time. Round 2 reviewed round 1 and hardened it.
