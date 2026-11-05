@@ -1,9 +1,8 @@
 {
   "_about": "Mods that are not in this repo but are referenced by name: they come with Herdr 0.1.12 and are replaced whole on every Herdr start (read-only for users). validate.mjs fails when a layout or mod source refers to a mod that is neither in mods/ nor 'shipped', and when a mod loads a file of another mod by path (no exception: icons are vendored into the mod that draws them).",
-  "min_herdr_version": "0.1.12",
+  "min_herdr_version": "0.1.13",
   "shipped": [
     "workspace-status",
-    "changes",
     "picker",
     "machine-add",
     "menu",

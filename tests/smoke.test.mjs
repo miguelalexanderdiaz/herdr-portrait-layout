@@ -62,6 +62,7 @@ const host = {
   updates: () => ({ app: { ready: false } }),
   watchFolder: () => new Promise(() => {}),
   readTextFile: async () => "text",
+  pickFolder: async () => state.picked ?? null,
 };
 globalThis.__host = host;
 globalThis.__element = element;
@@ -79,7 +80,8 @@ function build(mod) {
     const list = names.split(",").map((n) => n.trim()).filter(Boolean);
     return list.map((n) => {
       if (n === "View") return "const View = class { constructor() { this.handle = { focus() {} }; } };";
-      if (n === "Editor" || n === "EditorState") return `const ${n} = { new: () => globalThis.__element(), release() {} };`;
+      if (n === "Scrollbar") return "const Scrollbar = { vertical: () => globalThis.__element() };";
+      if (n === "InputState" || n === "Input" || n === "Editor" || n === "EditorState") return `const ${n} = { new: () => globalThis.__element(), release() {} };`;
       if (from === "herdr") return `const ${n} = (...a) => globalThis.__host.${n}(...a);`;
       return `const ${n} = () => globalThis.__element();`;
     }).join("\n");
@@ -524,3 +526,452 @@ test("portrait-files: a refresh asked for during a load is not lost, and not rep
   assert.equal(log.calls.filter((x) => x[0] === "exec" && x[1] === "git" && x[2].includes("status")).length, 2, "exactly one more after it, not zero and not three");
   host.exec = realExec;
 });
+
+test("portrait-changes: lists the checkouts, opens one in place, commits there, keeps added folders", async () => {
+  world();
+  state.layout = { id: "root", children: [{ id: "panel", hidden: false, children: [{ id: "panel-body", active: "changes", children: [{ id: "files" }, { id: "changes" }] }] }] };
+  state.focused = { space: "s1", tab: "tab1", pane: "p2", terminal: "t2", cwd: h("@LIN/proj") };
+  const main = h("@LIN/proj"), other = h("@LIN/proj/.wt/fix"), added = h("@LIN/notes");
+  const realExec = host.exec;
+  host.exec = async (cmd, args, opts) => {
+    log.calls.push(["exec", cmd, args, opts]);
+    if (args.includes("rev-parse") && args.includes("--show-toplevel")) return { code: 0, stdout: opts.cwd === added ? `${added}\n` : `${main}\n`, stderr: "" };
+    if (args.includes("worktree")) return { code: 0, stdout: `worktree ${main}\nbranch refs/heads/main\n\nworktree ${other}\nbranch refs/heads/fix\n`, stderr: "" };
+    if (args.includes("status")) return { code: 0, stdout: opts.cwd === other ? "## fix\0 M a.js\0" : "## main\0", stderr: "" };
+    if (args.includes("--numstat")) return { code: 0, stdout: "2\t1\ta.js\0", stderr: "" };
+    if (args.includes("--verify")) return { code: 0, stdout: "abc\n", stderr: "" };
+    if (args.includes("diff")) return { code: 0, stdout: "@@ -1 +1 @@\n-a\n+b\n", stderr: "" };
+    return { code: 0, stdout: "", stderr: "" };
+  };
+  try {
+    const settle = () => new Promise((r) => setTimeout(r, 20));
+    const { m, c } = await mount("portrait-changes");
+    reset(); m.render(c); await settle();
+    reset(); m.render(c);
+    assert.ok(log.texts.includes("main") && log.texts.includes("fix"), "both checkouts are rows");
+    assert.ok(log.texts.includes("No changes") && log.texts.includes("1") && log.texts.includes("1 file"), "changes on top, the rest in the darker part");
+    assert.equal(m.openRow, null, "it starts with everything folded");
+
+    const fix = m.listed().find((r) => r.path === other);
+    m.toggle(fix, c); await settle();
+    assert.deepEqual(m.files.map((f) => f.path), ["a.js"]);
+    assert.equal(m.rows.length, 3, "the diff of the first file shows");
+    reset(); m.render(c);
+    assert.ok(log.texts.some((t) => t.startsWith("Commits in fix")), "the commit box says where it commits");
+
+    m.message = "work"; reset(); m.commit(c); await settle();
+    const commits = log.calls.filter((x) => x[0] === "exec" && (x[2][0] === "add" || x[2][0] === "commit"));
+    assert.equal(commits.length, 2);
+    for (const x of commits) assert.equal(x[3].cwd, other, "the commit runs in the open row, not in the focused pane's folder");
+
+    state.focused = { space: "s1", tab: "tab1", pane: "p2", terminal: "t2", cwd: h("@LIN/elsewhere") };
+    state.panes.find((p) => p.pane === "p2").cwd = h("@LIN/elsewhere");
+    host.exec = async () => ({ code: 128, stdout: "", stderr: "fatal: not a git repository" });
+    m.render(c); await settle();
+    assert.ok(m.listed().some((r) => r.path === other), "moving the focus does not close what is open");
+    host.exec = realExec;
+
+    m.toggle(m.listed().find((r) => r.path === other), c);
+    assert.equal(m.openRow, null, "a second click folds it");
+
+    state.picked = added;
+    host.exec = async (_c, _a, o) => (o.cwd === added ? { code: 0, stdout: `${added}\n`, stderr: "" } : { code: 128, stdout: "", stderr: "fatal: not a git repository" });
+    m.add(c); await settle();
+    assert.deepEqual(state.shared["changes.folders"], [added]);
+    assert.equal(m.openRow?.path, added, "an added folder opens");
+    m.remove(m.listed().find((r) => r.path === added), c);
+    assert.deepEqual(state.shared["changes.folders"], []);
+    assert.equal(m.openRow, null);
+  } finally { host.exec = realExec; delete state.picked; delete state.focused; }
+});
+
+test("portrait-changes: the space's own repo stays listed when the focus is outside any repo", async () => {
+  world();
+  state.layout = { id: "root", children: [{ id: "panel", hidden: false, children: [{ id: "panel-body", active: "changes", children: [{ id: "changes" }] }] }] };
+  const start = h("@LIN/proj"), away = h("@LIN/elsewhere");
+  state.panes.find((p) => p.pane === "p2").cwd = away;
+  const realExec = host.exec;
+  host.exec = async (_c, args, o) => {
+    if (o.cwd !== start) return { code: 128, stdout: "", stderr: "fatal: not a git repository" };
+    if (args.includes("--show-cdup")) return { code: 0, stdout: "\n", stderr: "" };
+    return { code: 0, stdout: args.includes("--show-toplevel") ? `${start}\n` : "## main\0", stderr: "" };
+  };
+  try {
+    const { m, c } = await mount("portrait-changes");
+    m.render(c); await new Promise((r) => setTimeout(r, 20));
+    assert.deepEqual(m.listed().map((r) => r.path), [start]);
+    assert.equal(m.listed()[0].added, false, "no remove button");
+    assert.equal(m.facts.get(rowKey0(m.listed()[0])).branch, "main");
+  } finally { host.exec = realExec; }
+});
+
+const rowKey0 = (row) => JSON.stringify([row.on ?? null, row.path]);
+
+test("portrait-changes: the darker part folds, remembers it, and closes a row open in it", async () => {
+  world();
+  state.layout = { id: "root", children: [{ id: "panel", hidden: false, children: [{ id: "panel-body", active: "changes", children: [{ id: "changes" }] }] }] };
+  const realExec = host.exec, repo = h("@LIN/proj");
+  host.exec = async (_c, args) => ({ code: 0, stdout: args.includes("--show-toplevel") ? `${repo}\n` : args.includes("status") ? "## main\0" : "", stderr: "" });
+  try {
+    const settle = () => new Promise((r) => setTimeout(r, 20));
+    const { m, c } = await mount("portrait-changes");
+    m.render(c); await settle();
+    reset(); m.render(c);
+    assert.ok(log.ids.some((i) => i.startsWith("row-")), "open at first: its rows are drawn");
+    m.toggle(m.listed()[0], c); await settle();
+    assert.ok(m.openRow, "a clean row is open");
+
+    m.toggleQuiet(c);
+    assert.equal(state.shared["changes.quietFolded"], true);
+    assert.equal(m.openRow, null, "folding closes the row open in it");
+    reset(); m.render(c);
+    assert.ok(log.texts.includes("No changes") && log.texts.includes("1"), "the count stays");
+    assert.ok(!log.ids.some((i) => i.startsWith("row-")), "no rows while folded");
+
+    const again = await mount("portrait-changes");
+    assert.equal(again.m.quietFolded(), true, "a new copy finds it folded");
+    m.toggleQuiet(c);
+    assert.equal(state.shared["changes.quietFolded"], false);
+  } finally { host.exec = realExec; }
+});
+
+// A git stand-in for portrait-changes: `dirty` lists what status reports per folder, `slow` holds
+// status calls until released.
+function changesWorld({ repo = h("@LIN/proj"), others = [], dirty = {} } = {}) {
+  world();
+  state.layout = { id: "root", children: [{ id: "panel", hidden: false, children: [{ id: "panel-body", active: "changes", children: [{ id: "changes" }] }] }] };
+  const list = [`worktree ${repo}\nbranch refs/heads/main\n`, ...others.map((p) => `worktree ${p}\nbranch refs/heads/${p.split("/").pop()}\n`)].join("\n");
+  const calls = [];
+  const git = { cdup: {}, reject: new Set(), gate: null };
+  host.exec = async (cmd, args, o) => {
+    calls.push({ cmd, args, cwd: o?.cwd });
+    if (git.reject.has(o?.cwd)) throw new Error("no such folder");
+    if (git.gate && args.includes("status")) await git.gate;
+    if (args.includes("--show-cdup")) return { code: 0, stdout: `${git.cdup[o?.cwd] ?? ""}\n`, stderr: "" };
+    if (args.includes("--show-toplevel")) return { code: 0, stdout: `${repo}\n`, stderr: "" };
+    if (args.includes("worktree")) return { code: 0, stdout: list, stderr: "" };
+    if (args.includes("status")) return { code: 0, stdout: `## b\0${(dirty[o?.cwd] ?? []).join("\0")}${dirty[o?.cwd]?.length ? "\0" : ""}`, stderr: "" };
+    if (args.includes("diff") && !args.includes("--numstat")) return { code: 0, stdout: "@@ -1 +1 @@\n-a\n+b\n", stderr: "" };
+    return { code: 0, stdout: "", stderr: "" };
+  };
+  return { calls, git, dirty, statuses: () => calls.filter((c) => c.args.includes("status")).length };
+}
+const settle = () => new Promise((r) => setTimeout(r, 20));
+const closePanel = () => { state.layout = { id: "root", children: [{ id: "panel", hidden: true, children: [{ id: "panel-body", active: "changes", children: [{ id: "changes" }] }] }] }; };
+
+test("portrait-changes does no work while the panel is closed: not on render, not on a timer", async () => {
+  const realExec = host.exec;
+  try {
+    const { calls } = changesWorld();
+    closePanel();
+    const timers = [];
+    const { m, c } = await mount("portrait-changes");
+    c.timer = { every: (_ms, fn) => timers.push(fn) };
+    m.init({}, c);
+    m.render(c);
+    for (const fn of timers) for (let i = 0; i < 6; i++) fn(c);
+    await settle();
+    assert.equal(calls.length, 0);
+  } finally { host.exec = realExec; }
+});
+
+test("portrait-changes: moving the focus inside the list does not restart a pass", async () => {
+  const realExec = host.exec, repo = h("@LIN/proj"), other = h("@LIN/proj/.wt/fix");
+  try {
+    const g = changesWorld({ others: [other] });
+    let open; g.git.gate = new Promise((r) => { open = r; });
+    const { m, c } = await mount("portrait-changes");
+    m.render(c); await settle();
+    assert.equal(m.passing, true);
+    const run = m.countRun;
+    state.panes.find((p) => p.pane === "p2").cwd = other;
+    m.render(c); await settle();
+    assert.equal(m.countRun, run, "the same pass goes on");
+    open(); await settle();
+    assert.equal(m.passing, false);
+    const after = g.statuses();
+    state.panes.find((p) => p.pane === "p2").cwd = repo;
+    m.render(c); await settle();
+    assert.equal(g.statuses(), after, "and a pass that just ended is not run again");
+  } finally { host.exec = realExec; }
+});
+
+test("portrait-changes: closing the panel stops a pass; rows move only when it ends", async () => {
+  const realExec = host.exec, repo = h("@LIN/proj"), other = h("@LIN/proj/.wt/fix"), third = h("@LIN/proj/.wt/zed");
+  try {
+    const g = changesWorld({ others: [other, third], dirty: { [third]: [" M a"] } });
+    let open; g.git.gate = new Promise((r) => { open = r; });
+    const { m, c } = await mount("portrait-changes");
+    m.render(c); await settle();
+    reset(); m.render(c);
+    assert.ok(log.texts.includes("Checking…"), "nothing checked yet is not called No changes");
+    assert.ok(!log.texts.includes("No changes"));
+    closePanel(); m.render(c); open(); await settle();
+    assert.ok(g.statuses() <= 1, "stopped after the row it was on");
+    assert.equal(m.passing, false);
+    state.layout = { id: "root", children: [{ id: "panel", hidden: false, children: [{ id: "panel-body", active: "changes", children: [{ id: "changes" }] }] }] };
+    reset(); m.render(c); await settle();
+    assert.equal(m.facts.get(JSON.stringify([null, third])).files, 1, "opening runs it again");
+    reset(); m.render(c);
+    assert.ok(log.texts.includes("No changes"));
+    assert.equal(m.listed().length, 3);
+    assert.equal(repo, m.worktrees[0].path);
+  } finally { host.exec = realExec; }
+});
+
+test("portrait-changes: a folder deleted while open clears it and stops commits", async () => {
+  const realExec = host.exec, other = h("@LIN/proj/.wt/fix");
+  try {
+    const g = changesWorld({ others: [other], dirty: { [other]: [" M a.js"] } });
+    const { m, c } = await mount("portrait-changes");
+    m.render(c); await settle();
+    m.toggle(m.listed().find((r) => r.path === other), c); await settle();
+    assert.equal(m.files.length, 1);
+    g.git.reject.add(other);
+    m.refresh(c); await settle();
+    assert.deepEqual(m.files, []);
+    assert.equal(m.rows.length, 0);
+    assert.ok(m.error);
+    g.calls.length = 0;
+    m.message = "work"; m.commit(c); await settle();
+    assert.equal(g.calls.filter((x) => x.args.includes("commit")).length, 0, "no commit on a row in error");
+  } finally { host.exec = realExec; }
+});
+
+test("portrait-changes: a commit is refused when git would walk up to a parent, or over conflicts", async () => {
+  const realExec = host.exec, other = h("@LIN/proj/.wt/fix");
+  try {
+    const g = changesWorld({ others: [other], dirty: { [other]: [" M a.js"] } });
+    const { m, c } = await mount("portrait-changes");
+    m.render(c); await settle();
+    m.toggle(m.listed().find((r) => r.path === other), c); await settle();
+    g.git.cdup[other] = "../../";
+    m.message = "work"; m.commit(c); await settle();
+    assert.equal(g.calls.filter((x) => x.args.includes("add") || x.args.includes("commit")).length, 0);
+    assert.match(m.note, /no longer a checkout/);
+    assert.ok(m.message, "the message is kept");
+    g.git.cdup[other] = "";
+    g.dirty[other] = ["UU a.js"];
+    m.refresh(c); await settle();
+    m.note = null; m.commit(c); await settle();
+    assert.equal(g.calls.filter((x) => x.args.includes("add") || x.args.includes("commit")).length, 0);
+    assert.match(m.note, /conflicts/);
+  } finally { host.exec = realExec; }
+});
+
+test("portrait-changes: a failed commit is told even after moving to another row", async () => {
+  const realExec = host.exec, repo = h("@LIN/proj"), other = h("@LIN/proj/.wt/fix");
+  try {
+    const g = changesWorld({ others: [other], dirty: { [other]: [" M a.js"] } });
+    const base = host.exec;
+    host.exec = async (cmd, args, o) => (args[0] === "commit" ? { code: 1, stdout: "", stderr: "hook said no" } : base(cmd, args, o));
+    const { m, c } = await mount("portrait-changes");
+    m.render(c); await settle();
+    m.toggle(m.listed().find((r) => r.path === other), c); await settle();
+    m.message = "work"; reset(); m.commit(c);
+    m.busy = true;
+    m.toggle(m.listed().find((r) => r.path === repo), c);
+    await settle();
+    const told = log.calls.filter((x) => x[0] === "notify");
+    assert.equal(told.length, 1);
+    assert.match(told[0][1].body, /hook said no/);
+    assert.equal(g.calls.length > 0, true);
+  } finally { host.exec = realExec; }
+});
+
+test("portrait-changes: opening another row during a slow load shows only the new row", async () => {
+  const realExec = host.exec, other = h("@LIN/proj/.wt/fix"), third = h("@LIN/proj/.wt/zed");
+  try {
+    const g = changesWorld({ others: [other, third], dirty: { [other]: [" M old.js"], [third]: [" M new.js"] } });
+    const { m, c } = await mount("portrait-changes");
+    m.render(c); await settle();
+    let open; g.git.gate = new Promise((r) => { open = r; });
+    m.toggle(m.listed().find((r) => r.path === other), c); await settle();
+    m.toggle(m.listed().find((r) => r.path === third), c); await settle();
+    open(); await settle();
+    assert.deepEqual(m.files.map((f) => f.path), ["new.js"]);
+    assert.equal(m.loading, false);
+  } finally { host.exec = realExec; }
+});
+
+test("portrait-changes: with the darker part folded, a row that just became clean stays visible", async () => {
+  const realExec = host.exec, other = h("@LIN/proj/.wt/fix");
+  try {
+    const g = changesWorld({ others: [other], dirty: { [other]: [" M a.js"] } });
+    state.shared["changes.quietFolded"] = true;
+    const { m, c } = await mount("portrait-changes");
+    m.render(c); await settle();
+    m.toggle(m.listed().find((r) => r.path === other), c); await settle();
+    g.dirty[other] = [];
+    m.message = "work"; m.commit(c); await settle();
+    assert.ok(m.openRow, "still open");
+    reset(); m.render(c);
+    assert.ok(log.ids.some((i) => i.startsWith("row-") && i.includes("fix")), "and still drawn");
+    assert.ok(log.texts.includes("No uncommitted changes"));
+  } finally { host.exec = realExec; }
+});
+
+// Real git from here on: the pathspecs and the status forms are git's to judge, not a stand-in's.
+function realGit(setup) {
+  const { spawnSync } = require_fs_cp();
+  const { mkdtempSync, writeFileSync: write } = require_fs();
+  const dir = mkdtempSync(join(tmpdir(), "portrait-changes-git-"));
+  const git = (args, cwd = dir) => { const r = spawnSync("git", args, { cwd, encoding: "utf8" }); return { code: r.status, stdout: r.stdout, stderr: r.stderr }; };
+  git(["init", "-q", "-b", "main"]);
+  for (const [k, v] of [["user.name", "t"], ["user.email", ["t", "example.invalid"].join("@")], ["commit.gpgsign", "false"]]) git(["config", k, v]);
+  setup({ git, write: (name, text) => write(join(dir, name), text) });
+  const root = git(["rev-parse", "--show-toplevel"]).stdout.trim();
+  host.exec = async (cmd, args, o) => {
+    if (cmd !== "git") return { code: 1, stdout: "", stderr: "" };
+    return git(args, o?.cwd ?? root);
+  };
+  return { git, root, dir, cleanup: () => rmSync(dir, { recursive: true, force: true }) };
+}
+const require_fs_cp = () => createRequire(import.meta.url)("node:child_process");
+const openMain = async (root) => {
+  world();
+  state.layout = { id: "root", children: [{ id: "panel", hidden: false, children: [{ id: "panel-body", active: "changes", children: [{ id: "changes" }] }] }] };
+  state.panes.find((p) => p.pane === "p2").cwd = root;
+  const { m, c } = await mount("portrait-changes");
+  const wait = () => new Promise((r) => setTimeout(r, 150));
+  m.render(c); await wait();
+  m.toggle(m.listed().find((r) => r.path === root), c); await wait();
+  return { m, c, wait };
+};
+
+test("portrait-changes, real git: Commit works with an ignored worktree inside the repo", async () => {
+  const realExec = host.exec;
+  const g = realGit(({ git, write }) => {
+    write(".gitignore", ".wt/\n"); write("a", "1\n");
+    git(["add", "-A"]); git(["commit", "-qm", "first"]);
+    git(["worktree", "add", "-q", ".wt/x", "-b", "x"]);
+    write("a", "2\n");
+  });
+  try {
+    const { m, c, wait } = await openMain(g.root);
+    assert.deepEqual(m.files.map((f) => f.path), ["a"]);
+    m.message = "second"; m.commit(c); await wait();
+    assert.equal(m.note, null);
+    assert.equal(g.git(["log", "-1", "--format=%s"]).stdout.trim(), "second");
+    assert.equal(g.git(["status", "--porcelain"]).stdout, "");
+  } finally { host.exec = realExec; g.cleanup(); }
+});
+
+test("portrait-changes, real git: a worktree inside the repo that isn't ignored is no change and is never committed", async () => {
+  const realExec = host.exec;
+  const g = realGit(({ git, write }) => {
+    write("a", "1\n");
+    git(["add", "-A"]); git(["commit", "-qm", "first"]);
+    git(["worktree", "add", "-q", ".wt/x", "-b", "x"]);
+    write("a", "2\n");
+  });
+  try {
+    const { m, c, wait } = await openMain(g.root);
+    assert.deepEqual(m.files.map((f) => f.path), ["a"], "no phantom row for the worktree");
+    m.message = "second"; m.commit(c); await wait();
+    assert.equal(m.note, null);
+    assert.equal(g.git(["log", "-1", "--format=%s"]).stdout.trim(), "second");
+    assert.doesNotMatch(g.git(["ls-tree", "-r", "HEAD", "--name-only"]).stdout, /\.wt/);
+  } finally { host.exec = realExec; g.cleanup(); }
+});
+
+test("portrait-changes: a frame drawn during a load is drawn again after it, even if nothing changed", async () => {
+  const realExec = host.exec, other = h("@LIN/proj/.wt/fix");
+  try {
+    const g = changesWorld({ others: [other] });
+    const { m, c } = await mount("portrait-changes");
+    m.render(c); await settle();
+    let open; g.git.gate = new Promise((r) => { open = r; });
+    m.toggle(m.listed().find((r) => r.path === other), c); await settle();
+    reset(); m.render(c);
+    assert.ok(log.texts.includes("Loading changes…"));
+    let notified = 0; c.notify = () => { notified++; };
+    open(); await settle();
+    assert.ok(notified > 0, "or the panel stays on Loading");
+    reset(); m.render(c);
+    assert.ok(log.texts.includes("No uncommitted changes"));
+  } finally { host.exec = realExec; }
+});
+
+test("portrait-changes: a pass stopped by closing runs again on opening, even right after another", async () => {
+  const realExec = host.exec, other = h("@LIN/proj/.wt/fix");
+  try {
+    const g = changesWorld({ others: [other] });
+    const { m, c } = await mount("portrait-changes");
+    m.render(c); await settle();
+    assert.equal(m.passing, false);
+    m.passList = "something else";
+    let open; g.git.gate = new Promise((r) => { open = r; });
+    m.refreshList(c); await settle();
+    assert.equal(m.passing, true);
+    closePanel(); m.render(c); open(); await settle();
+    assert.equal(m.passing, false);
+    g.git.gate = null;
+    const before = g.statuses();
+    state.layout = { id: "root", children: [{ id: "panel", hidden: false, children: [{ id: "panel-body", active: "changes", children: [{ id: "changes" }] }] }] };
+    m.render(c); await settle();
+    assert.ok(g.statuses() > before);
+  } finally { host.exec = realExec; }
+});
+
+test("portrait-changes: a slow commit doesn't blank another row, and Commit during a load runs after it", async () => {
+  const realExec = host.exec, other = h("@LIN/proj/.wt/fix"), third = h("@LIN/proj/.wt/zed");
+  try {
+    const g = changesWorld({ others: [other, third], dirty: { [other]: [" M a.js"], [third]: [" M b.js"] } });
+    const { m, c } = await mount("portrait-changes");
+    m.render(c); await settle();
+    m.toggle(m.listed().find((r) => r.path === other), c); await settle();
+    m.busy = m.context;
+    m.toggle(m.listed().find((r) => r.path === third), c); await settle();
+    assert.deepEqual(m.files.map((f) => f.path), ["b.js"]);
+    m.busy = false;
+
+    let open; g.git.gate = new Promise((r) => { open = r; });
+    m.refresh(c); await settle();
+    assert.equal(m.loading, true);
+    m.message = "work"; m.commit(c);
+    assert.equal(g.calls.filter((x) => x.args[0] === "commit").length, 0, "it waits");
+    open(); await settle();
+    const commits = g.calls.filter((x) => x.args[0] === "commit");
+    assert.equal(commits.length, 1);
+    assert.equal(commits[0].cwd, third);
+  } finally { host.exec = realExec; }
+});
+
+test("portrait-changes: focus moving to a machine that doesn't answer leaves local rows local", async () => {
+  const realExec = host.exec, repo = h("@LIN/proj");
+  try {
+    const g = changesWorld();
+    const { m, c } = await mount("portrait-changes");
+    m.render(c); await settle();
+    assert.equal(m.worktrees[0].on, null);
+    state.spaces[0].machine = "devbox";
+    const base = host.exec;
+    host.exec = async (cmd, args, o) => { if (o?.on === "devbox") throw new Error("unreachable"); return base(cmd, args, o); };
+    m.render(c); await settle();
+    assert.deepEqual(m.worktrees.map((w) => [w.path, w.on]), [[repo, null]]);
+    assert.equal(m.topOn, null);
+    assert.ok(g.calls.length > 0);
+  } finally { host.exec = realExec; }
+});
+
+test("portrait-changes: last known state stays when the focus comes back; folding keeps a row that can't be read", async () => {
+  const realExec = host.exec, repo = h("@LIN/proj");
+  try {
+    const g = changesWorld({ dirty: { [repo]: [" M a"] } });
+    const { m, c } = await mount("portrait-changes");
+    m.render(c); await settle();
+    const k = JSON.stringify([null, repo]);
+    assert.equal(m.facts.get(k).files, 1);
+    m.worktrees = []; m.passList = null; m.start = null;
+    await m.count(c);
+    assert.equal(m.facts.get(k).files, 1, "a pass over other rows keeps it");
+    m.worktrees = [{ path: repo, branch: "main", on: null }];
+    m.toggle(m.listed()[0], c); await settle();
+    g.git.reject.add(repo);
+    m.refresh(c); await settle();
+    m.toggleQuiet(c);
+    assert.ok(m.openRow, "the row with the error stays open");
+  } finally { host.exec = realExec; }
+});
+

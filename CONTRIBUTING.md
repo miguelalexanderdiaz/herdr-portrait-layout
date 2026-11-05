@@ -69,7 +69,7 @@ root (row)
   panel (column, 368 px, hidden)
     panel-body (stack, active: files)
       files               mod portrait-files
-      changes             shipped mod changes
+      changes             mod portrait-changes
 ```
 
 The mods look up `panel`, `panel-body`, `files` and `changes` by id; `bar` is named only by the key `layout.toggle:bar`.
@@ -83,6 +83,7 @@ The mods look up `panel`, `panel-body`, `files` and `changes` by id; `bar` is na
 | `portrait-tabs` | Tab bar, per-space side panel memory | re-selects the panel tab when you switch spaces |
 | `portrait-pane` | Pane header | - |
 | `portrait-files` | Files panel, git marks, opening files | `hc run` with labels; opens `nvim-float`, `portrait-viewer` and its Open with popups; shared `files.editor`, `files.request` |
+| `portrait-changes` | Changes panel: worktrees and added folders, diff, commit | shared `changes.folders`, `changes.quietFolded` |
 | `nvim-float` | Title bar and Keep menu of a floating editor | `terminal.keep`, `pane.focus`, nvim's remote protocol over the socket |
 | `portrait-viewer` | Picture and PDF window | opened by `portrait-files` with the path |
 | `attention-picker` | The Agents waiting dialog | reads `agents.since` (or keeps its own first-seen times) and `space.colors`; keeps `attention.sort` |
@@ -105,10 +106,9 @@ State: shared keys live in Herdr's `shared.json`; mod storage is per mod; files 
 | Needs | Used by | If it is gone |
 |---|---|---|
 | `workspace-status` (shipped mod) | the 28 px status line | the status line is empty |
-| `changes` (shipped mod) | the Changes tab of the side panel | that tab is empty |
 | `picker`, `machine-add` (shipped overlays) | bar-strip: Search, Add machine | the button does nothing |
 | `menu`, `new-menu` (shipped overlays) | portrait-tree and portrait-tabs: right-click menus and + | menus and + do nothing |
-| Theme colours (`foreground`, `background`, `muted`, `dim`, `chrome`, `raised`, `hover`, `selected`, `border`, `accent`, `working`, `blocked`, `done`, `idle`, `ansi1` to `ansi6`) | everything except the six fixed space marks | every theme defines them |
+| Theme colours (`foreground`, `background`, `canvas`, `muted`, `dim`, `chrome`, `raised`, `solid`, `solid_foreground`, `hover`, `selected`, `border`, `accent`, `working`, `blocked`, `done`, `idle`, `ansi1` to `ansi6`) | everything except the six fixed space marks | every theme defines them |
 | `hc` and `nvim` on the login shell's PATH | click-to-edit, the waiting list's previews | Files falls back to the read-only preview; no question text |
 
 Icons are carried inside each mod's folder, so a change to Herdr's asset names does not break them. The three cloned mods are copies of the 0.1.12 versions and are not updated by Herdr (see Maintenance).
@@ -148,7 +148,7 @@ Fold and unfold a space; focus an agent in a folded space; the bell (click, shif
 ## Don't touch
 
 - `mods/attention-picker/` is a frozen, hash-checked copy. The maintainer replaces it as a whole (above).
-- `portrait-tabs`, `portrait-pane`, `portrait-files` keep `cloned_from`; they are copies of Herdr 0.1.12 mods.
+- `portrait-tabs`, `portrait-pane`, `portrait-files`, `portrait-changes` keep `cloned_from`; they are copies of Herdr 0.1.12 mods (`portrait-changes`: 0.1.13).
 - Layout ids `panel`, `panel-body`, `files` and `changes` are looked up by the mods, and `bar` by the toggle key.
 
 ## Adding a mod to the layout

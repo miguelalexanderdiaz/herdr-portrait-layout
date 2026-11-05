@@ -1,4 +1,4 @@
-// API drift guard: every name the six own mods import from "herdr", "gpui-kit" and "gpui-base",
+// API drift guard: every name the own mods import from "herdr", "gpui-kit" and "gpui-base",
 // and every builder call (`.name(`) in their main.js, must exist in the type files Herdr writes
 // into its app folder (herdr.d.ts, gpui-kit.d.ts). Herdr rewrites those files on every start, so after
 // a Herdr update this is the test that says "this mod uses something that is gone".
@@ -14,7 +14,7 @@ import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const mods = join(dirname(fileURLToPath(import.meta.url)), "..", "mods");
-const OWN = ["portrait-tree", "portrait-tabs", "portrait-pane", "portrait-files", "bar-strip", "nvim-float"];
+const OWN = ["portrait-tree", "portrait-tabs", "portrait-pane", "portrait-files", "portrait-changes", "bar-strip", "nvim-float"];
 const appHome = process.env.HERDR_APP_HOME || join(homedir(), ".config", "herdr-app");
 const files = { herdr: join(appHome, "herdr.d.ts"), kit: join(appHome, "gpui-kit.d.ts") };
 const missing = Object.values(files).filter((f) => !existsSync(f));
