@@ -32,8 +32,11 @@ Modified copies (all taken from Herdr 0.1.12):
   mods/portrait-files/            from the mod `files`
       Changes: a click on a file opens it in nvim in a floating window (mods/nvim-float) instead of a preview, with
       the read-only preview kept for Alt-click and for Windows; a title was added to mod.json.
+  mods/portrait-changes/          from the mod `changes` of Herdr 0.1.13
+      Changes: a list of the repo's worktrees and the folders you add, each opening in place, instead of only the
+      focused pane's repo; the pure parts moved to logic.mjs; icons copied into the mod; a title was added to mod.json.
 
-Not redistributed: Herdr's other mods (`workspace-status`, `changes`, `picker`, `machine-add`, `menu`, `new-menu`)
+Not redistributed: Herdr's other mods (`workspace-status`, `picker`, `machine-add`, `menu`, `new-menu`)
 are only used by name; they come with the person's Herdr and are never copied into this repository.
 
 
@@ -55,8 +58,8 @@ texts reproduced in section 3.
   settings.svg                     mods/bar-strip                                               -> workspace-chrome
   plus.svg                         mods/portrait-tree                                           -> workspace-chrome
   chevron-left.svg                 mods/portrait-tree                                           -> workspace-chrome
-  chevron-right.svg                mods/portrait-files, mods/portrait-tree                      -> files, workspace-chrome
-  chevron-down.svg                 mods/portrait-files, mods/nvim-float                         -> files, workspace-chrome
+  chevron-right.svg                mods/portrait-files, mods/portrait-changes, mods/portrait-tree -> files, workspace-chrome
+  chevron-down.svg                 mods/portrait-files, mods/portrait-changes, mods/nvim-float  -> files, workspace-chrome
   file.svg                         mods/portrait-files, mods/bar-strip                          -> files
   folder.svg                       mods/portrait-files                                          -> files, workspace-chrome
   changes.svg                      mods/bar-strip  (the Changes button)                         -> changes

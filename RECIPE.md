@@ -10,7 +10,7 @@ This file is the brief: enough to build Portrait from an empty folder. The files
 they don't work on your Herdr, or you want it different, build it again from here. The picture is drawn from invented
 content (`scripts/make-preview.mjs`); it is not a screenshot of anyone's window.
 
-Made for Herdr 0.1.12. It sets no theme and no fonts (the person's own settings decide the look) and adds four keys, see
+Made for Herdr 0.1.13. It sets no theme and no fonts (the person's own settings decide the look) and adds four keys, see
 Keys. Linux, Windows and fish-shell behaviour is written down but was never run on a live build, see Watch out.
 
 ## What you see
@@ -69,7 +69,11 @@ only if Herdr reports that the window has none (`window().buttons`), which neith
 3. **The status line**, 28px, the shipped `workspace-status` mod.
 4. **The right panel** (hidden at first), 368px wide (280px to 1600px, resizable) to the right of everything, 8px
    padding, holding one of: **Files** (a card, radius 10, 1px `border`, `background`: a 42px header "Files" with the
-   folder's name on the right, then the folder tree) or **Changes** (the shipped `changes` mod).
+   folder's name on the right, then the folder tree) or **Changes** (a card like Files: a 42px header "Changes", the repo's name in `muted`, "Add folder" on the right; then a
+   row (30px on top, 26px in the darker part) per worktree of the focused pane's repo, and for the repo the space was started in (always listed) and each added folder, in two parts: on top the folders with changes, newest change first
+   (the newest uncommitted file's date, else the last commit); below, on `canvas`, a "No changes" heading (semibold at the panel's text size, like "Changes", with the count beside it) that folds them, remembered and staying right under the top part, and the rest; the order settles when a check ends and holds while a row is open), each with a chevron, its
+   branch or folder name, a 6px `accent` dot on the focused pane's checkout, and "N files" when it has changes; all folded at
+   first. A click opens that row in place with its file list, diff and commit box, and folds the one open before).
 
 **Portrait bottom** is the same layout with the bar moved: the work area first, then the bar, then the status line. Nothing
 else differs.
@@ -223,16 +227,17 @@ fails if the two files drift apart.
 | `portrait-tabs` | the tab pills, window buttons, per-space panel memory (clone of the shipped `tabs` 0.1.12) | none |
 | `portrait-pane` | the pane header (clone of the shipped `pane` 0.1.12) | `props()` = `{ pane, terminal }` from the app |
 | `portrait-files` | the Files panel: opens each file in the picked editor, the viewer or the system's app, and the read-only preview (clone of the shipped `files` 0.1.12) | none in the panel; as its own popups `props()` = `{ menu: "editor", choices, current }` or `{ menu: "open", choices, path, root, on }` |
+| `portrait-changes` | the Changes panel: worktrees and added folders, opening in place (clone of the shipped `changes` 0.1.13) | none |
 | `nvim-float` | the title bar of a floating terminal editor and its Keep menu; opened only through `openOverlay` | `props()` = `{ terminal, socket, file, space, on, editor, overlay }` or `{ menu: true, window, ... }` |
 | `portrait-viewer` | the window that shows a picture or a PDF clicked in Files; opened only through `openOverlay` | `props()` = `{ file }` |
 | `attention-picker` | the Agents waiting dialog (640px wide, `overlay` in its own `mod.json`); a frozen copy, hash-checked in `scripts/bundled.json`, do not edit | `props()` = `{ search }` (the search box is on unless it is `false`; `mod.open` passes no props); reads shared `agents.since` (when `portrait-tree` publishes it, otherwise it times states itself), `attention.sort` (also written), `space.colors` |
 
-**Shipped mods it needs** (Herdr 0.1.12 or newer; they are replaced whole on every Herdr start, never edited here):
-`workspace-status` (the status block), `changes` (the panel child), and opened by name as overlays `picker`,
+**Shipped mods it needs** (Herdr 0.1.13 or newer; they are replaced whole on every Herdr start, never edited here):
+`workspace-status` (the status block), and opened by name as overlays `picker`,
 `machine-add`, `menu`, `new-menu`. No other shipped file is read: the icons are copied into the mods that use them (see
 `NOTICE`).
 
-**Shared state:** writes `files.editor` (the editor text files open with, an id such as `nvim` or `code`),
+**Shared state:** writes `changes.folders` (the folders added to Changes, a list of paths), `changes.quietFolded` (whether the "No changes" part is folded), `files.editor` (the editor text files open with, an id such as `nvim` or `code`),
 `files.request` (the last *Open with* choice: `{ at, root, on, path, editor }`, read by the panel and ignored after 10
 seconds), `agents.since` (agent address to the time of its last state change) and `attention.sort` (the Agents waiting order); reads `workspace.panels` (which panel tabs
 the person has enabled, default `["files", "changes"]`), `space.colors` (space id to a color name or `#rrggbb`) and
@@ -242,7 +247,7 @@ first seen in it; no screen text); corrupt or foreign values fall back to empty,
 
 **Functions and commands used:** from `herdr`: `spaces, agents, panes, terminals, focused, run, shared, setShared,
 setAgentOrder, theme, settings, layout, updates, window, home, appHome, keys, machines, props, nextCommand,
-openOverlay, closeOverlay, notify, exec, hc, readTextFile, watchFolder`; from Node-style modules, only `fs/promises`
+openOverlay, closeOverlay, notify, exec, hc, readTextFile, watchFolder, pickFolder`; from Node-style modules, only `fs/promises`
 (`portrait-tree`: `readFile`, `readdir`, `mkdir`, `writeFile` and `unlink` on its spine SVGs under
 `<app home>/data/portrait-tree-spines/`; `portrait-viewer`:
 `readFile` on the clicked picture, and `readFile`, `writeFile`, `mkdir`, `readdir`, `unlink` and `rmdir` under
@@ -255,7 +260,7 @@ openOverlay, closeOverlay, notify, exec, hc, readTextFile, watchFolder`; from No
 **What it reaches outside itself (read this before installing):**
 - **Network:** none. No mod calls `fetch`, `WebSocket`, `XMLHttpRequest` or any other network API (`node scripts/check-recipe.mjs`
   fails if one appears). `hc` and `exec` reach other machines only through Herdr's own machine connections.
-- **Runs programs:** `git` (`rev-parse`, `status`, read-only, for the Files marks, only while the panel is open); `sh`
+- **Runs programs:** `git` (`rev-parse`, `status`, read-only, for the Files marks, and with `worktree list`, `log` and `diff` for the Changes list, only while that panel is open; `check-ignore`, `add` and `commit` only when you press Commit in Changes); `stat` (dates of changed files in Changes); `sh`
   (lists a folder; looks up which editors are installed with `command -v` and, on macOS, whether their apps are in
   `/Applications` or `~/Applications`, at most once a minute; launches terminal editors on macOS and Linux and on remote
   POSIX machines; starts the person's login shell to read its `PATH` with `printenv PATH` and to look up the viewer's tools with
@@ -268,7 +273,7 @@ openOverlay, closeOverlay, notify, exec, hc, readTextFile, watchFolder`; from No
   only, for each blocked or finished agent every 3 seconds while its list is open, to find the question on screen). Files,
   `git`, `sh`, `nvim` and `hc run` run on the machine of the folder that is shown (`on`), which may be a remote one;
   `hc read` reads agents on any machine Herdr lists.
-- **Reads outside its folder:** the folders shown in the Files panel and the file you click (through `exec` and
+- **Reads outside its folder:** the folders shown in the Files and Changes panels and the file you click (through `exec` and
   `readTextFile`, on the folder's own machine); terminal
   text through `hc read` (`attention-picker` only; kept in memory while the list is open, not stored); the person's key
   bindings (`bar-strip`, for the bell's tooltip); the shared values above; the app's own list of spaces, tabs, panes,
@@ -332,14 +337,14 @@ are drawn by `scripts/make-preview.mjs`.
 Other pieces look these up by name. A build or a rename that drops one breaks something silently.
 
 - **Layout ids:** `root`, `left`, `bar`, `bar-strip`, `tree`, `work`, `tabs`, `work-body`, `main`, `status`, `panel`, `panel-body`, `files`, `changes`
-- **Mods:** `portrait-tree`, `bar-strip`, `portrait-tabs`, `portrait-pane`, `portrait-files`, `nvim-float`, `portrait-viewer`, `attention-picker`, `workspace-status`, `changes`, `picker`, `machine-add`, `menu`, `new-menu`
+- **Mods:** `portrait-tree`, `bar-strip`, `portrait-tabs`, `portrait-pane`, `portrait-files`, `portrait-changes`, `nvim-float`, `portrait-viewer`, `attention-picker`, `workspace-status`, `picker`, `machine-add`, `menu`, `new-menu`
 - **Key sections:** `layout:portrait`, `layout:portrait-bottom`
 - **Shared keys:** `agents.since`, `workspace.panels`, `space.colors`
 - **Commands:** `bar-strip.attention`, `mod.open`, `layout.toggle`, `layout.switch`, `layout.select`, `layout.show`, `layout.hide`, `agent.focus`
 
 ## Done when
 
-- [ ] `herdr-app check <app home>/mods/<mod>` passes for each of the eight mod folders, and `herdr-app commands` lists every
+- [ ] `herdr-app check <app home>/mods/<mod>` passes for each of the nine mod folders, and `herdr-app commands` lists every
   command named in `keys.json` (`layout.toggle`, `layout.switch`, `mod.open`).
 - [ ] With the layout `portrait` shown: the window is, top to bottom, a 246px bar (26px strip with Search, Add machine,
   Settings, the bell, Files, Changes; then the space columns), a 42px tab strip, the pane cards, and a 28px status line.
@@ -355,5 +360,5 @@ Other pieces look these up by name. A build or a rename that drops one breaks so
   choice; while it is closed no `git` or `sh` process runs. On macOS or Linux with nvim installed a click on a file opens it in
   a floating window whose Keep menu offers "New tab". On Windows, or without nvim on the `PATH`, the click hands the file to the default app;
   alt-click, or picking *Preview only*, shows the read-only preview.
-- [ ] No mod writes anything but `<app home>/data/portrait-tree-spines/*.svg`, `<app home>/data/portrait-viewer/cache/`, the nvim sockets and its own
+- [ ] Apart from a Commit you press in Changes, no mod writes anything but `<app home>/data/portrait-tree-spines/*.svg`, `<app home>/data/portrait-viewer/cache/`, the nvim sockets and its own
   `localStorage`; no mod reaches the network; `git status` of the person's projects is unchanged after browsing them.

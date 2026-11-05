@@ -9,16 +9,16 @@
 #            node's children in each layout above
 #   say      what the person reads before anything is written
 name     Portrait layout
-mods     portrait-tree bar-strip portrait-tabs portrait-pane portrait-files nvim-float portrait-viewer
+mods     portrait-tree bar-strip portrait-tabs portrait-pane portrait-files portrait-changes nvim-float portrait-viewer
 bundled  attention-picker
 layouts  portrait portrait-bottom
 switch   portrait
 keys     keys.json
 say      Network: none. No mod calls the network.
-say      Runs programs: git (read-only, for the Files marks); sh or powershell (lists folders); your login
+say      Runs programs: git and stat (Files marks and the Changes list; the Commit button runs git add and commit); sh or powershell (lists folders); your login
 say        shell once, to read its PATH; the editor you pick and the system's opener (never a program);
 say        Poppler (pdfinfo, pdftoppm) for PDFs; hc (starts editor terminals; the waiting list reads the
 say        last 60 lines of blocked agents' screens while it is open).
-say      Reads outside its folders: the folders shown in Files and the files you open, your key bindings,
+say      Reads outside its folders: the folders shown in Files and Changes and the files you open, your key bindings,
 say        Herdr's list of spaces, tabs, panes and agents.
 say      Writes: data/ in the Herdr home (thumbnail SVGs, the viewer's picture cache), nvim sockets in /tmp.

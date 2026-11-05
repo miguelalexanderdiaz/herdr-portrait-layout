@@ -9,10 +9,10 @@ import { fileURLToPath } from "node:url";
 const mods = join(dirname(fileURLToPath(import.meta.url)), "..", "mods");
 
 const EXPECTED = {
-  paths: ["nvim-float", "portrait-files", "portrait-pane", "portrait-tree"],
+  paths: ["nvim-float", "portrait-changes", "portrait-files", "portrait-pane", "portrait-tree"],
   storage: ["portrait-tabs", "portrait-tree"],
   wheel: ["portrait-tabs", "portrait-tree"],
-  find: ["bar-strip", "portrait-files", "portrait-tabs"],
+  find: ["bar-strip", "portrait-changes", "portrait-files", "portrait-tabs"],
   panels: ["bar-strip", "portrait-tabs"],
   nvim: ["nvim-float", "portrait-files"],
   alpha: ["bar-strip", "portrait-pane", "portrait-tree"],

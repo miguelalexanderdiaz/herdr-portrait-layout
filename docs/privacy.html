@@ -22,8 +22,8 @@
 <p class="lead">Nothing leaves your machine because of this layout. In short:</p>
 <dl>
 <dt>Network</dt><dd>None. No mod calls the network; no telemetry.</dd>
-<dt>Runs</dt><dd><code>sh</code> or <code>powershell</code> to list folders; <code>git</code> (read-only) for the Files marks; your login shell once, for its PATH; the editor you pick or the system's opener (never a program); Poppler for PDFs; <code>hc</code> to start editors and, while the waiting list is open, to read the last 60 lines of blocked or finished agents. Nothing runs while Files is closed.</dd>
-<dt>Reads</dt><dd>The focused pane's folder, the files you open (pictures and PDFs only inside your home folder), your key bindings, Herdr's spaces, tabs, panes and agents.</dd>
+<dt>Runs</dt><dd><code>sh</code> or <code>powershell</code> to list folders; <code>git</code> for the Files marks and the Changes list (read-only), and to stage and commit when you press Commit in Changes; <code>stat</code> for the dates of changed files in Changes; your login shell once, for its PATH; the editor you pick or the system's opener (never a program); Poppler for PDFs; <code>hc</code> to start editors and, while the waiting list is open, to read the last 60 lines of blocked or finished agents. Nothing runs while Files or Changes is closed; a Changes check under way stops after its current folder.</dd>
+<dt>Reads</dt><dd>The focused pane's folder, the folders listed in Changes, the files you open (pictures and PDFs only inside your home folder), your key bindings, Herdr's spaces, tabs, panes and agents.</dd>
 <dt>Writes</dt><dd>Under <code>data/</code> in the Herdr home: space-name images and the viewer's cache (kept 30 days, at most 200 MB). nvim sockets in <code>/tmp</code>. Small records in Herdr's mod storage, such as fold state (an agent's entry goes 7 days after the agent is gone). An editor's terminal is labelled with the file path, which <code>hc ls</code> shows.</dd>
 </dl>
 <p>Verify: <code>rg -n "fetch|XMLHttpRequest|WebSocket" mods</code> prints nothing; <code>rg -n "exec\(|hc\(" mods</code> lists what runs.</p>
@@ -55,6 +55,13 @@
 <dt>Runs</dt><dd><code>sh</code> (or <code>powershell</code> on a local Windows machine), <code>git rev-parse</code> and <code>git status</code> (no lock), <code>printenv PATH</code> in your login shell once per machine, <code>command -v</code> per editor (on macOS also a look in the Applications folders), <code>hc run</code> for terminal editors, the app you picked, and <code>open</code>, <code>xdg-open</code> or <code>rundll32</code> for documents.</dd>
 <dt>Stores</dt><dd>An nvim socket in <code>/tmp</code>; terminal labels <code>editor.file</code> and <code>editor.socket</code>; shared keys <code>files.editor</code> and <code>files.request</code>.</dd>
 <dt>Where to check</dt><dd><code>directory</code>, <code>refresh</code>, <code>edit</code>, <code>detect</code>, <code>terminalEditor</code>, <code>loginPath</code>, <code>nvimArgv</code>, <code>show</code></dd>
+</dl>
+<h3>portrait-changes</h3>
+<dl>
+<dt>Reads</dt><dd>The worktrees of the focused pane's repo, the repo the space was started in and the folders you add: their git state and, in the open one, the changed files (up to 400,000 characters each), only while the panel is open.</dd>
+<dt>Runs</dt><dd><code>git rev-parse</code>, <code>git worktree list</code>, <code>git status</code> and <code>git log</code> (no lock), one folder at a time, about once a minute; <code>git status</code> and <code>git diff</code> (no lock) on the open folder every 10 seconds and when it changes, at most every 1.5 seconds; it watches the open folder; <code>stat</code> on changed files for their dates; <code>git check-ignore</code>, <code>git add -A</code> and <code>git commit</code> in the open folder when you press Commit.</dd>
+<dt>Stores</dt><dd>Shared keys <code>changes.folders</code> (the folders you added) and <code>changes.quietFolded</code> (whether the folders without changes are folded).</dd>
+<dt>Where to check</dt><dd><code>refreshList</code>, <code>count</code>, <code>changedAt</code>, <code>refresh</code>, <code>load</code>, <code>commit</code>, <code>add</code>, <code>toggleQuiet</code>, <code>addArgs</code></dd>
 </dl>
 <h3>nvim-float</h3>
 <dl>

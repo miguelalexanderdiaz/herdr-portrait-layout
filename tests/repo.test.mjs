@@ -94,6 +94,7 @@ test("the icons that were copied from Herdr are in the mod that draws them", () 
     "portrait-tabs": ["spinner.svg", "close.svg", "win-close.svg", "win-max.svg", "win-min.svg", "win-restore.svg"],
     "portrait-pane": ["spinner.svg", "close.svg", "split-right.svg", "split-down.svg", "zoom.svg", "unzoom.svg"],
     "portrait-files": ["chevron-down.svg", "chevron-right.svg", "file.svg", "folder.svg"],
+    "portrait-changes": ["chevron-down.svg", "chevron-right.svg"],
     "nvim-float": ["chevron-down.svg", "close.svg"],
   };
   for (const [m, list] of Object.entries(vendored)) for (const f of list) assert.ok(existsSync(join(modsDir, m, f)), `mods/${m}/${f}`);
