@@ -4,6 +4,14 @@ All notable changes to this repository, in the style of Keep a Changelog. Built 
 
 Releases are written here by [release-please](https://github.com/googleapis/release-please) from the titles of the pull requests merged since the last release (Conventional Commits, see CONTRIBUTING.md), newest first, and tagged `vX.Y.Z` on GitHub. Below them is the hand-written history from before the first release.
 
+## [0.1.1](https://github.com/miguelalexanderdiaz/herdr-portrait-layout/compare/v0.1.0...v0.1.1) (2026-11-06)
+
+
+### Features
+
+* changes panel for every worktree and added folders ([#15](https://github.com/miguelalexanderdiaz/herdr-portrait-layout/issues/15)) ([de0b7c3](https://github.com/miguelalexanderdiaz/herdr-portrait-layout/commit/de0b7c30b2de0e8c6d59d47236732b0d19930bd3))
+* toggle the Files and Changes panels from a key ([#17](https://github.com/miguelalexanderdiaz/herdr-portrait-layout/issues/17)) ([8d64419](https://github.com/miguelalexanderdiaz/herdr-portrait-layout/commit/8d64419a3a6934d3d2a0e26e8a7e139650b1985e))
+
 ## 0.1.0 (2026-11-05)
 
 
