@@ -104,7 +104,8 @@ the times move.
   (`mod.open:attention-picker`, which works even while the bar is hidden and closes the list when pressed again), opens
   the "Agents waiting" list (`attention-picker`) with a search box. The bell's tooltip names the real key. The mod
   commands `bar-strip.attention` (the same list, with the box on) and `bar-strip.jump` (what a plain click does) are still
-  served for anyone who binds them in a `layout:` section; they reach a shown strip only. Idle bell: dimmed, nothing
+  served for anyone who binds them in a `layout:` section; they reach a shown strip only. So are
+  `bar-strip.panel-files` and `bar-strip.panel-changes`, the same toggle as those two buttons; no key is bound to them. Idle bell: dimmed, nothing
   happens on a plain click.
 - *Files* and *Changes* open the right panel on that tab (`layout.select` on `panel-body`, then `layout.show` on
   `panel`); clicking the lit one hides the panel (`layout.hide`). The panel choice is remembered **per space**: switch

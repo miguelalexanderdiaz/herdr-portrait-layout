@@ -14,11 +14,13 @@ export default class BarStrip extends View {
     this.pickerId = null; // the open "Agents waiting" overlay, so a second key press doesn't stack another
     // `bar-strip.attention` (bound in keys.json): the list of waiting agents, with a search box.
     // `bar-strip.jump`: what a plain click on the bell does.
+    // `bar-strip.panel-files`, `bar-strip.panel-changes`: what a click on that panel button does.
     cx.spawn(async (cx) => {
       for (;;) {
         const c = await nextCommand();
         if (c === "attention") this.picker();
         else if (c === "jump") this.attention();
+        else if (c.startsWith("panel-")) this.togglePanel(c.slice(6));
         cx.notify();
       }
     });
@@ -60,10 +62,16 @@ export default class BarStrip extends View {
   // portrait-tabs notices the change and remembers it for the active space.
   panelButton(t, panel, body, id, label, icon) {
     const on = panel && !panel.hidden && body?.active === id;
-    return this.button(t, `panel-${id}`, icon, label, () => {
-      if (on) run("layout.hide", { id: "panel" });
-      else { run("layout.select", { stack: "panel-body", child: id }); run("layout.show", { id: "panel" }); }
-    }).when(on, (el) => el.bg(t.selected).text_color(t.foreground));
+    return this.button(t, `panel-${id}`, icon, label, () => this.togglePanel(id))
+      .when(on, (el) => el.bg(t.selected).text_color(t.foreground));
+  }
+
+  // Open this tab of the panel, or close the panel when it already shows it. An id the layout lacks does nothing.
+  togglePanel(id) {
+    const root = layout(), panel = find(root, "panel"), body = find(root, "panel-body");
+    if (!find(body, id)) return;
+    if (panel && !panel.hidden && body?.active === id) run("layout.hide", { id: "panel" });
+    else { run("layout.select", { stack: "panel-body", child: id }); run("layout.show", { id: "panel" }); }
   }
 
   // "🔔 1 needs you · 2 done": who is waiting on you; lit while anyone is.

@@ -217,6 +217,25 @@ test("bar-strip: Files and Changes buttons, and no other panel button", async ()
   assert.deepEqual(log.ids.filter((id) => id.startsWith("panel-")), ["panel-files"]);
 });
 
+test("bar-strip: the panel toggle opens a tab, closes it when shown, and ignores a panel the layout lacks", async () => {
+  world();
+  const { m } = await mount("bar-strip");
+  const panel = state.layout.children[0], body = panel.children[0];
+  const ran = () => log.calls.filter((x) => x[0] === "run").map((x) => [x[1], x[2]]);
+  panel.hidden = true; body.active = "files"; reset();
+  m.togglePanel("changes");
+  assert.deepEqual(ran(), [["layout.select", { stack: "panel-body", child: "changes" }], ["layout.show", { id: "panel" }]]);
+  panel.hidden = false; body.active = "changes"; reset();
+  m.togglePanel("changes");
+  assert.deepEqual(ran(), [["layout.hide", { id: "panel" }]]);
+  reset();
+  m.togglePanel("files");
+  assert.deepEqual(ran()[0], ["layout.select", { stack: "panel-body", child: "files" }], "another tab switches instead of closing");
+  reset();
+  m.togglePanel("gone");
+  assert.deepEqual(ran(), []);
+});
+
 test("bar-strip: the tooltip names the real key; one picker at a time; nothing is published", async () => {
   world();
   state.keys = [{ section: "layout:portrait", keys: "ctrl-shift-j", action: "bar-strip.attention" }];
